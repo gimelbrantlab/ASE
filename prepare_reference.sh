@@ -1,6 +1,6 @@
 #########################################################
 # 							#
-# 		ASE Replicates Progect			#
+# 		ASE Replicates Project			#
 # 		   ..bla-bla-bla..			#
 #							#
 #   Authors: Mendelevich Asya, Svetlana Vinogradova	#
@@ -12,7 +12,7 @@
 #     - Creating pseudogenomes from reference genomes and vcf file(s)
 #     - F1-cross vcf files
 #     - Gene-Transcript-Exon Annotations
-#Pleasem
+#
 # Please, use --help|-h for help.
 #
 
