@@ -67,6 +67,24 @@ If something is not provided, it will be also created at `output_directory_path/
 
 * F1-cross vcf files
 
+                                 
+                      joint.vcf =======================> separate.vcf (x2)
+                         ||      (GATK: SelectVariants)      //   ||
+                         ||                ==================     ||
+                  (GATK: ||              // (bcftools: merge)     || (GATK:
+          SelectVariant) ||    ==========                         || SelectVariant)
+                         \/  \/                                   \/
+                       pair.vcf                         separate.snp.vcf (x2)
+                  (GATK: ||
+          SelectVariant) ||
+                         \/
+                     pair.snp.vcf
+                         ||
+         (pair_to_f1.py) ||
+                         \/
+                     F1.snp.vcf
+                                                                                          
+
 * Gene-Transcript-Exon Annotations
 
 
