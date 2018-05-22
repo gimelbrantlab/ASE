@@ -14,12 +14,17 @@
 #     - F1-cross vcf files
 #     - Gene-Transcript-Exon Annotations
 # 
+# NOTE: the order of chromosomes in each file should be the same (add test)!
+# FOR MICE ONLY
+#
 # DEPEND:
 # bash(v4.2.46)
 # gcc(v6.2.0)
 # python(v3.6.0)
 # vcftools(v0.1.13)
 # STAR(v2.5.4a)
+# BEDOPS(v2.4.35)
+# bcftools/1.3.1
 #
 # Please, use --help|-h for help. 
 # For more information, please, visit:
@@ -32,29 +37,66 @@ import tempfile
 import subprocess
 import gzip
 
-def GATK_SnpExon_Caller(ref, vcf, ofile):
-    '''returns the GATK command for VCF -> SnpExon VCF'''
-    formulae = ["java -Xmx4g -jar GenomeAnalysisTK.jar -T SelectVariants -R", "-V", "-o", "-selectType SNP -restrictAllelesTo BIALLELIC"]
-    cmd = " ".join([formulae[0], ref, formulae[1], vcf, formulae[2], ofile, formulae[3]]
-    subprocess.check_output(cmd, shell=True)
-    print(cmd) 
+def GATK_SelectVariants(r, v, o, g=None, n=None):
+    '''the GATK command for VCF processings'''
+    cmd = "java -Xmx4g -jar GenomeAnalysisTK.jar -T SelectVariants -selectType SNP -restrictAllelesTo BIALLELIC"
+    flags = {'-R':ref, '-V':vcf, '-o':ofile}
+    if (gtf):
+        # tmp exons bed file:
+        exon_bed = tempfile.NamedTemporaryFile(delete=False, suffix=".bed")
+        cmd_exon = " ".join("grep -w 'exon'", gtf, "| grep '^[0-9XY]' | awk 'BEGIN{FS=OFS="    "}; {print $1,$4-1,$5}' >", exon_bed.name)
+        print(cmd_exon)
+        subprocess.check_output(cmd_exon, shell=True)
+        flags['-L'] = exon_bed.name
+    if (names):
+        flags['-sn'] = names
+    
+    flags_str = ''
+    for f in flags:
+        if isinstance(flags[f], str):
+            flags_str += f + ' ' + flags[f] + ' '
+        else:
+            for item in flags[f]:
+                flags_str += f + ' ' + item + ' '
+    cmd = ' '.join(cmd, flags_str)
+    
+    # clear up!:
+    if (gtf): 
+        os.remove(exon_bed.name)
     return
-def GATK_SepSnpExon_Caller(ref, vcf, ofile, name):
-    '''returns the GATK command for joint VCF -> separate SnpExon VCF'''
-    formulae = ["java -Xmx4g -jar GenomeAnalysisTK.jar -T SelectVariants -R", "-V", "-o", "-sn", "-selectType SNP -restrictAllelesTo BIALLELIC"]
-    cmd = " ".join([formulae[0], ref, formulae[1], vcf, formulae[2], ofile, formulae[3], name, formulae[4]]
-    subprocess.check_output(cmd, shell=True)
-    print(cmd)
+
+def JointToPair_VCF(ref, vcf, ofile, name_mat, name_pat):
+    GATK_SelectVariants(r=ref, v=vcf, o=ofile, n=[name_mat, name_pat])
+    return
+
+def SepToPair_VCF(ref, vcf_mat, vcf_pat, ofile, name_mat, name_pat):
+    unfiltered = tempfile.NamedTemporaryFile(delete=False)
+    cmd_merge = " ".join("bcftools merge", vcf_mat, vcf_pat, "-m both -o", unfiltered.name)
+    print(cmd_merge)
+    subprocess.check_output(cmd_merge, shell=True)
+    GATK_SelectVariants(r=ref, v=unfiltered.name, o=ofile)
+    os.remove(unfiltered.name)
+    return
+
+def PairToF1_VCF(vcf_pair, vcf_f1, name_mat, name_pat):
+    
     return
 
 def gzip_tabix_VCF(vcf):
     '''bgzip+tabix'''
     cmd_bgzip = " ".join(["bgzip -c", vcf, ">", vcf + '.gz'])
-    subprocess.check_output(cmd_bgzip, shell=True)
     print(cmd_bgzip)
+    subprocess.check_output(cmd_bgzip, shell=True)
     cmd_tabix = " ".join(["tabix -p vcf", vcf + '.gz']),
-    subprocess.check_output(cmd_tabix, shell=True)
     print(cmd_tabix)
+    subprocess.check_output(cmd_tabix, shell=True)
+    return
+
+def vcftools_consensus(ref_fa, vcf, pseudo_fa):
+    '''creates pseudogenom inserting corresponding SNPs'''
+    cmd = " ".join("cat", ref_fa, "| vcf-consensus", vcf, ">" pseudo_fa)
+    print(cmd)
+    subprocess.check_output(cmd, shell=True)
     return
 
 def main():
@@ -81,11 +123,17 @@ def main():
     if ((args.vcf_mat is None and args.vcf_pat is None) and (args.name_mat is None or args.name_pat is None)):
         msg = "Required with --vcf_joint: names should coincide with names in vcf."
         raise argparse.ArgumentTypeError(msg)
+    # SET NAMES:
+    if (args.name_mat is None):
+        name_mat = "mat"
+    else: 
+        name_mat = args.name_mat
+    if (args.name_pat is None):
+        name_pat = "pat"
+    else:
+        name_pat = args.name_pat
 
      # 1. PSEUDOREFERENCE:
-     sep_vcf_mat = tempfile.NamedTemporaryFile(delete=False)
-     sep_vcf_pat = tempfile.NamedTemporaryFile(delete=False)
-
      if (args.RSEUDOREF=="True") :
           sep_vcf_mat = tempfile.NamedTemporaryFile(delete=False)
           sep_vcf_pat = tempfile.NamedTemporaryFile(delete=False)
@@ -97,34 +145,48 @@ def main():
 
           # 1.1. Separate SNP VCFs:
           if (args.vcf_mat is None):
-              GATK_SepSnpExon_Caller(args.ref, args.vcf_mat, sep_vcf_mat, name_mat)
+              GATK_SelectVariants(r=args.ref, v=args.vcf_joint, o=sep_vcf_mat.name, n=name_mat)
           else: 
-              GATK_SnpExon_Caller(args.ref, args.vcf_mat, sep_vcf_mat)
+              GATK_SelectVariants(r=args.ref, v=args.vcf_mat, o=sep_vcf_mat.name)
           if (args.vcf_pat is None):
-              GATK_SepSnpExon_Caller(args.ref, args.vcf_pat, sep_vcf_pat, name_pat)
+              GATK_SelectVariants(r=args.ref, v=args.vcf_joint, o=sep_vcf_pat.name, n=name_pat)
           else:
-              GATK_SnpExon_Caller(args.ref, args.vcf_pat, sep_vcf_pat)
+              GATK_SelectVariants(r=args.ref, v=args.vcf_pat, o=sep_vcf_pat.name)
           
-          gzip_tabix_VCF(sep_vcf_mat)
-          gzip_tabix_VCF(sep_vcf_pat)         
+          gzip_tabix_VCF(sep_vcf_mat.name)
+          gzip_tabix_VCF(sep_vcf_pat.name)         
+          
+          # 1.2. Pseudoreference:
+          vcftools_consensus(args.ref, sep_vcf_mat.name, os.path.join(pseudo_dir_mat, name_mat + "_pseudo.fa"))
+          vcftools_consensus(args.ref, sep_vcf_pat.name, os.path.join(pseudo_dir_pat, name_pat + "_pseudo.fa"))
           
           os.remove(sep_vcf_mat.name)
           os.remove(sep_vcf_pat.name)
 
-
-     # 1.2. Pseudoreference:
-
      # 2. F1 VCF:
-     # 2.1 Paired VCF:
-     # 2.2 F1 VCF:
+     if (args.F1VCF=="True") :
+         os.makedirs(f1_dir, exist_ok=True)
+         
+         pair_vcf = tempfile.NamedTemporaryFile(delete=False)
+         
+         # 2.1 Paired VCF:
+         if (args.vcf_mat is None or args.vcf_pat is None):
+             JointToPair_VCF(args.ref, args.vcf_joint, pair_vcf.name, name_mat, name_pat)
+         else: 
+             SepToPair_VCF(args.ref, args.vcf_mat, args.vcf_pat, pair_vcf.name, name_mat, name_pat)
+         
+         # 2.2 F1 VCF:
+         vcf_f1 = os.path.join(f1_dir, "_".join("F1", name_mat, name_pat)+'.vcf')
+         PairToF1_VCF(pair_vcf.name, vcf_f1, name_mat, name_pat)
+
+         # 2.3 Exon F1 VCF:
+         vcf_f1exon = os.path.join(f1_dir, "_".join("F1", name_mat, name_pat, "exon")+'.vcf')
+         GATK_SelectVariants(r=args.ref, v=vcf_f1, g=args.gtf, o=vcf_f1exon)
 
 if __name__ == "__main__":
     main()
 
 
-
-#1. separate.vcf > separate.snp.vcf :
-#java -Xmx4g -jar GenomeAnalysisTK.jar -T SelectVariants -R $ref_fa -V $vcf_mat -o "${vcf_mat%.*}".vcf -selectType SNP -restrictAllelesTo BIALLELIC
 
 
 
