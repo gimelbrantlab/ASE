@@ -21,6 +21,8 @@
 # bash(v4.2.46)
 # gcc(v6.2.0)
 # python(v3.6.0)
+# java(v1.8.0_112)
+# gatk(v4.0.0.0)
 # vcftools(v0.1.13)
 # STAR(v2.5.4a)
 # BEDOPS(v2.4.35)
@@ -36,20 +38,23 @@ import os
 import tempfile
 import subprocess
 import gzip
+import re
 
-def GATK_SelectVariants(r, v, o, g=None, n=None):
-    '''the GATK command for VCF processings'''
-    cmd = "java -Xmx4g -jar GenomeAnalysisTK.jar -T SelectVariants -selectType SNP -restrictAllelesTo BIALLELIC"
-    flags = {'-R':ref, '-V':vcf, '-o':ofile}
-    if (gtf):
+def GATK_SelectVariants(r, v, o, g=None, n=None, b=False):
+    '''the GATK command for VCF processings; gene - vcf - ofile - gtf - name - biallelic'''
+    cmd = "gatk SelectVariants -select-type SNP"
+    flags = {'-R':r, '-V':v, '-O':o}
+    if (g):
         # tmp exons bed file:
         exon_bed = tempfile.NamedTemporaryFile(delete=False, suffix=".bed")
-        cmd_exon = " ".join("grep -w 'exon'", gtf, "| grep '^[0-9XY]' | awk 'BEGIN{FS=OFS="    "}; {print $1,$4-1,$5}' >", exon_bed.name)
+        cmd_exon = " ".join("grep -w 'exon'", g, "| grep '^[0-9XY]' | awk 'BEGIN{FS=OFS="    "}; {print $1,$4-1,$5}' >", exon_bed.name)
         print(cmd_exon)
         subprocess.check_output(cmd_exon, shell=True)
         flags['-L'] = exon_bed.name
-    if (names):
-        flags['-sn'] = names
+    if (n):
+        flags['-sn'] = n
+    if (b):
+        flags['-restrict-alleles-to'] = "BIALLELIC"
     
     flags_str = ''
     for f in flags:
@@ -58,10 +63,12 @@ def GATK_SelectVariants(r, v, o, g=None, n=None):
         else:
             for item in flags[f]:
                 flags_str += f + ' ' + item + ' '
-    cmd = ' '.join(cmd, flags_str)
-    
+    cmd = ' '.join([cmd, flags_str])
+    print(cmd)
+    subprocess.check_output(cmd, shell=True)
+
     # clear up!:
-    if (gtf): 
+    if (g): 
         os.remove(exon_bed.name)
     return
 
@@ -70,7 +77,7 @@ def JointToPair_VCF(ref, vcf, ofile, name_mat, name_pat):
     return
 
 def SepToPair_VCF(ref, vcf_mat, vcf_pat, ofile, name_mat, name_pat):
-    unfiltered = tempfile.NamedTemporaryFile(delete=False)
+    unfiltered = tempfile.NamedTemporaryFile(delete=False, suffix=".vcf")
     cmd_merge = " ".join("bcftools merge", vcf_mat, vcf_pat, "-m both -o", unfiltered.name)
     print(cmd_merge)
     subprocess.check_output(cmd_merge, shell=True)
@@ -79,7 +86,55 @@ def SepToPair_VCF(ref, vcf_mat, vcf_pat, ofile, name_mat, name_pat):
     return
 
 def PairToF1_VCF(vcf_pair, vcf_f1, name_mat, name_pat):
+    print(vcf_pair + "  -->  " + vcf_f1)
+    vcf_stream = open(vcf_pair, 'r')
+    out_stream = open(vcf_f1, 'w') 
     
+    # header:
+    ### REWRITE ACCURATE header filtering ###
+    row = vcf_stream.readline()
+    while (row.startswith("##")):
+        out_stream.write(row)
+        row = vcf_stream.readline()
+    
+    colnames = row.replace('#','').strip().split()
+    mat_col = colnames.index(name_mat)
+    pat_col = colnames.index(name_pat)
+    format_col = colnames.index("FORMAT")
+    ref_col = colnames.index("REF")
+    alt_col = colnames.index("ALT")
+    
+    colnames_out = '\t'.join(row[ :min(mat_col, pat_col)] + ["F1"] + row[max(mat_col, pat_col)+1: ])
+    out_stream.write(colnames_out)
+    
+    # body:
+    for row in vcf_stream:
+        row = row.strip().split()
+        gt_index = row[format_col].split(":").index("GT")
+        gt_mat = row[mat_col].split(":")[gt_index]
+        gt_pat = row[pat_col].split(":")[gt_index]
+        ### AND IF THEY ARE ALREADY PHASED? ###
+        
+        if (gt_mat[0]==gt_mat[2] and gt_pat[0]==gt_pat[2] and gt_mat[0]!=gt_pat[0]):
+            if (gt_mat[0] == '0'):
+                ref_allele = row[ref_col]
+            else: 
+                ref_allele = row[alt_col].split(',')[gt_mat[0]-1]
+            if (gt_pat[0] == '0'):
+                alt_allele = row[ref_col]
+            else:
+                alt_allele = row[alt_col].split(',')[gt_pat[0]-1]
+            
+            row[pat_col].replace(gt_pat, "0|1")
+            row[ref_col] = ref_allele
+            row[alt_col] = alt_allele
+            ### IF THERE ARE OTHER FIELDS IN COLUMN TO BE CHANGED? ###
+
+            colnames_out = '\t'.join(row[ :min(mat_col, pat_col)] + row[pat_col] + row[max(mat_col, pat_col)+1: ])
+            out_stream.write(colnames_out)
+
+    vcf_stream.close()
+    out_stream.close()
     return
 
 def gzip_tabix_VCF(vcf):
@@ -94,7 +149,7 @@ def gzip_tabix_VCF(vcf):
 
 def vcftools_consensus(ref_fa, vcf, pseudo_fa):
     '''creates pseudogenom inserting corresponding SNPs'''
-    cmd = " ".join("cat", ref_fa, "| vcf-consensus", vcf, ">" pseudo_fa)
+    cmd = " ".join(["cat", ref_fa, "| vcf-consensus", vcf, ">", pseudo_fa])
     print(cmd)
     subprocess.check_output(cmd, shell=True)
     return
@@ -134,62 +189,57 @@ def main():
         name_pat = args.name_pat
 
      # 1. PSEUDOREFERENCE:
-     if (args.RSEUDOREF=="True") :
-          sep_vcf_mat = tempfile.NamedTemporaryFile(delete=False)
-          sep_vcf_pat = tempfile.NamedTemporaryFile(delete=False)
+    if (args.PSEUDOREF=="True"):
+        sep_vcf_mat = tempfile.NamedTemporaryFile(delete=False, suffix=".vcf")
+        sep_vcf_pat = tempfile.NamedTemporaryFile(delete=False, suffix=".vcf")
 
-          pseudo_dir_mat = os.path.join(args.pseudo_dir, name_mat)
-          pseudo_dir_pat = os.path.join(args.pseudo_dir, name_pat)
-          os.makedirs(pseudo_dir_mat, exist_ok=True)
-          os.makedirs(pseudo_dir_pat, exist_ok=True)
+        pseudo_dir_mat = os.path.join(args.pseudo_dir, name_mat)
+        pseudo_dir_pat = os.path.join(args.pseudo_dir, name_pat)
+        os.makedirs(pseudo_dir_mat, exist_ok=True)
+        os.makedirs(pseudo_dir_pat, exist_ok=True)
 
-          # 1.1. Separate SNP VCFs:
-          if (args.vcf_mat is None):
-              GATK_SelectVariants(r=args.ref, v=args.vcf_joint, o=sep_vcf_mat.name, n=name_mat)
-          else: 
-              GATK_SelectVariants(r=args.ref, v=args.vcf_mat, o=sep_vcf_mat.name)
-          if (args.vcf_pat is None):
-              GATK_SelectVariants(r=args.ref, v=args.vcf_joint, o=sep_vcf_pat.name, n=name_pat)
-          else:
-              GATK_SelectVariants(r=args.ref, v=args.vcf_pat, o=sep_vcf_pat.name)
+        # 1.1. Separate SNP VCFs:
+        if (args.vcf_mat is None):
+            GATK_SelectVariants(r=args.ref, v=args.vcf_joint, o=sep_vcf_mat.name, n=name_mat, b=True)
+        else: 
+            GATK_SelectVariants(r=args.ref, v=args.vcf_mat, o=sep_vcf_mat.name, b=True)
+        if (args.vcf_pat is None):
+            GATK_SelectVariants(r=args.ref, v=args.vcf_joint, o=sep_vcf_pat.name, n=name_pat, b=True)
+        else:
+            GATK_SelectVariants(r=args.ref, v=args.vcf_pat, o=sep_vcf_pat.name, b=True)
           
-          gzip_tabix_VCF(sep_vcf_mat.name)
-          gzip_tabix_VCF(sep_vcf_pat.name)         
+        gzip_tabix_VCF(sep_vcf_mat.name)
+        gzip_tabix_VCF(sep_vcf_pat.name)         
           
-          # 1.2. Pseudoreference:
-          vcftools_consensus(args.ref, sep_vcf_mat.name, os.path.join(pseudo_dir_mat, name_mat + "_pseudo.fa"))
-          vcftools_consensus(args.ref, sep_vcf_pat.name, os.path.join(pseudo_dir_pat, name_pat + "_pseudo.fa"))
-          
-          os.remove(sep_vcf_mat.name)
-          os.remove(sep_vcf_pat.name)
+        # 1.2. Pseudoreference:
+        vcftools_consensus(args.ref, sep_vcf_mat.name+'.gz', os.path.join(pseudo_dir_mat, name_mat + "_pseudo.fa"))
+        vcftools_consensus(args.ref, sep_vcf_pat.name+'.gz', os.path.join(pseudo_dir_pat, name_pat + "_pseudo.fa"))
+         
+        os.remove(sep_vcf_mat.name); os.remove(sep_vcf_mat.name+'.gz'); os.remove(sep_vcf_mat.name+'.gz.tbi')
+        os.remove(sep_vcf_pat.name); os.remove(sep_vcf_pat.name+'.gz'); os.remove(sep_vcf_pat.name+'.gz.tbi')
 
-     # 2. F1 VCF:
-     if (args.F1VCF=="True") :
-         os.makedirs(f1_dir, exist_ok=True)
+    # 2. F1 VCF:
+    if (args.F1VCF=="True") :
+        os.makedirs(f1_dir, exist_ok=True)
          
-         pair_vcf = tempfile.NamedTemporaryFile(delete=False)
+        pair_vcf = tempfile.NamedTemporaryFile(delete=False, suffix=".vcf")
          
-         # 2.1 Paired VCF:
-         if (args.vcf_mat is None or args.vcf_pat is None):
-             JointToPair_VCF(args.ref, args.vcf_joint, pair_vcf.name, name_mat, name_pat)
-         else: 
-             SepToPair_VCF(args.ref, args.vcf_mat, args.vcf_pat, pair_vcf.name, name_mat, name_pat)
+        # 2.1 Paired VCF:
+        if (args.vcf_mat is None or args.vcf_pat is None):
+            JointToPair_VCF(args.ref, args.vcf_joint, pair_vcf.name, name_mat, name_pat)
+        else: 
+            SepToPair_VCF(args.ref, args.vcf_mat, args.vcf_pat, pair_vcf.name, name_mat, name_pat)
          
-         # 2.2 F1 VCF:
-         vcf_f1 = os.path.join(f1_dir, "_".join("F1", name_mat, name_pat)+'.vcf')
-         PairToF1_VCF(pair_vcf.name, vcf_f1, name_mat, name_pat)
+        # 2.2 F1 VCF:
+        vcf_f1 = os.path.join(f1_dir, "_".join("F1", name_mat, name_pat)+'.vcf')
+        PairToF1_VCF(pair_vcf.name, vcf_f1, name_mat, name_pat)
+        gzip_tabix_VCF(vcf_f1)
 
-         # 2.3 Exon F1 VCF:
-         vcf_f1exon = os.path.join(f1_dir, "_".join("F1", name_mat, name_pat, "exon")+'.vcf')
-         GATK_SelectVariants(r=args.ref, v=vcf_f1, g=args.gtf, o=vcf_f1exon)
+        # 2.3 Exon F1 VCF:
+        vcf_f1exon = os.path.join(f1_dir, "_".join("F1", name_mat, name_pat, "exon")+'.vcf')
+        GATK_SelectVariants(r=args.ref, v=vcf_f1, g=args.gtf, o=vcf_f1exon)
+        gzip_tabix_VCF(vcf_f1exon)
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
 
