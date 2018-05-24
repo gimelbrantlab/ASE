@@ -23,11 +23,7 @@
 # python(v3.6.0)
 # java(v1.8.0_112)
 # gatk(v4.0.0.0)
-# vcftools(v0.1.13)
-# STAR(v2.5.4a)
-# BEDOPS(v2.4.35)
 # bcftools/1.3.1
-#
 # Please, use --help|-h for help. 
 # For more information, please, visit:
 #       https://github.com/gimelbrantlab/ASE
@@ -113,8 +109,6 @@ def PairToF1_VCF(vcf_pair, vcf_f1, name_mat, name_pat):
         gt_index = row[format_col].split(":").index("GT")
         gt_mat = row[mat_col].split(":")[gt_index]
         gt_pat = row[pat_col].split(":")[gt_index]
-        ### AND IF THEY ARE ALREADY PHASED? ###
-        
         if (gt_mat[0]==gt_mat[2] and gt_pat[0]==gt_pat[2] and gt_mat[0]!=gt_pat[0]):
             if (gt_mat[0] == '0'):
                 ref_allele = row[ref_col]
