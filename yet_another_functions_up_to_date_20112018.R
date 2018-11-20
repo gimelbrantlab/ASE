@@ -177,6 +177,26 @@ num_to_doulbledigit_vectchar = function(x){
 #                 FUNCTIONS: PAIRED COMPARISONS
 # ---------------------------------------------------------------------------------------
 
+meancovAI2ForPairDF = function(tab, reps, thr=0, thrUP=F){
+  #' Creates a tab with gene mean coverage and AI deltas for a pair of technical replicates.
+  #' 
+  #' @param tab A dataframe of genes/transcripts and parental counts for technical replicates in columns.
+  #' @param reps A parameter for setting 2 replicates for consideration.
+  #' @param thr Threshold for min gene coverage.
+  #' @param thrUP Threshold for max gene coverage.
+  #' @return A tab with gene mean coverage and AI deltas for a pair of technical replicates.
+  #' @examples 
+  #' 
+  DF = data.frame(genemeansToAI(tab, reps[1]) - genemeansToAI(tab, reps[2]), 
+                  genemeansToAI(tab, reps[1]),
+                  genemeansToAI(tab, reps[2]),
+                  meanCoverage(tab, reps))
+  names(DF) = c("diff_AI", "AI1", "AI2", "mean_cov")
+  DF = DF[DF$mean_cov >= thr, ]
+  if(thrUP) {DF = DF[DF$mean_cov < thrUP, ]}
+  return(DF)
+}
+
 get_one_df_AIpairdist_distr = function(df, thrs=2**c(0:12), thrs_side='both', mlns=F, repcolmns=F, what="noname"){
   #' Creates a table of parwise comparisons for techreps in given table.
   #' 
