@@ -73,7 +73,7 @@ CountsToAI <- function(df, reps=NA){
   if(all(is.na(reps))){
     reps <- 1:((ncol(df)-1)/2)
   }
-  cs  <- sort(cs(sapply(reps, function(x){c(x*2, x*2+1)})))
+  cs  <- sort(c(sapply(reps, function(x){c(x*2, x*2+1)})))
   ddf <- df[, cs] # df with needed columns and without gene names col
   
   if(ncol(ddf) == 2) { # if 1 replicate
@@ -113,9 +113,10 @@ NumToDoulbledigitChar <- function(x){
   #' @return Double-digit character (or vector) from a number ('x' or '0x').
   #' @examples
   #' 
-  doubledigitsChars <- sapply(x, function(i){
-    if(x<=9) { return(paste0('0',x)) } 
-    else { return(as.character(x)) }
+  if(length(x)==1){ x = c(x) }
+  doubledigitsChars <- sapply(1:length(x), function(i){
+    if(x[i]<=9) { return(paste0('0',x[i])) } 
+    else { return(as.character(x[i])) }
   })
   return(doubledigitsChars)
 }
@@ -176,19 +177,22 @@ CreateDeltaAIPairwiseDF <- function(df, thrs=2**c(0:12), thrsSide='both', mlns=F
       ddf$what     <- what
       ddf$iLocal   <- combs[1,y]
       ddf$jLocal   <- combs[2,y]
-      ddf$ijLocal  <- paste(NumToDoulbledigitChar(ddf$iLocal), 
-                            'vs' ,
-                            NumToDoulbledigitChar(ddf$jLocal))
+      ddf$ijLocal  <- paste(NumToDoulbledigitChar(combs[1,y]), 
+                            'vs',
+                            NumToDoulbledigitChar(combs[2,y]))
       if(mlns==F) {
         ddf$i      <- combs[1,y]
         ddf$j      <- combs[2,y]
+        ddf$ij       <- paste(NumToDoulbledigitChar(combs[1,y]), 
+                              'vs',
+                              NumToDoulbledigitChar(combs[2,y]))
       } else {
         ddf$i      <- combs[1,y]%/%5 + 1
         ddf$j      <- combs[2,y]%/%5 + 1
+        ddf$ij       <- paste(NumToDoulbledigitChar(combs[1,y]%/%5 + 1), 
+                              'vs',
+                              NumToDoulbledigitChar(combs[2,y]%/%5 + 1))
       }
-      ddf$ij       <- paste(NumToDoulbledigitChar(ddf$i), 
-                            'vs' ,
-                            NumToDoulbledigitChar(ddf$j))
       ddf$thrLow  <- t
       ddf$thrHigh <- t2
       return(ddf)
@@ -250,10 +254,10 @@ CreateObservedQuartilesDF <- function(df, P, ep, logbase=T, coverageLimit, group
   
   ddf <- do.call(rbind, lapply(P, function(p){ # [for all quartile (%)]:
     # [for all coverage bins]:
-    ddfP <- data.frame(coverageBin     <- covIntervalsStarts,
-                       deltaAI         <- sapply(1:lenCIS, function(i){
+    ddfP <- data.frame(coverageBin     = covIntervalsStarts,
+                       deltaAI         = sapply(1:lenCIS, function(i){
                          dai <- df[df$MeanCov >= covIntervals[i] &
-                                   df$MeanCov < covIntervals[i+1], ]$deltaAI
+                                   df$MeanCov <  covIntervals[i+1], ]$deltaAI
                          if(p == 0){
                            p = 'sd'
                            sd(dai)
@@ -261,18 +265,16 @@ CreateObservedQuartilesDF <- function(df, P, ep, logbase=T, coverageLimit, group
                            quantile(dai, p) 
                          }
                        }),
-                       binNObservations <- sapply(1:lenCIS, function(i){
+                       binNObservations = sapply(1:lenCIS, function(i){
                          nrow(df[df$MeanCov >= covIntervals[i] &
-                                 df$MeanCov < covIntervals[i+1], ])
+                                 df$MeanCov <  covIntervals[i+1], ])
                        }),
-                       Q                <- p,
-                       Type             <- "observed")
+                       Q                = p)
     return(ddfP)
   })
   )
-  ddf$group <- as.factor(paste(ddf$group, ddf$Type, ddf$Q))
+  ddf$group <- as.factor(paste(group, ddf$Q))
   ddf$Q     <- as.factor(ddf$Q)
-  ddf$Type  <- as.factor(ddf$Type)
   return(ddf)
 }
 
@@ -281,7 +283,7 @@ CreateObservedQuartilesDF <- function(df, P, ep, logbase=T, coverageLimit, group
 # ---------------------------------------------------------------------------------------
 
 # Was: fit_lm_intercept_how_we_want_morethan(inDf, N_obs_bin, morethan=10)
-FitLmIntercept <- function(inDf, N_obs_bin, morethan=10, logoutput=T){
+FitLmIntercept <- function(inDf, binNObs, morethan=10, logoutput=T){
   #' Fits linear model to logarithmic data and counts intersept for model with *1/2 restriction. 
   #' 
   #' @param inDf A dataframe-output of CreateObservedQuartilesDF().
@@ -292,7 +294,8 @@ FitLmIntercept <- function(inDf, N_obs_bin, morethan=10, logoutput=T){
   #' @examples
   #' 
   df <- inDf[, c('coverageBin','deltaAI','binNObservations')]
-  df <- df[(df$coverageBin > morethan) & (df$binNObservations > N_obs_bin), ]
+  df <- df[df$coverageBin > morethan & 
+           df$binNObservations > binNObs, ]
   df[, c('coverageBin','deltaAI')] <- log2(df[, c('coverageBin','deltaAI')])
   loglm <- lm(data = df, deltaAI ~ offset(-0.5*coverageBin))$coefficients
   if(logoutput){ 
