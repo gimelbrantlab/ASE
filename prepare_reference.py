@@ -23,7 +23,10 @@
 # python(v3.6.0)
 # java(v1.8.0_112)
 # gatk(v4.0.0.0)
-# bcftools/1.3.1
+# bcftools(v1.3.1)
+# htslib(v1.3.2)
+# cufflinks(v2.2.1)
+#
 # Please, use --help|-h for help. 
 # For more information, please, visit:
 #       https://github.com/gimelbrantlab/ASE
@@ -146,6 +149,18 @@ def vcftools_consensus(ref_fa, vcf, pseudo_fa):
     cmd = " ".join(["cat", ref_fa, "| vcf-consensus", vcf, ">", pseudo_fa])
     print(cmd)
     subprocess.check_output(cmd, shell=True)
+    return
+
+def trascriptome_creation():
+
+    # Transcriptomes with cufflinks:
+    #gffread /n/scratch2/am717/references/GRCm38/Mus_musculus.GRCm38.68.gtf -g /n/scratch2/am717/references/129S1_pseudo/129S1_pseudo.fa -w /n/scratch2/am717/references/129S1_pseudo_tr/129S1_pseudo_trs.fa
+    #gffread /n/scratch2/am717/references/GRCm38/Mus_musculus.GRCm38.68.gtf -g /n/scratch2/am717/references/CAST_pseudo/CAST_pseudo.fa -w /n/scratch2/am717/references/CAST_pseudo_tr/CAST_pseudo_trs.fa
+    # Merge transcriptome F1:
+    #sed 's/ gene.*$/_129S1/' /n/scratch2/am717/references/129S1_pseudo_tr/129S1_pseudo_trs.fa > /n/scratch2/am717/references/F1_pseudo_tr/129S1_pseudo_trs_marked.fa
+    #sed 's/ gene.*$/_CAST/' /n/scratch2/am717/references/CAST_pseudo_tr/CAST_pseudo_trs.fa > /n/scratch2/am717/references/F1_pseudo_tr/CAST_pseudo_trs_marked.fa
+    #cat /n/scratch2/am717/references/F1_pseudo_tr/CAST_pseudo_trs_marked.fa /n/scratch2/am717/references/F1_pseudo_tr/129S1_pseudo_trs_marked.fa > /n/scratch2/am717/references/F1_pseudo_tr/F1_pseudo_trs_marked.fa
+
     return
 
 def main():

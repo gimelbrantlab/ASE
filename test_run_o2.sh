@@ -7,7 +7,7 @@
 #SBATCH -o /home/am717/slurm_runs/%J.%a.out
 #SBATCH -e /home/am717/slurm_runs/%J.%a.err
 
-module load gcc python/3.6.0 java gatk/4.0.0.0 bcftools star samtools picard
+module load gcc python/3.6.0 java gatk/4.0.0.0 bcftools star samtools picard htslib
 
 # Reference preparation:
 python3 /home/am717/ASE/prepare_reference.py --f1_dir /n/scratch2/am717/ASE_test/F1_fromjoint/ --pseudo_dir /n/scratch2/am717/ASE_test/pseudoref_fromjoint/ --ref /n/scratch2/sv111/ASE/GRCm38_68.fa --gtf /n/scratch2/am717/ASE_test/data/Mus_musculus.GRCm38.68_charchrorder.gtf --name_mat 129S1_SvImJ --name_pat CAST_EiJ --vcf_joint /n/scratch2/sv111/ASE/mgp.v5.merged.snps_all.dbSNP142.vcf.gz

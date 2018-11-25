@@ -127,9 +127,6 @@ def main():
             elif (star_index[i]=="True" and not gtf):
                 star_indexing(genome[i])
 
-    # IF TRANSCRIPTOME IS NEEDED:
-    ################ ADD ########i
-
     # METHOD:
     if (args.method is not None):
         method = args.method
