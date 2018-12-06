@@ -235,7 +235,7 @@ CreateObservedQuartilesDF <- function(df, P, ep, logbase=T, coverageLimit, group
   #' 
   #' @param df A dataframe-output of CreateMergedDeltaAIPairwiseDF().
   #' @param P A vector of %-quartiles.
-  #' @param logbare The binary parameter if we deal with log base (default = T).
+  #' @param logbase The binary parameter if we deal with log base (default = T).
   #' @param ep The log base for binning (0^b, 1^b, ...).
   #' @param coverageLimit Gene coverage limit for consideration.
   #' @param group An ptional distinguishible name (default = '').
@@ -284,26 +284,51 @@ CreateObservedQuartilesDF <- function(df, P, ep, logbase=T, coverageLimit, group
 
 # Was: fit_lm_intercept_how_we_want_morethan(inDf, N_obs_bin, morethan=10)
 FitLmIntercept <- function(inDf, binNObs, morethan=10, logoutput=T){
-  #' Fits linear model to logarithmic data and counts intersept for model with *1/2 restriction. 
-  #' 
+  #' Fits linear model to logarithmic data and counts intersept for model with *1/2 restriction.
+  #'
   #' @param inDf A dataframe-output of CreateObservedQuartilesDF().
   #' @param N_obs_bin Threshold on number of observations per bin.
   #' @param morethan Theshold on gene coverage for lm (default = 10).
   #' @param logoutput Return log intercept? (default = true)
   #' @return lm intercept or log2(lm intercept).
   #' @examples
-  #' 
+  #'
   df <- inDf[, c('coverageBin','deltaAI','binNObservations')]
-  df <- df[df$coverageBin > morethan & 
+  df <- df[df$coverageBin > morethan &
            df$binNObservations > binNObs, ]
   df[, c('coverageBin','deltaAI')] <- log2(df[, c('coverageBin','deltaAI')])
   loglm <- lm(data = df, deltaAI ~ offset(-0.5*coverageBin))$coefficients
-  if(logoutput){ 
-    return(loglm[1]) 
+  if(logoutput){
+    return(loglm[1])
   } else {
     return(2**loglm[1])
   }
 }
+
+#' FitLmIntercept <- function(inDf, binNObs, morethan=10, logoutput=T){
+#'   #' Fits linear model to logarithmic data and counts intersept for model with *1/2 restriction. 
+#'   #' 
+#'   #' @param inDf A dataframe-output of CreateObservedQuartilesDF().
+#'   #' @param N_obs_bin Threshold on number of observations per bin.
+#'   #' @param morethan Theshold on gene coverage for lm (default = 10).
+#'   #' @param logoutput Return log intercept? (default = true)
+#'   #' @return lm intercept or log2(lm intercept).
+#'   #' @examples
+#'   #' 
+#'   df <- inDf[, c('coverageBin','deltaAI','binNObservations')]
+#'   df <- df[df$coverageBin > morethan & 
+#'              df$binNObservations > binNObs, ]
+#'   df[, c('coverageBin','deltaAI')] <- log2(df[, c('coverageBin','deltaAI')])
+#'   # if(sum(is.na(df[, c('coverageBin','deltaAI')]))>0){
+#'   #   return(NA)
+#'   # }
+#'   loglm <- lm(data = df, deltaAI ~ offset(-0.5*coverageBin))$coefficients
+#'   if(logoutput){ 
+#'     return(loglm[1]) 
+#'   } else {
+#'     return(2**loglm[1])
+#'   }
+#' }
 
 # .......................................................................................
 # Aftercomments:

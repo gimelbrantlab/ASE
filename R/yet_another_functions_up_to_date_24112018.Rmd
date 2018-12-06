@@ -16,8 +16,13 @@ source("/home/asya/Documents/AI/kidney/yet_another_functions_up_to_date_24112018
 
 Suppose I work with 3 files for 18 replicates, without deduplication:
 
+[Структура этих файлов такова: первая колонка -- имена генов, несколько колонок, по количеству реплик -- пары материнских и отеческих каунтов на ген, и столько же по снипам, строки, разделённые запятыми]
+
 ```{r}
-inTabs = paste0("/home/asya/Documents/AI/kidney/data/full/", 
+# inTabs = paste0("/home/asya/Documents/AI/kidney/data/full/", 
+#                 c("NEB", "SMARTseq10ng", "SMARTseq100pg"), 
+#                 "_processed_gene_extended2.txt")
+inTabs = paste0("/home/asya/Documents/AI/kidney/data/deduplicated/", 
                 c("NEB", "SMARTseq10ng", "SMARTseq100pg"), 
                 "_processed_gene_extended2.txt")
 inTabs
@@ -30,12 +35,16 @@ inTabs
 
 Get corresponding pooled tab of counts:
 
+[Будем работать с таблицей, в которой остались только колонки с именами генов и материнские и отеческие каунты на ген, 1+18*2 колонки]
+
 ```{r, warning=FALSE, message=FALSE}
 geneCountTab = GetGatkPipelineTabs(inTabs, c(6,6,6))
 head(geneCountTab)
 ```
 
 Then get row-concatenated table of pairewise delta AI for all the 3 experiments:
+
+[CreateMergedDeltaAIPairwiseDF берёт таблицу с материнско-отеческими каунтами и делает табличку попарных аллельных разниц, проходясь по всем заданным парам. Мы запоминаем какие пары мы смотрели (колонки 'ij' говорят про реплики, а 'what' хранит инфу про эксперимент, тул и прочие предобработки), поэтому мы всё сливаем в одну табличку row by row]
 
 ```{r, warning=FALSE, message=FALSE}
 dfDeltaAIPairwise = rbind(
@@ -48,14 +57,19 @@ head(dfDeltaAIPairwise)
 
 Let us want to look at sd (denoted as 0) and 0.5, 0.8 and 0.9 quantiles:
 
+[P - это вектор процентов, который мы хотим далее переводить в квантили, он может быть любой, ниже приведён пример для каких-то процентов и для процентов, соответствующим разным долям сигмы, с шагом 0.2]
+
 ```{r}
 #P = c(0, 0.5, 0.68, 0.8, 0.9)
+#P = pnorm(seq(0.2,2,0.2))
 P = pnorm(seq(0.4,2,0.2))
 P = P - (1-P) 
 P
 ```
 
 Let us extend the dataframe, add columns for identification (it's not necessary here) and obtain logbase binned quartiles tables:
+
+[CreateObservedQuartilesDF ест табличку с парными разницами AI, выдачу CreateMergedDeltaAIPairwiseDF, и проходится логарифмическим окном (при logbase=T, с базой ep), считая в каждом квантили по всем попавшим туда генам. Мы опять делаем мета-таблицу, запоминая что откуда пришло в специальных столбцах, проходимся по всем группам (метод + пара реплик, в этом случае), получаем таблицу с бинами и квантилями в бине для каждой группы -- для дальнейшего lm.]
 
 ```{r}
 DF = dfDeltaAIPairwise
@@ -80,12 +94,15 @@ DFQ$ij = sapply(as.character(DFQ$group), function(x){paste(unlist(strsplit(x, ' 
 head(DFQ)
 ```
 
-Then count intercepts: 
+Then count intercepts:
+
+[Берём табличку с бинами и квантилями в бинах для каждой группы (метод + пара реплик), выдача CreateObservedQuartilesDF. И считаем intercept для всех методов, пар реплик и квантилей. FitLmIntercept забивает на несколько первых бинов, которые содержат малопокрытые гены (morethan=10) и смотрит до тех пор, пока бины содержат больше какого-то трешхолда (тут -- 40).]
+
 ```{r}
 groupsIntercepts = lapply(unique(DFQ$Q), function(q){
   ddf = do.call(rbind, lapply(unique(DFQ$method), function(m){
-    df = DFQ[DFQ$Q == q & DFQ$method == m, ]
-    res = sapply(unique(df$ij), function(x){
+    df = DFQ[DFQ$Q == q & DFQ$method == m, ] # метод и квантиль
+    res = sapply(unique(df$ij), function(x){ # проход по всем парам
       FitLmIntercept(df[df$ij == x, ], 40, morethan=10, logoutput=T)
     })
     names(res) = unique(df$ij)
@@ -93,10 +110,10 @@ groupsIntercepts = lapply(unique(DFQ$Q), function(q){
   }))
   row.names(ddf) = paste(unique(DFQ$method), "_ Q%:", 
                          round(as.double(as.character(q)),4))
-  2**ddf
+  2**ddf # вернулись от логарифма обратно
 })
 
-do.call(rbind, lapply(groupsIntercepts, function(ddf){data.frame(round(2**ddf, 3))}))
+data.frame(do.call(rbind, groupsIntercepts))
 
 ```
 
