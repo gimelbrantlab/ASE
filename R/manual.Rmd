@@ -7,29 +7,33 @@ output:
 
 Load functions from the corresponding file:
 
-```{r, warning=FALSE}
+```{r, warning=FALSE, warning=FALSE}
 library("tidyverse")
+library("knitr")
 source("yet_another_functions_up_to_date_24112018.R")
 ```
 
 5aza data:
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 inTabs <- "~/Dropbox (Partners HealthCare)/replicates_ASE/data/5aza/pr_20180714_ISEKI_processed_gene_extended2.txt"
 replicateNumbers <- c(2,2,2,5,2)
 replicateNames <- c("control","DMSO","low","medium","high")
-rowsSp <- data.frame(matrix(lapply(1:length(replicateNumbers), function(x){(2*sum(replicateNumbers[1:x-1])+1):(2*sum(replicateNumbers[1:x]))}), nrow=5, byrow=T),stringsAsFactors=FALSE)
+rowsSp <- data.frame(matrix(lapply(1:length(replicateNumbers), function(x){(2*sum(replicateNumbers[1:x-1])+1):(2*sum(replicateNumbers[1:x]))}), nrow=length(replicateNumbers), byrow=T),stringsAsFactors=FALSE)
 colnames(rowsSp) <- "replicateCols"
-designMatrix <- cbind(replicateNames, replicateNumbers, rowsSp)
+colExp <- data.frame(matrix(lapply(1:length(replicateNumbers), function(x){(sum(replicateNumbers[1:x])-replicateNumbers[x]+1):(sum(replicateNumbers[1:x]))}), nrow=length(replicateNumbers), byrow=T),stringsAsFactors=FALSE)
+colnames(colExp) <- "replicateNums"
+designMatrix <- cbind(replicateNames, replicateNumbers, rowsSp, colExp)
+kable(designMatrix)
 geneCountTab <- GetGatkPipelineTabs(inTabs, replicateNumbers, multiple = F)
-head(geneCountTab)
+kable(head(geneCountTab))
 ```
 
 Then get row-concatenated table of pairewise delta AI for all the 3 experiments:
 
 ```{r, warning=FALSE, message=FALSE}
 dfDeltaAIPairwise <- do.call(rbind, lapply(1:length(replicateNumbers), function(x){
-      CreateMergedDeltaAIPairwiseDF(geneCountTab, mlns=F, repcolmns=unlist(designMatrix$replicateCols[x]), what=designMatrix$replicateNames[x])
+      CreateMergedDeltaAIPairwiseDF(geneCountTab, mlns=F, repnums = unlist(designMatrix$replicateNums[x]), what=designMatrix$replicateNames[x])
     }))
-head(dfDeltaAIPairwise)
+kable(head(dfDeltaAIPairwise))
 ```

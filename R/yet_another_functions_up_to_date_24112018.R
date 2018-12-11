@@ -32,6 +32,7 @@ GetGatkPipelineTabs <- function(inFiles, nReps, multiple = TRUE){
   else {
     df <- read_delim(inFiles, delim="\t", escape_double = FALSE, trim_ws = TRUE)
     df <- df[,c(1:(2*sum(nReps)+1))]
+    df <- as.data.frame(df)
   }
   nameColumns <- function(rep_n)  {
     paste0("rep", rep(1:rep_n, each = 2), rep(c("_ref", "_alt"), rep_n))

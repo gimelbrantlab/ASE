@@ -22,7 +22,7 @@ Suppose I work with 3 files for 18 replicates, without deduplication:
 # inTabs = paste0("/home/asya/Documents/AI/kidney/data/full/", 
 #                 c("NEB", "SMARTseq10ng", "SMARTseq100pg"), 
 #                 "_processed_gene_extended2.txt")
-inTabs = paste0("/home/asya/Documents/AI/kidney/data/deduplicated/", 
+inTabs = paste0("~/Dropbox (Partners HealthCare)/replicates_ASE/data/kidney/full/", 
                 c("NEB", "SMARTseq10ng", "SMARTseq100pg"), 
                 "_processed_gene_extended2.txt")
 inTabs
@@ -48,9 +48,9 @@ Then get row-concatenated table of pairewise delta AI for all the 3 experiments:
 
 ```{r, warning=FALSE, message=FALSE}
 dfDeltaAIPairwise = rbind(
-  CreateMergedDeltaAIPairwiseDF(geneCountTab, mlns=F, repcolmns=c(1:6), what="NEB_mlnFULL"),
-  CreateMergedDeltaAIPairwiseDF(geneCountTab, mlns=F, repcolmns=c(7:12), what="SMART10ng_mlnFULL"),
-  CreateMergedDeltaAIPairwiseDF(geneCountTab, mlns=F, repcolmns=c(13:18), what="SMART100pg_mlnFULL")
+  CreateMergedDeltaAIPairwiseDF(geneCountTab, mlns=F, repnums = c(1:6), what="NEB_mlnFULL"),
+  CreateMergedDeltaAIPairwiseDF(geneCountTab, mlns=F, repnums = c(7:12), what="SMART10ng_mlnFULL"),
+  CreateMergedDeltaAIPairwiseDF(geneCountTab, mlns=F, repnums = c(13:18), what="SMART100pg_mlnFULL")
 )
 head(dfDeltaAIPairwise)
 ```

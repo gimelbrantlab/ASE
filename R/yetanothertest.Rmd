@@ -1,0 +1,195 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r}
+S10_7_8 <- dfDeltaAIPairwise[dfDeltaAIPairwise$ij == "07 vs 08", ]
+
+S10_7_8
+```
+
+```{r, fig.width=15, fig.height=10}
+ep <- 1.3
+covIntervalsStarts <- unique(floor(ep**(0:log(2000, base=ep))))
+covIntervalsStarts <- covIntervalsStarts[covIntervalsStarts >= 10]
+lenCIS <- length(covIntervalsStarts)
+covIntervals <- c(covIntervalsStarts, 2000)
+
+par(mfrow=c(4,5))
+for(i in 1:lenCIS){
+  deltaAIdf <- S10_7_8[S10_7_8$MeanCov >= covIntervals[i] & S10_7_8$MeanCov <  covIntervals[i+1], ]
+  deltasAI <- deltaAIdf$AI1 - deltaAIdf$AI2
+  h = hist(deltasAI, breaks = seq(-1,1,0.02), main = "", xlab = "", ylab = covIntervals[i])
+  lines(seq(-1,1,length=200),
+        dnorm(seq(-1,1,length=200), mean=0, sd=sd(deltasAI))*diff(h$mids[1:2])*length(deltasAI),
+        col = 'red', lwd = 3)
+}
+
+par(mfrow=c(4,5))
+for(i in 1:lenCIS){
+  deltaAIdf <- S10_7_8[S10_7_8$MeanCov >= covIntervals[i] & S10_7_8$MeanCov <  covIntervals[i+1], ]
+  deltasAI <- deltaAIdf$AI1 - deltaAIdf$AI2
+  deltasAI <- deltasAI[deltaAIdf$deltaAI>0.01]
+  h = hist(deltasAI, breaks = seq(-1,1,0.02), main = "", xlab = "", ylab = covIntervals[i])
+  lines(seq(-1,1,length=200),
+        dnorm(seq(-1,1,length=200), mean=0, sd=sd(deltasAI))*diff(h$mids[1:2])*length(deltasAI),
+        col = 'red', lwd = 3)
+  print(sd(deltasAI))
+}
+
+
+sdAIBins = sapply(1:lenCIS, function(i){
+  deltaAIdf <- S10_7_8[S10_7_8$MeanCov >= covIntervals[i] & S10_7_8$MeanCov <  covIntervals[i+1], ]
+  deltasAI <- deltaAIdf$AI1 - deltaAIdf$AI2
+  deltasAI0 <- deltasAI[deltaAIdf$deltaAI>0.01]
+  c(sd(deltasAI), sd(deltasAI0))
+})
+plot(log(covIntervalsStarts), log(sdAIBins[1,]))
+lines(log(covIntervalsStarts), log(sdAIBins[2,]))
+
+df = data.frame(deltaAI = log(sdAIBins[1, ], base = 1.3), coverageBin = log(covIntervalsStarts, base=1.3))
+df0 = data.frame(deltaAI = log(sdAIBins[2, ], base = 1.3), coverageBin = log(covIntervalsStarts, base=1.3))
+df; df0
+loglm = lm(data=df, deltaAI ~ offset(-0.5*coverageBin))$coefficients
+loglm0 = lm(data=df0, deltaAI ~ offset(-0.5*coverageBin))$coefficients
+
+```
+
+
+
+```{r}
+DF = do.call(rbind, lapply(1:lenCIS, function(i){
+  deltaAIdf <- S10_7_8[S10_7_8$MeanCov >= covIntervals[i] & S10_7_8$MeanCov <  covIntervals[i+1], ]
+  deltasAI <- deltaAIdf$AI1 - deltaAIdf$AI2
+  data.frame(deltaAI = deltasAI, coverBin = covIntervals[i])
+}))
+
+ggplot(data=DF, aes(x=deltaAI, group=coverBin, color=coverBin)) +
+  geom_histogram(aes(y=..density.., color=coverBin), binwidth=0.01) 
+
+ggplot(data=DF, aes(x=deltaAI, group=coverBin, color=coverBin)) +
+  geom_density() 
+
+ggplot(data=DF, aes(x=deltaAI, group=coverBin, color=coverBin)) +
+  stat_density(alpha=0) +
+  facet_grid(~coverBin)
+gg <- ggplot(data=DF, aes(x=deltaAI, group=coverBin, color=coverBin)) +
+  stat_density(alpha=0) 
+
+ggplot_build(gg)$data
+binsds = sapply(unique(DF$coverBin), function(b){sd(DF[DF$coverBin==b, "deltaAI"])})
+plot(unique(DF$coverBin), binsds)
+```
+
+```{r, fig.width=15, fig.height=10}
+S100_03_05 <- dfDeltaAIPairwise[dfDeltaAIPairwise$ij == "03 vs 05", ]
+
+par(mfrow=c(4,5))
+for(i in 1:lenCIS){
+  deltaAIdf <- S100_03_05[S100_03_05$MeanCov >= covIntervals[i] & S100_03_05$MeanCov <  covIntervals[i+1], ]
+  deltasAI <- deltaAIdf$AI1 - deltaAIdf$AI2
+  h = hist(deltasAI, breaks = seq(-1,1,0.02), main = "", xlab = "", ylab = covIntervals[i])
+  lines(seq(-1,1,length=200),
+        dnorm(seq(-1,1,length=200), mean=0, sd=sd(deltasAI))*diff(h$mids[1:2])*length(deltasAI),
+        col = 'red', lwd = 3)
+}
+```
+
+```{r, fig.width=15, fig.height=10}
+S100_14_15 <- dfDeltaAIPairwise[dfDeltaAIPairwise$ij == "14 vs 15", ]
+
+par(mfrow=c(4,5))
+for(i in 1:lenCIS){
+  deltaAIdf <- S100_14_15[S100_14_15$MeanCov >= covIntervals[i] & S100_14_15$MeanCov <  covIntervals[i+1], ]
+  deltasAI <- deltaAIdf$AI1 - deltaAIdf$AI2
+  h = hist(deltasAI, breaks = seq(-1,1,0.02), main = "", xlab = "", ylab = covIntervals[i])
+  lines(seq(-1,1,length=200),
+        dnorm(seq(-1,1,length=200), mean=0, sd=sd(deltasAI))*diff(h$mids[1:2])*length(deltasAI),
+        col = 'red', lwd = 3)
+}
+```
+```{r, fig.width=15, fig.height=10}
+
+sdAIBins = sapply(1:lenCIS, function(i){
+  deltaAIdf <- S100_14_15[S100_14_15$MeanCov >= covIntervals[i] & S100_14_15$MeanCov <  covIntervals[i+1], ]
+  deltasAI <- deltaAIdf$AI1 - deltaAIdf$AI2
+  deltasAI0 <- deltasAI[deltaAIdf$deltaAI>0.01]
+  c(sd(deltasAI), sd(deltasAI0), quantile(deltasAI, 0.9), quantile(deltasAI0, 0.9))
+})
+plot(log(covIntervalsStarts), log(sdAIBins[1,]))
+lines(log(covIntervalsStarts), log(sdAIBins[2,]), type='p', col = 'red')
+
+a = lm(log(covIntervalsStarts) ~ log(sdAIBins[1,]))$coefficients[1]
+b = lm(log(covIntervalsStarts) ~ log(sdAIBins[2,]))$coefficients[1]
+a9 = lm(log(covIntervalsStarts) ~ log(sdAIBins[3,]))$coefficients[1]
+b9 = lm(log(covIntervalsStarts) ~ log(sdAIBins[4,]))$coefficients[1]
+
+plot(c(0.68,0.9), c(a,a9), type='l', ylim=c(0.5,2))
+lines(c(0.68,0.9), c(b,b9), col='red')
+```
+
+```{r, fig.width=15, fig.height=10}
+par(mfrow=c(4,5))
+for(i in 1:lenCIS){ 
+  deltaAIdf <- S10_7_8[S10_7_8$MeanCov >= covIntervals[i] & S10_7_8$MeanCov <  covIntervals[i+1], ]
+  df = deltaAIdf[deltaAIdf$deltaAI < 0.001, ]
+  x = df$AI1
+  #x = sapply(1:nrow(df), function(i){mean(df[i,c("AI1","AI2")])})
+  hist(x, xlim=c(0,1), breaks = seq(0,1,0.02))
+}
+
+
+par(mfrow=c(4,5))
+for(i in 1:lenCIS){ 
+  deltaAIdf <- S10_7_8[S10_7_8$MeanCov >= covIntervals[i] & S10_7_8$MeanCov <  covIntervals[i+1], ]
+  df = deltaAIdf[deltaAIdf$deltaAI <= 0.02, ]
+  x = df$AI1
+  #x = sapply(1:nrow(df), function(i){mean(df[i,c("AI1","AI2")])})
+  hist(x, xlim=c(0,1), breaks = seq(0,1,0.02))
+}
+
+par(mfrow=c(4,5))
+for(i in 1:lenCIS){ 
+  deltaAIdf <- S100_14_15[S100_14_15$MeanCov >= covIntervals[i] & S100_14_15$MeanCov <  covIntervals[i+1], ]
+  df = deltaAIdf[deltaAIdf$deltaAI <= 0.02, ]
+  x = df$AI1
+  #x = sapply(1:nrow(df), function(i){mean(df[i,c("AI1","AI2")])})
+  hist(x, xlim=c(0,1), breaks = seq(0,1,0.02))
+}
+
+```
+
+
+# Что мы ждём-то? Правильно ждём?
+
+```{r, fig.width=15, fig.height=10}
+S100_03_05 <- dfDeltaAIPairwise[dfDeltaAIPairwise$ij == "03 vs 05", ]
+
+par(mfrow=c(4,5))
+for(i in 1:lenCIS){
+  deltaAIdf <- SimSim[SimSim$MeanCov >= covIntervals[i] & SimSim$MeanCov <  covIntervals[i+1], ]
+  deltasAI <- deltaAIdf$AI1 - deltaAIdf$AI2
+  h = hist(deltasAI, breaks = seq(-1,1,0.02), main = "", xlab = "", ylab = covIntervals[i])
+  lines(seq(-1,1,length=200),
+        dnorm(seq(-1,1,length=200), mean=0, sd=sd(deltasAI))*diff(h$mids[1:2])*length(deltasAI),
+        col = 'red', lwd = 3)
+}
+
+#names(dfDeltaAIPairwise)
+# [1] "deltaAI" "AI1"     "AI2"     "MeanCov" "what"    "iLocal"  "jLocal"  "ijLocal" "i"       "j"       "ij"     
+#[12] "thrLow"  "thrHigh"
+DimSim = data.frame(Cov = sort(rep(10:2000, 10)),
+                    Cov1 = round(c(sapply(10:2000, function(i){rnorm(10,i,i**2/100)}))),
+                    Cov2 = round(c(sapply(10:2000, function(i){rnorm(10,i,i**2/100)})))
+                    )
+DimSim
+
+```
+
+
+
+
