@@ -11,23 +11,38 @@ options(stringsAsFactors = FALSE)
 #                 TODO: 1. Kallisto functions
 # ---------------------------------------------------------------------------------------
 
-GetGatkPipelineTabs <- function(inFiles, nReps){
+GetGatkPipelineTabs <- function(inFiles, nReps, multiple = TRUE){
   #' (GATK pipeline) Concatenate vertically (uniting merge) tables from inFiles.
-  #' 
-  #' @param inFiles A vector of pathes to files.
-  #' @param nReps A vector of numbers, each -- number of replicates in corresponding file.
-  #' @return A techreps-concatenated table with means/counts, rows corresponds to genes.
+  #'
+  #' @param inFiles A vector of full pathes to files with gene names and allelic counts
+  #' @param nReps A vector of numbers, each entry is a number of replicates in the corresponding file
+  #' @param multiple Parameter defining if multiple input files are used, default set to TRUE
+  #' @return A concatenated table with means/counts, each row corresponds to a gene
   #' @examples
-  #' 
-  df <- Reduce(function(x,y){merge(x,y,by="ensembl_gene_id")}, 
-               lapply(1:length(inFiles), function(x){
+  #'
+  if (multiple) {
+    df <- Reduce(function(x,y){merge(x,y,by="ensembl_gene_id")},
+                 lapply(1:length(inFiles), function(x){
                    df0 <- read_delim(inFiles[x], delim="\t", escape_double = FALSE, trim_ws = TRUE)
                    return(df0[,c(1:(2*nReps[x]+1))])
                  }
-               )
-               ) 
-  names(df) <- c("ensembl_gene_id", 
-                 paste0("rep", rep(1:sum(nReps), each=2), c("_ref", "_alt")))
+                 )
+    )
+  }
+  else {
+    df <- read_delim(inFiles, delim="\t", escape_double = FALSE, trim_ws = TRUE)
+    df <- df[,c(1:(2*sum(nReps)+1))]
+  }
+  nameColumns <- function(rep_n)  {
+    paste0("rep", rep(1:rep_n, each = 2), rep(c("_ref", "_alt"), rep_n))
+  }
+  if (multiple) {
+    names(df) <- c("ensembl_gene_id",
+                   paste0("rep", rep(1:sum(nReps), each=2), c("_ref", "_alt")))
+  }
+  else {
+    names(df) <- c("ensembl_gene_id", unlist(sapply(nReps, nameColumns)))
+  }
   return(df)
 }
 GetGatkPipelineSNPTabs <- function(inFiles, nReps){
