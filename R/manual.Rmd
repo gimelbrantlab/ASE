@@ -1,11 +1,11 @@
 ---
-title: "R Notebook"
+title: "Allele-specific analysis of RNA-seq data using technical replicates"
 output:
   html_document:
     df_print: paged
 ---
 
-Load functions from the corresponding file:
+We start by loading libraries and functions we will need:
 
 ```{r, warning=FALSE, warning=FALSE}
 library("tidyverse")
@@ -13,10 +13,25 @@ library("knitr")
 source("yet_another_functions_up_to_date_24112018.R")
 ```
 
-5aza data:
+##5aza data
+
+To demonstrate how the pipeline works, we are going to use data from RNA-seq experiment aimed to study effect of 5aza treatment on expression and allele-speccific expression. Let's look at the data first:
+
+###Experiment design
+
+5 samples of 4.11 Abelson clones:
+
+name     | description  | number of repicates
+------------- | -------------
+control  | Untreated Day 0  | 2
+DMSO  | DMSO control Day 2  | 2
+low  | low 5aza treatment of 0.2 µM  | 2
+medium | medium 5aza treatment of 2 µM  | 5
+high  | high 5aza treatment of 10 µM  | 2
+
+The first step is to create design matrix describing the experiment:
 
 ```{r, message=FALSE, warning=FALSE}
-inTabs <- "~/Dropbox (Partners HealthCare)/replicates_ASE/data/5aza/pr_20180714_ISEKI_processed_gene_extended2.txt"
 replicateNumbers <- c(2,2,2,5,2)
 replicateNames <- c("control","DMSO","low","medium","high")
 rowsSp <- data.frame(matrix(lapply(1:length(replicateNumbers), function(x){(2*sum(replicateNumbers[1:x-1])+1):(2*sum(replicateNumbers[1:x]))}), nrow=length(replicateNumbers), byrow=T),stringsAsFactors=FALSE)
@@ -25,9 +40,39 @@ colExp <- data.frame(matrix(lapply(1:length(replicateNumbers), function(x){(sum(
 colnames(colExp) <- "replicateNums"
 designMatrix <- cbind(replicateNames, replicateNumbers, rowsSp, colExp)
 kable(designMatrix)
+```
+
+Now we can look at the data:
+
+```{r, message=FALSE, warning=FALSE}
+inTabs <- "~/Dropbox (Partners HealthCare)/replicates_ASE/data/5aza/pr_20180714_ISEKI_processed_gene_extended2.txt"
 geneCountTab <- GetGatkPipelineTabs(inTabs, replicateNumbers, multiple = F)
 kable(head(geneCountTab))
 ```
+
+We can calculate allelic imbalances for all genes for all experimental conditions pooling technical replicates:
+
+```{r, message=FALSE, warning=FALSE}
+thr <- 10
+geneCountTab_10 <- geneCountTab
+nameColumns <- function(exp_n, rep_n)  {
+  paste0("exp", rep(exp_n, 2*rep_n), "_rep", rep(1:rep_n, each = 2), "_", rep(c("ref", "alt"), rep_n))
+}
+colnames(geneCountTab_10)[2:27] <- c(nameColumns(1,2), nameColumns(2,2), nameColumns(3,2), nameColumns(4,5), nameColumns(5,2))
+geneCountTab_10 <- geneCountTab_10 %>% dplyr::filter(exp1_rep1_ref + exp1_rep1_alt >=thr & exp2_rep1_ref + exp2_rep1_alt >=thr & 
+                             exp3_rep1_ref + exp3_rep1_alt >=thr & exp4_rep1_ref + exp4_rep1_alt >=thr & 
+                             exp5_rep1_ref + exp5_rep1_alt >=thr & exp1_rep2_ref + exp1_rep2_alt >=thr & 
+                             exp2_rep2_ref + exp2_rep2_alt >=thr & exp3_rep2_ref + exp3_rep2_alt >=thr & 
+                             exp4_rep2_ref + exp4_rep2_alt >=thr & exp5_rep2_ref + exp5_rep2_alt >=thr)
+aiTable <- do.call(cbind, lapply(1:length(replicateNumbers), function(x){
+      round(CountsToAI(geneCountTab_10, reps = unlist(designMatrix$replicateNums[x])),3)
+    }))
+aiTable <- cbind(geneCountTab$ensembl_gene_id, aiTable)
+colnames(aiTable) <- c("ensembl_gene_id", designMatrix$replicateNames)
+kable(head(aiTable))
+write.table(aiTable, file = "~/Dropbox (Partners HealthCare)/replicates_ASE/data/5aza/ai_full.txt", row.names = F, quote = F, sep="\t")
+```
+
 
 Then get row-concatenated table of pairewise delta AI for all the 3 experiments:
 
@@ -37,3 +82,46 @@ dfDeltaAIPairwise <- do.call(rbind, lapply(1:length(replicateNumbers), function(
     }))
 kable(head(dfDeltaAIPairwise))
 ```
+
+
+
+```{r}
+P = pnorm(seq(0.4,2,0.2))
+P = P - (1-P) 
+DF = dfDeltaAIPairwise
+DF$geneORsnp = "Gene" 
+DF$group = paste(DF$what, DF$geneORsnp, DF$ij)
+head(DF)
+
+DFQ = do.call(rbind, lapply(unique(DF$group), 
+                            function(r){
+                              CreateObservedQuartilesDF(DF[DF$group == r, ], 
+                                                        P, ep=1.3, logbase=T, 
+                                                        coverageLimit=2000, group=r)
+                            })
+) 
+head(DFQ)
+DFQ$ij = sapply(as.character(DFQ$group), function(x){paste(unlist(strsplit(x, ' '))[3:5], collapse = ' ')})
+```
+
+
+```{r}
+groupsIntercepts = lapply(unique(DFQ$Q), function(q){
+  df = DFQ[DFQ$Q == q, ]
+  res = sapply(unique(df$ij), function(x){ # проход по всем парам
+      FitLmIntercept(df[df$ij == x, ], 40, morethan=10, logoutput=T)
+    })
+  names(res) = unique(df$ij)
+  2**res # вернулись от логарифма обратно
+})
+
+coeffDF <- data.frame(t(do.call(rbind, groupsIntercepts)))
+colnames(coeffDF) <- paste0("q_", round(as.numeric(as.character(unique(DFQ$Q))),3))
+```
+
+Rename rows
+
+```{r}
+coeffDF$exp <- rep(designMatrix$replicateNames, choose(designMatrix$replicateNumbers, 2))
+```
+
