@@ -7,10 +7,11 @@
 #'* add correction on overdispersion 
 #'* add bins->limits
 #'* think about renaming columns to rep1_ref and so on, it's bad
+#'* NA on 0/0
 # _______________________________________________________________________________________
 
 options(stringsAsFactors = FALSE)
-source("/home/asya/Documents/AI/kidney/yet_another_functions_up_to_date_24112018.R")
+source("/home/asya/Documents/AI/ASE/R/yet_another_functions_up_to_date_24112018.R")
 # _______________________________________________________________________________________
 
 # ---------------------------------------------------------------------------------------
@@ -94,19 +95,36 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
   
   QCI <- data.frame(ID = inDF[, 1],
                     meanAI1 = aiCondition$cond1,
-                    pm1 = CreatePMforAI(linIntercepts$cond1, dfCovCondition$cond1),
+                    pm1 = CreatePMforAI(linIntercepts[[cond1Name]], dfCovCondition$cond1),
                     meanAI2 = aiCondition$cond2,
-                    pm2 = CreatePMforAI(linIntercepts$cond2, dfCovCondition$cond2))
+                    pm2 = CreatePMforAI(linIntercepts[[cond2Name]], dfCovCondition$cond2))
   
-  QCI$meanAI1Low <- min(QCI$meanAI1 - QCI$pm1, 0)
-  QCI$meanAI1High <- max(QCI$meanAI1 + QCI$pm1, 1)
-  QCI$meanAI2Low <- min(QCI$meanAI2 - QCI$pm2, 0)
-  QCI$meanAI2High <- max(QCI$meanAI2 + QCI$pm2, 1)
-  QCI$diffAI <- !(QCI$meanAI1Low < QCI$meanAI2Low & QCI$meanAI1High > QCI$meanAI2Low | 
-                  QCI$meanAI1Low > QCI$meanAI2Low & QCI$meanAI1Low < QCI$meanAI2High) 
+  QCI$pm1[is.infinite(QCI$pm1)] = 1
+  QCI$pm2[is.infinite(QCI$pm2)] = 1
+  
+  QCI$meanAI1Low  <- sapply(QCI$meanAI1 - QCI$pm1, function(x){max(0, x)})
+  QCI$meanAI1High <- sapply(QCI$meanAI1 + QCI$pm1, function(x){min(1, x)})
+  QCI$meanAI2Low  <- sapply(QCI$meanAI2 - QCI$pm2, function(x){max(0, x)})
+  QCI$meanAI2High <- sapply(QCI$meanAI2 + QCI$pm2, function(x){min(1, x)})
+  QCI[, c("meanAI1Low", "meanAI1High", "meanAI2Low", "meanAI2High")]
+  
+  QCI$diffAI <- !(QCI$meanAI1Low < QCI$meanAI2Low & QCI$meanAI1High >= QCI$meanAI2Low | 
+                  QCI$meanAI1Low >= QCI$meanAI2Low & QCI$meanAI1Low <= QCI$meanAI2High) 
+  
+  QCI[, c("meanAI1Low", "meanAI1High", "meanAI2Low", "meanAI2High")]
 
   
   return(QCI)
 }
 
-PerformDiffAIAnalysisFor2Conditions(geneCountTab, 2:4, 7:10, Q=0.95)
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# EXAMPLE TEST:
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+inTabs = paste0("/home/asya/Documents/AI/kidney/data/full/",
+                c("NEB", "SMARTseq10ng", "SMARTseq100pg"),
+                "_processed_gene_extended2.txt")
+inDF = GetGatkPipelineTabs(inTabs, c(6,6,6))
+RESULT = PerformDiffAIAnalysisFor2Conditions(inDF, 2:4, 7:10, Q=0.95)
+head(RESULT)
+
