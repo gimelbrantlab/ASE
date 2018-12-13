@@ -78,12 +78,13 @@ GetGatkPipelineSNPTabs <- function(inFiles, nReps){
 #                 FUNCTIONS: ALLELIC IMBALANSE AND MEAN COVERAGE
 # ---------------------------------------------------------------------------------------
 
-CountsToAI <- function(df, reps=NA){
-  #' Calculates allelic imbalance from merged counts over given replicates (ai(sum_reps(gene))).
+CountsToAI <- function(df, reps=NA, thr=NA){
+  #' Calculates allelic imbalance from merged counts over given replicates (ai(sum_reps(gene)))
   #'
-  #' @param df A dataframe of genes/transcripts and parental counts for technical replicates in columns.
-  #' @param reps An optional parameter for a range op replicates for consideration (default = all replicates in df).
-  #' @return mean(mean(m_1,...,m_6))_SNP / mean(mean(m_1+p_1,...,m_6+p6))_SNP.
+  #' @param df A dataframe of genes/transcripts and parental counts for technical replicates in columns
+  #' @param reps An optional parameter for a range op replicates for consideration (default = all replicates in df)
+  #' @param thr An optional parameter for a threshold on counts
+  #' @return mean(mean(m_1,...,m_6))_SNP / mean(mean(m_1+p_1,...,m_6+p6))_SNP
   #' @examples
   #'
   if(all(is.na(reps))){
@@ -99,7 +100,17 @@ CountsToAI <- function(df, reps=NA){
     ref <- rowSums(ddf[, seq(1, ncol(ddf), 2)])
     alt <- rowSums(ddf[, seq(2, ncol(ddf), 2)])
   }
-  p <- (ref/(ref + alt))
+  if (is.na(thr)) {
+    p <- (ref/(ref + alt))
+  }
+  else {
+    if ((ref + alt) >= thr) {
+      p <- (ref/(ref + alt))
+    }
+    else {
+      p <- NA
+    }
+  }
   p[is.nan(p)] <- 0
   return(p)
 }
@@ -141,42 +152,45 @@ NumToDoulbledigitChar <- function(x){
 #                 FUNCTIONS: PAIRED COMPARISONS
 # ---------------------------------------------------------------------------------------
 
-CreateDeltaAIForAPairRepsDF <- function(df, reps, thr=0, thrUP=F){
+CreateDeltaAIForAPairRepsDF <- function(df, reps, thrLOW=0, thrUP=F, thr=NA){
   #' Creates a tab with gene mean coverage and AI deltas for a pair of technical replicates.
   #'
-  #' @param tab A dataframe of genes/transcripts and parental counts for technical replicates in columns.
-  #' @param reps A parameter for setting 2 replicates for consideration.
-  #' @param thr Threshold for min gene coverage (default = 0).
-  #' @param thrUP Threshold for max gene coverage (default = F).
-  #' @return A tab with gene mean coverage and AI deltas for a pair of technical replicates.
+  #' @param tab A dataframe of genes/transcripts and parental counts for technical replicates in columns
+  #' @param reps A parameter for setting 2 replicates for consideration
+  #' @param thrLOW Threshold for min gene coverage (default = 0)
+  #' @param thrUP Threshold for max gene coverage (default = F)
+  #' @param thr An optinal parameter for threshold on counts
+  #' @return A tab with gene mean coverage and AI deltas for a pair of technical replicates
   #' @examples
   #'
-  ddf <- data.frame(deltaAI = CountsToAI(df, reps[1]) - CountsToAI(df, reps[2]),
-                    AI1 = CountsToAI(df, reps[1]),
-                    AI2 = CountsToAI(df, reps[2]),
+  ddf <- data.frame(deltaAI = CountsToAI(df, reps[1], thr) - CountsToAI(df, reps[2], thr),
+                    AI1 = CountsToAI(df, reps[1], thr),
+                    AI2 = CountsToAI(df, reps[2], thr),
                     MeanCov = MeanCoverage(df, reps))
-  ddf <- ddf[ddf$MeanCov >= thr, ]
-  if(thrUP) {
+  ddf <- ddf[ddf$MeanCov >= thrLOW, ]
+  if (thrUP) {
     ddf <- ddf[ddf$MeanCov < thrUP, ]
   }
   return(ddf)
 }
-CreateDeltaAIPairwiseDF <- function(df, thrs=2**c(0:12), thrsSide='both', mlns=F, repnums=F, what="noname"){
-  #' Creates a table of parwise comparisons for techreps in given table.
+CreateDeltaAIPairwiseDF <- function(df, thrs=2**c(0:12), thrsSide='both', mlns=F, repnums=F, what="noname", thr=NA){
+  #' Creates a table of parwise comparisons for techreps in given table
   #'
-  #' @param df A dataframe of genes/transcripts and parental counts for technical replicates in columns.
-  #' @param thrs An optional vector of thresholds (default = 2**c(0:12)).
-  #' @param thrsSide An optional parameter of threshold side: 'both' or 'low' (default = 'both').
-  #' @param mlns An optionsl binary parameter: if the file contains data of millionr read sampling, FALSE or TRUE (default = F).
-  #' @param repnums An optional parameter for a range op replicates for consideration (default = all replicates in df).
-  #' @param what A name, is needed if not mlns and no names in list (default = "noname").
-  #' @return A table of parwise comparisons for techreps in given table.
+  #' @param df A dataframe of genes/transcripts and parental counts for technical replicates in columns
+  #' @param thrs An optional vector of thresholds (default = 2**c(0:12))
+  #' @param thrsSide An optional parameter of threshold side: 'both' or 'low' (default = 'both')
+  #' @param mlns An optionsl binary parameter: if the file contains data of millionr read sampling, FALSE or TRUE (default = F)
+  #' @param repnums An optional parameter for a range op replicates for consideration (default = all replicates in df)
+  #' @param what A name, is needed if not mlns and no names in list (default = "noname")
+  #' @param thr Optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
+  #' @return A table of parwise comparisons for techreps in given table
   #' @examples
   #'
   DFThrNPairsRep <- do.call(rbind, lapply(1:(length(thrs)-1), function(ti){ # [for all threshold bins]
     # 1. set threshold windows and replicates:
+    thrs <- 2**c(0:12)
     t <- thrs[ti]
-    if(thrsSide=='low') {
+    if (thrsSide=='low') {
       t2 <- Inf
     } else {
       t2 <- thrs[ti+1]
@@ -188,7 +202,7 @@ CreateDeltaAIPairwiseDF <- function(df, thrs=2**c(0:12), thrsSide='both', mlns=F
     combs <- combn(repnums, 2, function(x){x})
     #  ...and perform paiwise ai comparison:
     ddfThrBin <- do.call(rbind, lapply(1:ncol(combs), function(y){ # [for all replicate combinations]
-      ddf          <- CreateDeltaAIForAPairRepsDF(df, combs[,y], t, t2)
+      ddf          <- CreateDeltaAIForAPairRepsDF(df, combs[,y], thrLOW=t, thrUP=t2, thr=thr)
       ddf$deltaAI  <- abs(ddf$deltaAI)
       ddf$what     <- what
       ddf$iLocal   <- combs[1,y]
@@ -217,26 +231,27 @@ CreateDeltaAIPairwiseDF <- function(df, thrs=2**c(0:12), thrsSide='both', mlns=F
   }))
   return(DFThrNPairsRep)
 }
-CreateMergedDeltaAIPairwiseDF <- function(df, thrs=2**c(0:12), thrsSide='both', mlns=F, repnums=F, what="noname"){
-  #' Creates a techreps-row-concatenated table of parwise comparisons for techreps in given table, via CreateDeltaAIPairwiseDF().
+CreateMergedDeltaAIPairwiseDF <- function(df, thrs=2**c(0:12), thrsSide='both', mlns=F, repnums=F, what="noname", thr=NA){
+  #' Creates a techreps-row-concatenated table of pairwise comparisons for techreps in given table, via CreateDeltaAIPairwiseDF()
   #'
-  #' @param df A dataframe of genes/transcripts and parental counts for technical replicates in columns.
-  #' @param thrs An optional vector of thresholds (default = 2**c(0:12)).
-  #' @param thrsSide An optional parameter of threshold side: 'both' or 'low' (default = 'both').
-  #' @param mlns An optionsl binary parameter: if the file contains data of millionr read sampling, FALSE or TRUE (default = F).
-  #' @param repnums An optional parameter for a range op replicates for consideration, it can be subreplicates in case of files with millions, as far there 5x columns per each (default = all replicates in df).
-  #' @param what A name, is needed if not mlns and no names in list (default = "noname").
+  #' @param df A dataframe of genes/transcripts and parental counts for technical replicates in columns
+  #' @param thrs An optional vector of thresholds (default = 2**c(0:12))
+  #' @param thrsSide An optional parameter of threshold side: 'both' or 'low' (default = 'both')
+  #' @param mlns An optionsl binary parameter: if the file contains data of millionr read sampling, FALSE or TRUE (default = F)
+  #' @param repnums An optional parameter for a range op replicates for consideration, it can be subreplicates in case of files with millions, as far there 5x columns per each (default = all replicates in df)
+  #' @param what A name, is needed if not mlns and no names in list (default = "noname")
+  #' @param thr Optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
   #' @return A techreps-row-concatenated table of parwise comparisons for techreps.
   #' @examples
   #'
   if (!mlns){ # if it's not list of millions tabs:
-    ddf <- CreateDeltaAIPairwiseDF(df, thrs, thrsSide, mlns, repnums, what)
+    ddf <- CreateDeltaAIPairwiseDF(df, thrs, thrsSide, mlns, repnums, what, thr)
   } else { # if it's list of tabs (mlns):
     subtabs <- names(df)
     ddf <- do.call(rbind, lapply(subtabs, function(s){
       subdf <- data.frame(df[[s]])
       what  <- s
-      return(CreateDeltaAIPairwiseDF(subdf, thrs, thrsSide, mlns, repnums, what))
+      return(CreateDeltaAIPairwiseDF(subdf, thrs, thrsSide, mlns, repnums, what, thr))
     }))
   }
   return(ddf)

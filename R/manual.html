@@ -129,16 +129,17 @@ $(document).ready(function () {
 
 <p>We start by loading libraries and functions we will need:</p>
 <pre class="r"><code>library(&quot;tidyverse&quot;)</code></pre>
-<pre><code>## ── Attaching packages ─────────────────────────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
+<pre><code>## ── Attaching packages ────────────────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
 <pre><code>## ✔ ggplot2 3.1.0     ✔ purrr   0.2.5
 ## ✔ tibble  1.4.2     ✔ dplyr   0.7.8
 ## ✔ tidyr   0.8.2     ✔ stringr 1.3.1
 ## ✔ readr   1.1.1     ✔ forcats 0.3.0</code></pre>
-<pre><code>## ── Conflicts ────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+<pre><code>## ── Conflicts ───────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
 ## ✖ dplyr::filter() masks stats::filter()
 ## ✖ dplyr::lag()    masks stats::lag()</code></pre>
 <pre class="r"><code>library(&quot;knitr&quot;)
-source(&quot;yet_another_functions_up_to_date_24112018.R&quot;)</code></pre>
+source(&quot;yet_another_functions_up_to_date_24112018.R&quot;)
+source(&quot;PerformDiffAIAnalysisFor2Conditions.R&quot;)</code></pre>
 <div id="aza-data" class="section level2">
 <h2>5aza data</h2>
 <p>To demonstrate how the pipeline works, we are going to use data from RNA-seq experiment aimed to study effect of 5aza treatment on expression and allele-speccific expression. Let’s look at the data first:</p>
@@ -679,8 +680,21 @@ head(DFQ)</code></pre>
 
 coeffDF &lt;- data.frame(t(do.call(rbind, groupsIntercepts)))
 colnames(coeffDF) &lt;- paste0(&quot;q_&quot;, round(as.numeric(as.character(unique(DFQ$Q))),3))</code></pre>
-<p>Rename rows</p>
-<pre class="r"><code>coeffDF$exp &lt;- rep(designMatrix$replicateNames, choose(designMatrix$replicateNumbers, 2))</code></pre>
+<p>Add names column:</p>
+<pre class="r"><code>coeffDF$exp &lt;- rep(designMatrix$replicateNames, choose(designMatrix$replicateNumbers, 2))
+coeffDF &lt;- coeffDF[,c(dim(coeffDF)[2],1:(dim(coeffDF)[2]-1))]</code></pre>
+<p>Let’s compare conditions DMSO (experiment 2) and medium 5aza treatment (experiment 4). We will construct 95%-CIs around AIs and get the resulting classification into genes demonstrating difference in AI between conditions (based on non-overlapping CIs):</p>
+<pre class="r"><code>RESULT = PerformDiffAIAnalysisFor2Conditions(geneCountTab, unlist(designMatrix$replicateNums[2]), unlist(designMatrix$replicateNums[4]), Q=0.95)
+head(RESULT[, c(1,2,4,10)])</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["meanAI1"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["meanAI2"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["diffAI"],"name":[4],"type":["lgl"],"align":["right"]}],"data":[{"1":"ENSMUSG00000051951","2":"0.0000000","3":"0.0000000","4":"FALSE","_rn_":"1"},{"1":"ENSMUSG00000025900","2":"0.5000000","3":"0.2000000","4":"FALSE","_rn_":"2"},{"1":"ENSMUSG00000025902","2":"0.6618247","3":"0.6965338","4":"TRUE","_rn_":"3"},{"1":"ENSMUSG00000033845","2":"0.5672681","3":"0.5362873","4":"TRUE","_rn_":"4"},{"1":"ENSMUSG00000025903","2":"0.3481481","3":"0.4457247","4":"TRUE","_rn_":"5"},{"1":"ENSMUSG00000033813","2":"0.4191469","3":"0.4335490","4":"TRUE","_rn_":"6"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<pre class="r"><code>print(paste0(&quot;number of genes with differential AI &quot;, table(RESULT$diffAI)[2]))</code></pre>
+<pre><code>## [1] &quot;number of genes with differential AI 5611&quot;</code></pre>
+<pre class="r"><code>print(paste0(&quot;number of genes with no differential AI &quot;, table(RESULT$diffAI)[1]))</code></pre>
+<pre><code>## [1] &quot;number of genes with no differential AI 13791&quot;</code></pre>
 </div>
 </div>
 
