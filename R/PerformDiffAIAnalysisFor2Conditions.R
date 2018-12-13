@@ -125,10 +125,11 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
 # EXAMPLE TEST:
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #
-# inTabs = paste0("/home/asya/Documents/AI/kidney/data/full/",
+# inTabs = paste0("../../../data/full/",
 #                  c("NEB", "SMARTseq10ng", "SMARTseq100pg"),
 #                  "_processed_gene_extended2.txt")
 # inDF = GetGatkPipelineTabs(inTabs, c(6,6,6))
-# RESULT = PerformDiffAIAnalysisFor2Conditions(inDF, vect1CondReps=2:3, vect2CondReps=7:10, Q=0.95)
+# RESULT = PerformDiffAIAnalysisFor2Conditions(inDF, vect1CondReps=2:4, vect2CondReps=7:8, Q=0.95)
 # head(RESULT)
+
 

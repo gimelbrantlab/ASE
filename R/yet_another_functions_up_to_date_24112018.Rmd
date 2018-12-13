@@ -11,7 +11,7 @@ Load functions from the corresponding file:
 ```{r, warning=FALSE}
 library("tidyverse")
 
-source("/home/asya/Documents/AI/kidney/yet_another_functions_up_to_date_24112018.R")
+source("yet_another_functions_up_to_date_24112018.R")
 ```
 
 Suppose I work with 3 files for 18 replicates, without deduplication:
@@ -19,11 +19,8 @@ Suppose I work with 3 files for 18 replicates, without deduplication:
 [Структура этих файлов такова: первая колонка -- имена генов, несколько колонок, по количеству реплик -- пары материнских и отеческих каунтов на ген, и столько же по снипам, строки, разделённые запятыми]
 
 ```{r}
-# inTabs = paste0("/home/asya/Documents/AI/kidney/data/full/", 
-#                 c("NEB", "SMARTseq10ng", "SMARTseq100pg"), 
-#                 "_processed_gene_extended2.txt")
-inTabs = paste0("~/Dropbox (Partners HealthCare)/replicates_ASE/data/kidney/full/", 
-                c("NEB", "SMARTseq10ng", "SMARTseq100pg"), 
+inTabs = paste0("../../../data/full/",
+                c("NEB", "SMARTseq10ng", "SMARTseq100pg"),
                 "_processed_gene_extended2.txt")
 inTabs
 #on o2:
@@ -168,4 +165,101 @@ dfCOV = data.frame(ensembl_gene_id = geneCountTab$ensembl_gene_id,
 names(dfCOV) = c("ensembl_gene_id", paste0("rep", 1:18))
 head(dfCOV)
 ```
+```{r}
+removeX <- function(DF, legitim_chrgenes){
+  return(DF[DF$ensembl_gene_id %in% legitim_chrgenes$gene, ])
+}
+chrgenes = read.delim('../../../data/Mus_musculus.GRCm38.68.chrgenes.txt', col.names = c('chr', 'gene'))
+
+inTabs = paste0("../../../data/full/",
+                c("NEB", "SMARTseq10ng", "SMARTseq100pg"),
+                "_processed_gene_extended2.txt")
+inTab = "../../../data/5aza/pr_20180714_ISEKI_processed_gene_extended2.txt"
+
+inDF18 = removeX(GetGatkPipelineTabs(inTabs, c(6,6,6)), chrgenes)
+inDF5aza = removeX(GetGatkPipelineTabs(inTab, c(13), multiple = F), chrgenes)
+
+RESULT18 = PerformDiffAIAnalysisFor2Conditions(inDF18, vect1CondReps=2:3, vect2CondReps=7:9, Q=0.95)
+RESULT5aza = PerformDiffAIAnalysisFor2Conditions(inDF5aza, vect1CondReps=3:4, vect2CondReps=7:9, Q=0.95)
+
+RESULT18; RESULT5aza
+
+```
+
+```{r}
+sapply(1:4, function(i){sum(PerformDiffAIAnalysisFor2Conditions(inDF18, 
+                                                                vect1CondReps=2:(2+i), 
+                                                                vect2CondReps=7:(7+i), 
+                                                                Q=0.95)$diffAI)})
+
+lapply(2:6, function(i){
+  combn(1:6, i, function(c1){
+    combn(1:6, i, function(c2){
+      print(paste(c1, c2))
+      sum(PerformDiffAIAnalysisFor2Conditions(inDF18, 
+                                              vect1CondReps=12+c1, 
+                                              vect2CondReps=6+c2, 
+                                              Q=0.95)$diffAI)
+    })
+  })  
+})
+
+repnumNnumberdiffaiS10S100 = sapply(2:5, function(i){
+  combs = combn(1:6, i)
+  combs1 = combs[, sample(ncol(combs), 6)]
+  combs2 = combs[, sample(ncol(combs), 6)]
+  sapply(1:6, function(j){
+    print(cbind((combs1[,j]), (combs2[,j])))
+    sum(PerformDiffAIAnalysisFor2Conditions(inDF18, 
+                                            vect1CondReps=12+combs1[,j], 
+                                            vect2CondReps=6+combs2[,j], 
+                                            Q=0.95)$diffAI)
+  })
+})
+repnumNnumberdiffaiS10N = sapply(2:5, function(i){
+  combs = combn(1:6, i)
+  combs1 = combs[, sample(ncol(combs), 6)]
+  combs2 = combs[, sample(ncol(combs), 6)]
+  sapply(1:6, function(j){
+    print(cbind((combs1[,j]), (combs2[,j])))
+    sum(PerformDiffAIAnalysisFor2Conditions(inDF18, 
+                                            vect1CondReps=combs1[,j], 
+                                            vect2CondReps=6+combs2[,j], 
+                                            Q=0.95)$diffAI)
+  })
+})
+
+NDiffS10S100 = data.frame(t(repnumNnumberdiffaiS10S100))
+names(NDiffS10S100) = paste("trial#", 1:6)
+row.names(NDiffS10S100) = paste(2:5, "techrep per condition")
+NDiffS10S100
+
+NDiffS10N = data.frame(t(repnumNnumberdiffaiS10N))
+names(NDiffS10N) = paste("trial#", 1:6)
+row.names(NDiffS10N) = paste(2:5, "techrep per condition")
+NDiffS10N
+
+repnumNnumberdiffaiS100S100 = sapply(2:3, function(i){
+  combs = combn(1:6, i)
+  C = 1:ncol(combs)
+  c1 = sample(C, 6)
+  c2 = sample(C[!C%in%c1], 6)
+  combs1 = combs[, c1]
+  combs2 = combs[, c2]
+  sapply(1:6, function(j){
+    print(cbind((combs1[,j]), (combs2[,j])))
+    sum(PerformDiffAIAnalysisFor2Conditions(inDF18, 
+                                            vect1CondReps=12+combs1[,j], 
+                                            vect2CondReps=12+combs2[,j], 
+                                            Q=0.95)$diffAI)
+  })
+})
+NDiffS100S100 = data.frame(t(repnumNnumberdiffaiS100S100))
+names(NDiffS100S100) = paste("trial#", 1:6)
+row.names(NDiffS100S100) = paste(2:3, "techrep per condition")
+NDiffS100S100
+
+```
+
+
 
