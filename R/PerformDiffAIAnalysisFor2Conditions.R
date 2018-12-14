@@ -8,7 +8,9 @@
 #'* add bins->limits
 #'* think about renaming columns to rep1_ref and so on, it's bad
 #'* NA on 0/0
-#'* NA when counts < thr
+#'* write documentation for CreatePMforAi
+#'* pm Infinite - 1) why? 2) should be taken care of inside the function
+#'* add option to calculate AI between replicates two ways - CountsToAI
 # _______________________________________________________________________________________
 
 options(stringsAsFactors = FALSE)
@@ -48,7 +50,7 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
     lapply(unique(deltaAIPairwiseDF$group),
            function(gr){
              df  <- deltaAIPairwiseDF[deltaAIPairwiseDF$group == gr, ]
-             res <- CreateObservedQuartilesDF(df,
+             res <- CreateObservedQuantilesDF(df,
                                               P=Q, ep=1.3, logbase=T,
                                               coverageLimit=quantile(deltaAIPairwiseDF$MeanCov, 0.995),
                                               group=gr)
@@ -79,31 +81,24 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
 
   # Count %-CI:
   dfAICondition <- list(cond1 = do.call(cbind, lapply(1:length(vect1CondReps),
-                                                          function(i){CountsToAI(dfCondition$cond1, reps=i)})),
+                                                          function(i){CountsToAI(dfCondition$cond1, reps=i, thr = thr)})),
                         cond2 = do.call(cbind, lapply(1:length(vect2CondReps),
-                                                          function(i){CountsToAI(dfCondition$cond2, reps=i)})))
+                                                          function(i){CountsToAI(dfCondition$cond2, reps=i, thr = thr)})))
   dfCovCondition <- list(cond1 = do.call(cbind, lapply(1:length(vect1CondReps),
                                                            function(i){rowSums(dfCondition$cond1[,(2*i):(2*i+1)])})),
                          cond2 = do.call(cbind, lapply(1:length(vect2CondReps),
                                                            function(i){rowSums(dfCondition$cond2[,(2*i):(2*i+1)])})))
   aiCondition <- lapply(dfAICondition, rowMeans)
 
-  CreatePMforAI <- function(dfInt, dfCov){
-    covSumsCombs <- combn(1:ncol(dfCov), 2, function(x){rowSums(dfCov[, x])})
-    invertCovSumsCombs = 1 / covSumsCombs
-    if(ncol(dfCov) == 2){
-      qres = apply(invertCovSumsCombs, 1, function(c){c * dfInt$linInt**2})
-    } else if(ncol(dfCov) > 2){
-      qres = rowSums(t(apply(invertCovSumsCombs, 1, function(c){c * dfInt$linInt**2})))
-    }
-    return(0.5/(ncol(dfCov)*(ncol(dfCov)-1))*sqrt(qres))
-  }
+  # Calculate intervals (ranges):
 
   QCI <- data.frame(ID = inDF[, 1],
                     meanAI1 = aiCondition$cond1,
                     pm1 = CreatePMforAI(linIntercepts[[cond1Name]], dfCovCondition$cond1),
                     meanAI2 = aiCondition$cond2,
                     pm2 = CreatePMforAI(linIntercepts[[cond2Name]], dfCovCondition$cond2))
+
+  # TODO when is it infinite? Should be taken care of inside CreatePMforAI
 
   QCI$pm1[is.infinite(QCI$pm1)] = 1
   QCI$pm2[is.infinite(QCI$pm2)] = 1
@@ -114,13 +109,34 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
   QCI$meanAI2High <- sapply(QCI$meanAI2 + QCI$pm2, function(x){min(1, x)})
   QCI[, c("meanAI1Low", "meanAI1High", "meanAI2Low", "meanAI2High")]
 
+  # Find intersecting intervals > call them FALSE
+
   QCI$diffAI <- !(QCI$meanAI1Low < QCI$meanAI2Low & QCI$meanAI1High >= QCI$meanAI2Low |
                   QCI$meanAI1Low >= QCI$meanAI2Low & QCI$meanAI1Low <= QCI$meanAI2High)
 
   QCI[, c("meanAI1Low", "meanAI1High", "meanAI2Low", "meanAI2High")]
 
-
   return(QCI)
+}
+
+
+CreatePMforAI <- function(dfInt, dfCov){
+  #' Input:
+  #'
+  #' @param dfInt
+  #' @param dfCov
+  #' @return
+  #' @examples
+  #'
+  #' TODO: write documentation and formulas for this!
+  covSumsCombs <- combn(1:ncol(dfCov), 2, function(x){rowSums(dfCov[, x])})
+  invertCovSumsCombs <- 1 / covSumsCombs
+  if(ncol(dfCov) == 2){
+    qres = apply(invertCovSumsCombs, 1, function(c){c * dfInt$linInt**2})
+  } else if(ncol(dfCov) > 2){
+    qres = rowSums(t(apply(invertCovSumsCombs, 1, function(c){c * dfInt$linInt**2})))
+  }
+  return(0.5/(ncol(dfCov)*(ncol(dfCov)-1))*sqrt(qres))
 }
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

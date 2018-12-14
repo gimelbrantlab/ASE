@@ -5,7 +5,7 @@ output:
     df_print: paged
 ---
 
-We start by loading libraries and functions we will need:
+We start by loading the libraries and functions we will need:
 
 ```{r, warning=FALSE, warning=FALSE}
 library("tidyverse")
@@ -16,14 +16,14 @@ source("PerformDiffAIAnalysisFor2Conditions.R")
 
 ##5aza data
 
-To demonstrate how the pipeline works, we are going to use data from RNA-seq experiment aimed to study effect of 5aza treatment on expression and allele-speccific expression. Let's look at the data first:
+To demonstrate how the pipeline works, we are going to use data from RNA-seq experiment aimed to study effect of 5aza treatment on expression and allele-specific expression. Let's look at the data first:
 
 ###Experiment design
 
 5 samples of 4.11 Abelson clones:
 
 name     | description  | number of repicates
-------------- | -------------
+------------- | ------------- | -------------
 control  | Untreated Day 0  | 2
 DMSO  | DMSO control Day 2  | 2
 low  | low 5aza treatment of 0.2 µM  | 2
@@ -33,21 +33,17 @@ high  | high 5aza treatment of 10 µM  | 2
 The first step is to create design matrix describing the experiment:
 
 ```{r, message=FALSE, warning=FALSE}
-replicateNumbers <- c(2,2,2,5,2)
-replicateNames <- c("control","DMSO","low","medium","high")
-rowsSp <- data.frame(matrix(lapply(1:length(replicateNumbers), function(x){(2*sum(replicateNumbers[1:x-1])+1):(2*sum(replicateNumbers[1:x]))}), nrow=length(replicateNumbers), byrow=T),stringsAsFactors=FALSE)
-colnames(rowsSp) <- "replicateCols"
-colExp <- data.frame(matrix(lapply(1:length(replicateNumbers), function(x){(sum(replicateNumbers[1:x])-replicateNumbers[x]+1):(sum(replicateNumbers[1:x]))}), nrow=length(replicateNumbers), byrow=T),stringsAsFactors=FALSE)
-colnames(colExp) <- "replicateNums"
-designMatrix <- cbind(replicateNames, replicateNumbers, rowsSp, colExp)
+experimentNames <- c("control","DMSO","low","medium","high")
+techReps <- c(2,2,2,5,2)
+designMatrix <- BuildDesign(experimentNames, techReps)
 kable(designMatrix)
 ```
 
-Now we can look at the data:
+Now we can look at the data. Here is the *geneCountTab* dataframe with counts for all genes, all replicates and conditions:
 
 ```{r, message=FALSE, warning=FALSE}
 inTabs <- "~/Dropbox (Partners HealthCare)/replicates_ASE/data/5aza/pr_20180714_ISEKI_processed_gene_extended2.txt"
-geneCountTab <- GetGatkPipelineTabs(inTabs, replicateNumbers, multiple = F)
+geneCountTab <- GetGatkPipelineTabs(inTabs, designMatrix$techReps, multiple = F)
 head(geneCountTab)
 ```
 
@@ -66,21 +62,21 @@ geneCountTab_10 <- geneCountTab_10 %>% dplyr::filter(exp1_rep1_ref + exp1_rep1_a
                              exp5_rep1_ref + exp5_rep1_alt >=thr & exp1_rep2_ref + exp1_rep2_alt >=thr & 
                              exp2_rep2_ref + exp2_rep2_alt >=thr & exp3_rep2_ref + exp3_rep2_alt >=thr & 
                              exp4_rep2_ref + exp4_rep2_alt >=thr & exp5_rep2_ref + exp5_rep2_alt >=thr)
-aiTable <- do.call(cbind, lapply(1:length(replicateNumbers), function(x){
+aiTable <- do.call(cbind, lapply(1:length(designMatrix$techReps), function(x){
       round(CountsToAI(geneCountTab_10, reps = unlist(designMatrix$replicateNums[x])),3)
     }))
 aiTable <- cbind(geneCountTab_10$ensembl_gene_id, aiTable)
-colnames(aiTable) <- c("ensembl_gene_id", designMatrix$replicateNames)
+colnames(aiTable) <- c("ensembl_gene_id", designMatrix$experimentNames)
 kable(head(aiTable))
 write.table(aiTable, file = "~/Dropbox (Partners HealthCare)/replicates_ASE/data/5aza/ai_full.txt", row.names = F, quote = F, sep="\t")
 ```
 
 
-Then get row-concatenated table of pairewise delta AI for all the 3 experiments:
+Then get row-concatenated table of pairwise delta AI for all the 3 experiments:
 
 ```{r, warning=FALSE, message=FALSE}
-dfDeltaAIPairwise <- do.call(rbind, lapply(1:length(replicateNumbers), function(x){
-      CreateMergedDeltaAIPairwiseDF(geneCountTab, mlns=F, repnums = unlist(designMatrix$replicateNums[x]), what=designMatrix$replicateNames[x], thr=10)
+dfDeltaAIPairwise <- do.call(rbind, lapply(1:length(designMatrix$techReps), function(x){
+      CreateMergedDeltaAIPairwiseDF(geneCountTab, mlns=F, repnums = unlist(designMatrix$replicateNums[x]), what=designMatrix$experimentNames[x], thr=10)
     }))
 head(dfDeltaAIPairwise)
 ```
@@ -97,7 +93,7 @@ head(DF)
 
 DFQ = do.call(rbind, lapply(unique(DF$group), 
                             function(r){
-                              CreateObservedQuartilesDF(DF[DF$group == r, ], 
+                              CreateObservedQuantilesDF(DF[DF$group == r, ], 
                                                         P, ep=1.3, logbase=T, 
                                                         coverageLimit=2000, group=r)
                             })
@@ -124,7 +120,7 @@ colnames(coeffDF) <- paste0("q_", round(as.numeric(as.character(unique(DFQ$Q))),
 Add names column:
 
 ```{r}
-coeffDF$exp <- rep(designMatrix$replicateNames, choose(designMatrix$replicateNumbers, 2))
+coeffDF$exp <- rep(designMatrix$experimentNames, choose(designMatrix$techReps, 2))
 coeffDF <- coeffDF[,c(dim(coeffDF)[2],1:(dim(coeffDF)[2]-1))]
 ```
 
@@ -136,9 +132,21 @@ DiffAI_DMSO_medium <- PerformDiffAIAnalysisFor2Conditions(geneCountTab,
                                                           vect1CondReps = unlist(designMatrix$replicateNums[2]), 
                                                           vect2CondReps = unlist(designMatrix$replicateNums[4]), 
                                                           Q=0.95,
-                                                          thr=10)
-head(DiffAI_DMSO_medium[, c(1,2,4,10)])
-print(paste0("number of genes with differential AI ", table(DiffAI_DMSO_medium$diffAI)[2]))
-print(paste0("number of genes with no differential AI ", table(DiffAI_DMSO_medium$diffAI)[1]))
+                                                          thr=40)
+DiffAI_DMSO_medium$deltaAI <- abs(DiffAI_DMSO_medium$meanAI1 - DiffAI_DMSO_medium$meanAI2)
+head(DiffAI_DMSO_medium[, c(1,2,4,10,11)])
 ```
 
+Numbers:
+```{r}
+paste0("number of genes with differential AI ", table(DiffAI_DMSO_medium$diffAI)[2])
+paste0("number of genes with no differential AI ", table(DiffAI_DMSO_medium$diffAI)[1])
+```
+
+Let's look at top DE genes:
+```{r}
+minDifference <- 0.2
+GenesAIDiff <- DiffAI_DMSO_medium[!is.na(DiffAI_DMSO_medium$diffAI), ]
+GenesAIDiff <- GenesAIDiff[GenesAIDiff$diffAI==T & GenesAIDiff$deltaAI>=minDifference, ]
+head(GenesAIDiff[, c(1,2,4,10,11)])
+```

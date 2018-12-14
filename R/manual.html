@@ -127,14 +127,14 @@ $(document).ready(function () {
 </div>
 
 
-<p>We start by loading libraries and functions we will need:</p>
+<p>We start by loading the libraries and functions we will need:</p>
 <pre class="r"><code>library(&quot;tidyverse&quot;)</code></pre>
-<pre><code>## ── Attaching packages ────────────────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
+<pre><code>## ── Attaching packages ─────────────────────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
 <pre><code>## ✔ ggplot2 3.1.0     ✔ purrr   0.2.5
 ## ✔ tibble  1.4.2     ✔ dplyr   0.7.8
 ## ✔ tidyr   0.8.2     ✔ stringr 1.3.1
 ## ✔ readr   1.1.1     ✔ forcats 0.3.0</code></pre>
-<pre><code>## ── Conflicts ───────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+<pre><code>## ── Conflicts ────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
 ## ✖ dplyr::filter() masks stats::filter()
 ## ✖ dplyr::lag()    masks stats::lag()</code></pre>
 <pre class="r"><code>library(&quot;knitr&quot;)
@@ -142,7 +142,7 @@ source(&quot;yet_another_functions_up_to_date_24112018.R&quot;)
 source(&quot;PerformDiffAIAnalysisFor2Conditions.R&quot;)</code></pre>
 <div id="aza-data" class="section level2">
 <h2>5aza data</h2>
-<p>To demonstrate how the pipeline works, we are going to use data from RNA-seq experiment aimed to study effect of 5aza treatment on expression and allele-speccific expression. Let’s look at the data first:</p>
+<p>To demonstrate how the pipeline works, we are going to use data from RNA-seq experiment aimed to study effect of 5aza treatment on expression and allele-specific expression. Let’s look at the data first:</p>
 <div id="experiment-design" class="section level3">
 <h3>Experiment design</h3>
 <p>5 samples of 4.11 Abelson clones:</p>
@@ -151,45 +151,47 @@ source(&quot;PerformDiffAIAnalysisFor2Conditions.R&quot;)</code></pre>
 <tr class="header">
 <th>name</th>
 <th>description</th>
+<th>number of repicates</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td>control</td>
 <td>Untreated Day 0</td>
+<td>2</td>
 </tr>
 <tr class="even">
 <td>DMSO</td>
 <td>DMSO control Day 2</td>
+<td>2</td>
 </tr>
 <tr class="odd">
 <td>low</td>
 <td>low 5aza treatment of 0.2 µM</td>
+<td>2</td>
 </tr>
 <tr class="even">
 <td>medium</td>
 <td>medium 5aza treatment of 2 µM</td>
+<td>5</td>
 </tr>
 <tr class="odd">
 <td>high</td>
 <td>high 5aza treatment of 10 µM</td>
+<td>2</td>
 </tr>
 </tbody>
 </table>
 <p>The first step is to create design matrix describing the experiment:</p>
-<pre class="r"><code>replicateNumbers &lt;- c(2,2,2,5,2)
-replicateNames &lt;- c(&quot;control&quot;,&quot;DMSO&quot;,&quot;low&quot;,&quot;medium&quot;,&quot;high&quot;)
-rowsSp &lt;- data.frame(matrix(lapply(1:length(replicateNumbers), function(x){(2*sum(replicateNumbers[1:x-1])+1):(2*sum(replicateNumbers[1:x]))}), nrow=length(replicateNumbers), byrow=T),stringsAsFactors=FALSE)
-colnames(rowsSp) &lt;- &quot;replicateCols&quot;
-colExp &lt;- data.frame(matrix(lapply(1:length(replicateNumbers), function(x){(sum(replicateNumbers[1:x])-replicateNumbers[x]+1):(sum(replicateNumbers[1:x]))}), nrow=length(replicateNumbers), byrow=T),stringsAsFactors=FALSE)
-colnames(colExp) &lt;- &quot;replicateNums&quot;
-designMatrix &lt;- cbind(replicateNames, replicateNumbers, rowsSp, colExp)
+<pre class="r"><code>experimentNames &lt;- c(&quot;control&quot;,&quot;DMSO&quot;,&quot;low&quot;,&quot;medium&quot;,&quot;high&quot;)
+techReps &lt;- c(2,2,2,5,2)
+designMatrix &lt;- BuildDesign(experimentNames, techReps)
 kable(designMatrix)</code></pre>
 <table>
 <thead>
 <tr class="header">
-<th align="left">replicateNames</th>
-<th align="right">replicateNumbers</th>
+<th align="left">experimentNames</th>
+<th align="right">techReps</th>
 <th align="left">replicateCols</th>
 <th align="left">replicateNums</th>
 </tr>
@@ -227,220 +229,16 @@ kable(designMatrix)</code></pre>
 </tr>
 </tbody>
 </table>
-<p>Now we can look at the data:</p>
+<p>Now we can look at the data. Here is the <em>geneCountTab</em> dataframe with counts for all genes, all replicates and conditions:</p>
 <pre class="r"><code>inTabs &lt;- &quot;~/Dropbox (Partners HealthCare)/replicates_ASE/data/5aza/pr_20180714_ISEKI_processed_gene_extended2.txt&quot;
-geneCountTab &lt;- GetGatkPipelineTabs(inTabs, replicateNumbers, multiple = F)
-kable(head(geneCountTab))</code></pre>
-<table>
-<thead>
-<tr class="header">
-<th align="left">ensembl_gene_id</th>
-<th align="right">rep1_ref</th>
-<th align="right">rep1_alt</th>
-<th align="right">rep2_ref</th>
-<th align="right">rep2_alt</th>
-<th align="right">rep1_ref</th>
-<th align="right">rep1_alt</th>
-<th align="right">rep2_ref</th>
-<th align="right">rep2_alt</th>
-<th align="right">rep1_ref</th>
-<th align="right">rep1_alt</th>
-<th align="right">rep2_ref</th>
-<th align="right">rep2_alt</th>
-<th align="right">rep1_ref</th>
-<th align="right">rep1_alt</th>
-<th align="right">rep2_ref</th>
-<th align="right">rep2_alt</th>
-<th align="right">rep3_ref</th>
-<th align="right">rep3_alt</th>
-<th align="right">rep4_ref</th>
-<th align="right">rep4_alt</th>
-<th align="right">rep5_ref</th>
-<th align="right">rep5_alt</th>
-<th align="right">rep1_ref</th>
-<th align="right">rep1_alt</th>
-<th align="right">rep2_ref</th>
-<th align="right">rep2_alt</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">ENSMUSG00000051951</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">ENSMUSG00000025900</td>
-<td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">4</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">2</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">1</td>
-<td align="right">4</td>
-</tr>
-<tr class="odd">
-<td align="left">ENSMUSG00000025902</td>
-<td align="right">109</td>
-<td align="right">36</td>
-<td align="right">145</td>
-<td align="right">65</td>
-<td align="right">128</td>
-<td align="right">68</td>
-<td align="right">171</td>
-<td align="right">84</td>
-<td align="right">216</td>
-<td align="right">151</td>
-<td align="right">103</td>
-<td align="right">39</td>
-<td align="right">228</td>
-<td align="right">109</td>
-<td align="right">265</td>
-<td align="right">114</td>
-<td align="right">332</td>
-<td align="right">131</td>
-<td align="right">307</td>
-<td align="right">124</td>
-<td align="right">353</td>
-<td align="right">168</td>
-<td align="right">426</td>
-<td align="right">176</td>
-<td align="right">383</td>
-<td align="right">144</td>
-</tr>
-<tr class="even">
-<td align="left">ENSMUSG00000033845</td>
-<td align="right">418</td>
-<td align="right">314</td>
-<td align="right">423</td>
-<td align="right">353</td>
-<td align="right">303</td>
-<td align="right">245</td>
-<td align="right">367</td>
-<td align="right">264</td>
-<td align="right">346</td>
-<td align="right">257</td>
-<td align="right">152</td>
-<td align="right">141</td>
-<td align="right">214</td>
-<td align="right">198</td>
-<td align="right">219</td>
-<td align="right">193</td>
-<td align="right">316</td>
-<td align="right">250</td>
-<td align="right">264</td>
-<td align="right">235</td>
-<td align="right">315</td>
-<td align="right">265</td>
-<td align="right">328</td>
-<td align="right">258</td>
-<td align="right">295</td>
-<td align="right">232</td>
-</tr>
-<tr class="odd">
-<td align="left">ENSMUSG00000025903</td>
-<td align="right">84</td>
-<td align="right">137</td>
-<td align="right">103</td>
-<td align="right">136</td>
-<td align="right">56</td>
-<td align="right">133</td>
-<td align="right">112</td>
-<td align="right">168</td>
-<td align="right">126</td>
-<td align="right">135</td>
-<td align="right">35</td>
-<td align="right">102</td>
-<td align="right">72</td>
-<td align="right">112</td>
-<td align="right">101</td>
-<td align="right">105</td>
-<td align="right">127</td>
-<td align="right">207</td>
-<td align="right">139</td>
-<td align="right">125</td>
-<td align="right">129</td>
-<td align="right">164</td>
-<td align="right">93</td>
-<td align="right">181</td>
-<td align="right">90</td>
-<td align="right">133</td>
-</tr>
-<tr class="even">
-<td align="left">ENSMUSG00000033813</td>
-<td align="right">718</td>
-<td align="right">951</td>
-<td align="right">809</td>
-<td align="right">1057</td>
-<td align="right">613</td>
-<td align="right">847</td>
-<td align="right">672</td>
-<td align="right">934</td>
-<td align="right">573</td>
-<td align="right">773</td>
-<td align="right">254</td>
-<td align="right">317</td>
-<td align="right">369</td>
-<td align="right">447</td>
-<td align="right">375</td>
-<td align="right">604</td>
-<td align="right">554</td>
-<td align="right">769</td>
-<td align="right">573</td>
-<td align="right">654</td>
-<td align="right">558</td>
-<td align="right">691</td>
-<td align="right">466</td>
-<td align="right">646</td>
-<td align="right">471</td>
-<td align="right">566</td>
-</tr>
-</tbody>
-</table>
-<p>We can calculate allelic imbalances for all genes for all experimental conditions pooling technical replicates:</p>
+geneCountTab &lt;- GetGatkPipelineTabs(inTabs, designMatrix$techReps, multiple = F)
+head(geneCountTab)</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["ensembl_gene_id"],"name":[1],"type":["chr"],"align":["left"]},{"label":["rep1_ref"],"name":[2],"type":["int"],"align":["right"]},{"label":["rep1_alt"],"name":[3],"type":["int"],"align":["right"]},{"label":["rep2_ref"],"name":[4],"type":["int"],"align":["right"]},{"label":["rep2_alt"],"name":[5],"type":["int"],"align":["right"]},{"label":["rep1_ref"],"name":[6],"type":["int"],"align":["right"]},{"label":["rep1_alt"],"name":[7],"type":["int"],"align":["right"]},{"label":["rep2_ref"],"name":[8],"type":["int"],"align":["right"]},{"label":["rep2_alt"],"name":[9],"type":["int"],"align":["right"]},{"label":["rep1_ref"],"name":[10],"type":["int"],"align":["right"]},{"label":["rep1_alt"],"name":[11],"type":["int"],"align":["right"]},{"label":["rep2_ref"],"name":[12],"type":["int"],"align":["right"]},{"label":["rep2_alt"],"name":[13],"type":["int"],"align":["right"]},{"label":["rep1_ref"],"name":[14],"type":["int"],"align":["right"]},{"label":["rep1_alt"],"name":[15],"type":["int"],"align":["right"]},{"label":["rep2_ref"],"name":[16],"type":["int"],"align":["right"]},{"label":["rep2_alt"],"name":[17],"type":["int"],"align":["right"]},{"label":["rep3_ref"],"name":[18],"type":["int"],"align":["right"]},{"label":["rep3_alt"],"name":[19],"type":["int"],"align":["right"]},{"label":["rep4_ref"],"name":[20],"type":["int"],"align":["right"]},{"label":["rep4_alt"],"name":[21],"type":["int"],"align":["right"]},{"label":["rep5_ref"],"name":[22],"type":["int"],"align":["right"]},{"label":["rep5_alt"],"name":[23],"type":["int"],"align":["right"]},{"label":["rep1_ref"],"name":[24],"type":["int"],"align":["right"]},{"label":["rep1_alt"],"name":[25],"type":["int"],"align":["right"]},{"label":["rep2_ref"],"name":[26],"type":["int"],"align":["right"]},{"label":["rep2_alt"],"name":[27],"type":["int"],"align":["right"]}],"data":[{"1":"ENSMUSG00000051951","2":"0","3":"0","4":"0","5":"0","6":"0","7":"0","8":"0","9":"0","10":"0","11":"0","12":"0","13":"0","14":"0","15":"0","16":"0","17":"0","18":"0","19":"0","20":"0","21":"0","22":"0","23":"0","24":"1","25":"0","26":"0","27":"0","_rn_":"1"},{"1":"ENSMUSG00000025900","2":"1","3":"0","4":"0","5":"0","6":"0","7":"0","8":"2","9":"0","10":"0","11":"0","12":"0","13":"0","14":"0","15":"0","16":"0","17":"0","18":"0","19":"0","20":"4","21":"0","22":"0","23":"2","24":"0","25":"0","26":"1","27":"4","_rn_":"2"},{"1":"ENSMUSG00000025902","2":"109","3":"36","4":"145","5":"65","6":"128","7":"68","8":"171","9":"84","10":"216","11":"151","12":"103","13":"39","14":"228","15":"109","16":"265","17":"114","18":"332","19":"131","20":"307","21":"124","22":"353","23":"168","24":"426","25":"176","26":"383","27":"144","_rn_":"3"},{"1":"ENSMUSG00000033845","2":"418","3":"314","4":"423","5":"353","6":"303","7":"245","8":"367","9":"264","10":"346","11":"257","12":"152","13":"141","14":"214","15":"198","16":"219","17":"193","18":"316","19":"250","20":"264","21":"235","22":"315","23":"265","24":"328","25":"258","26":"295","27":"232","_rn_":"4"},{"1":"ENSMUSG00000025903","2":"84","3":"137","4":"103","5":"136","6":"56","7":"133","8":"112","9":"168","10":"126","11":"135","12":"35","13":"102","14":"72","15":"112","16":"101","17":"105","18":"127","19":"207","20":"139","21":"125","22":"129","23":"164","24":"93","25":"181","26":"90","27":"133","_rn_":"5"},{"1":"ENSMUSG00000033813","2":"718","3":"951","4":"809","5":"1057","6":"613","7":"847","8":"672","9":"934","10":"573","11":"773","12":"254","13":"317","14":"369","15":"447","16":"375","17":"604","18":"554","19":"769","20":"573","21":"654","22":"558","23":"691","24":"466","25":"646","26":"471","27":"566","_rn_":"6"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<p>We can calculate allelic imbalances for all genes for all experimental conditions pooling technical replicates: AI = </p>
 <pre class="r"><code>thr &lt;- 10
 geneCountTab_10 &lt;- geneCountTab
 nameColumns &lt;- function(exp_n, rep_n)  {
@@ -452,11 +250,11 @@ geneCountTab_10 &lt;- geneCountTab_10 %&gt;% dplyr::filter(exp1_rep1_ref + exp1_
                              exp5_rep1_ref + exp5_rep1_alt &gt;=thr &amp; exp1_rep2_ref + exp1_rep2_alt &gt;=thr &amp; 
                              exp2_rep2_ref + exp2_rep2_alt &gt;=thr &amp; exp3_rep2_ref + exp3_rep2_alt &gt;=thr &amp; 
                              exp4_rep2_ref + exp4_rep2_alt &gt;=thr &amp; exp5_rep2_ref + exp5_rep2_alt &gt;=thr)
-aiTable &lt;- do.call(cbind, lapply(1:length(replicateNumbers), function(x){
+aiTable &lt;- do.call(cbind, lapply(1:length(designMatrix$techReps), function(x){
       round(CountsToAI(geneCountTab_10, reps = unlist(designMatrix$replicateNums[x])),3)
     }))
-aiTable &lt;- cbind(geneCountTab$ensembl_gene_id, aiTable)
-colnames(aiTable) &lt;- c(&quot;ensembl_gene_id&quot;, designMatrix$replicateNames)
+aiTable &lt;- cbind(geneCountTab_10$ensembl_gene_id, aiTable)
+colnames(aiTable) &lt;- c(&quot;ensembl_gene_id&quot;, designMatrix$experimentNames)
 kable(head(aiTable))</code></pre>
 <table>
 <thead>
@@ -471,7 +269,7 @@ kable(head(aiTable))</code></pre>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">ENSMUSG00000051951</td>
+<td align="left">ENSMUSG00000025902</td>
 <td align="left">0.715</td>
 <td align="left">0.663</td>
 <td align="left">0.627</td>
@@ -479,7 +277,7 @@ kable(head(aiTable))</code></pre>
 <td align="left">0.717</td>
 </tr>
 <tr class="even">
-<td align="left">ENSMUSG00000025900</td>
+<td align="left">ENSMUSG00000033845</td>
 <td align="left">0.558</td>
 <td align="left">0.568</td>
 <td align="left">0.556</td>
@@ -487,7 +285,7 @@ kable(head(aiTable))</code></pre>
 <td align="left">0.56</td>
 </tr>
 <tr class="odd">
-<td align="left">ENSMUSG00000025902</td>
+<td align="left">ENSMUSG00000025903</td>
 <td align="left">0.407</td>
 <td align="left">0.358</td>
 <td align="left">0.405</td>
@@ -495,7 +293,7 @@ kable(head(aiTable))</code></pre>
 <td align="left">0.368</td>
 </tr>
 <tr class="even">
-<td align="left">ENSMUSG00000033845</td>
+<td align="left">ENSMUSG00000033813</td>
 <td align="left">0.432</td>
 <td align="left">0.419</td>
 <td align="left">0.431</td>
@@ -503,7 +301,7 @@ kable(head(aiTable))</code></pre>
 <td align="left">0.436</td>
 </tr>
 <tr class="odd">
-<td align="left">ENSMUSG00000025903</td>
+<td align="left">ENSMUSG00000104217</td>
 <td align="left">0.511</td>
 <td align="left">0.487</td>
 <td align="left">0.498</td>
@@ -511,7 +309,7 @@ kable(head(aiTable))</code></pre>
 <td align="left">0.481</td>
 </tr>
 <tr class="even">
-<td align="left">ENSMUSG00000033813</td>
+<td align="left">ENSMUSG00000025907</td>
 <td align="left">0.44</td>
 <td align="left">0.416</td>
 <td align="left">0.53</td>
@@ -521,129 +319,16 @@ kable(head(aiTable))</code></pre>
 </tbody>
 </table>
 <pre class="r"><code>write.table(aiTable, file = &quot;~/Dropbox (Partners HealthCare)/replicates_ASE/data/5aza/ai_full.txt&quot;, row.names = F, quote = F, sep=&quot;\t&quot;)</code></pre>
-<p>Then get row-concatenated table of pairewise delta AI for all the 3 experiments:</p>
-<pre class="r"><code>dfDeltaAIPairwise &lt;- do.call(rbind, lapply(1:length(replicateNumbers), function(x){
-      CreateMergedDeltaAIPairwiseDF(geneCountTab, mlns=F, repnums = unlist(designMatrix$replicateNums[x]), what=designMatrix$replicateNames[x])
+<p>Then get row-concatenated table of pairwise delta AI for all the 3 experiments:</p>
+<pre class="r"><code>dfDeltaAIPairwise &lt;- do.call(rbind, lapply(1:length(designMatrix$techReps), function(x){
+      CreateMergedDeltaAIPairwiseDF(geneCountTab, mlns=F, repnums = unlist(designMatrix$replicateNums[x]), what=designMatrix$experimentNames[x], thr=10)
     }))
-kable(head(dfDeltaAIPairwise))</code></pre>
-<table>
-<thead>
-<tr class="header">
-<th></th>
-<th align="right">deltaAI</th>
-<th align="right">AI1</th>
-<th align="right">AI2</th>
-<th align="right">MeanCov</th>
-<th align="left">what</th>
-<th align="right">iLocal</th>
-<th align="right">jLocal</th>
-<th align="left">ijLocal</th>
-<th align="right">i</th>
-<th align="right">j</th>
-<th align="left">ij</th>
-<th align="right">thrLow</th>
-<th align="right">thrHigh</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>11</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0</td>
-<td align="right">0.0000000</td>
-<td align="right">1.0</td>
-<td align="left">control</td>
-<td align="right">1</td>
-<td align="right">2</td>
-<td align="left">01 vs 02</td>
-<td align="right">1</td>
-<td align="right">2</td>
-<td align="left">01 vs 02</td>
-<td align="right">1</td>
-<td align="right">2</td>
-</tr>
-<tr class="even">
-<td>60</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">0.0000000</td>
-<td align="right">1.0</td>
-<td align="left">control</td>
-<td align="right">1</td>
-<td align="right">2</td>
-<td align="left">01 vs 02</td>
-<td align="right">1</td>
-<td align="right">2</td>
-<td align="left">01 vs 02</td>
-<td align="right">1</td>
-<td align="right">2</td>
-</tr>
-<tr class="odd">
-<td>173</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0</td>
-<td align="right">0.0000000</td>
-<td align="right">1.0</td>
-<td align="left">control</td>
-<td align="right">1</td>
-<td align="right">2</td>
-<td align="left">01 vs 02</td>
-<td align="right">1</td>
-<td align="right">2</td>
-<td align="left">01 vs 02</td>
-<td align="right">1</td>
-<td align="right">2</td>
-</tr>
-<tr class="even">
-<td>194</td>
-<td align="right">0.5000000</td>
-<td align="right">0.5</td>
-<td align="right">0.0000000</td>
-<td align="right">1.0</td>
-<td align="left">control</td>
-<td align="right">1</td>
-<td align="right">2</td>
-<td align="left">01 vs 02</td>
-<td align="right">1</td>
-<td align="right">2</td>
-<td align="left">01 vs 02</td>
-<td align="right">1</td>
-<td align="right">2</td>
-</tr>
-<tr class="odd">
-<td>206</td>
-<td align="right">1.0000000</td>
-<td align="right">0.0</td>
-<td align="right">1.0000000</td>
-<td align="right">1.5</td>
-<td align="left">control</td>
-<td align="right">1</td>
-<td align="right">2</td>
-<td align="left">01 vs 02</td>
-<td align="right">1</td>
-<td align="right">2</td>
-<td align="left">01 vs 02</td>
-<td align="right">1</td>
-<td align="right">2</td>
-</tr>
-<tr class="even">
-<td>221</td>
-<td align="right">0.6666667</td>
-<td align="right">0.0</td>
-<td align="right">0.6666667</td>
-<td align="right">1.5</td>
-<td align="left">control</td>
-<td align="right">1</td>
-<td align="right">2</td>
-<td align="left">01 vs 02</td>
-<td align="right">1</td>
-<td align="right">2</td>
-<td align="left">01 vs 02</td>
-<td align="right">1</td>
-<td align="right">2</td>
-</tr>
-</tbody>
-</table>
+head(dfDeltaAIPairwise)</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["deltaAI"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["AI1"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["AI2"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["MeanCov"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["what"],"name":[5],"type":["chr"],"align":["left"]},{"label":["iLocal"],"name":[6],"type":["int"],"align":["right"]},{"label":["jLocal"],"name":[7],"type":["int"],"align":["right"]},{"label":["ijLocal"],"name":[8],"type":["chr"],"align":["left"]},{"label":["i"],"name":[9],"type":["int"],"align":["right"]},{"label":["j"],"name":[10],"type":["int"],"align":["right"]},{"label":["ij"],"name":[11],"type":["chr"],"align":["left"]},{"label":["thrLow"],"name":[12],"type":["dbl"],"align":["right"]},{"label":["thrHigh"],"name":[13],"type":["dbl"],"align":["right"]}],"data":[{"1":"NA","2":"NA","3":"NA","4":"1.0","5":"control","6":"1","7":"2","8":"01 vs 02","9":"1","10":"2","11":"01 vs 02","12":"1","13":"2","_rn_":"11"},{"1":"NA","2":"NA","3":"NA","4":"1.0","5":"control","6":"1","7":"2","8":"01 vs 02","9":"1","10":"2","11":"01 vs 02","12":"1","13":"2","_rn_":"60"},{"1":"NA","2":"NA","3":"NA","4":"1.0","5":"control","6":"1","7":"2","8":"01 vs 02","9":"1","10":"2","11":"01 vs 02","12":"1","13":"2","_rn_":"173"},{"1":"NA","2":"NA","3":"NA","4":"1.0","5":"control","6":"1","7":"2","8":"01 vs 02","9":"1","10":"2","11":"01 vs 02","12":"1","13":"2","_rn_":"194"},{"1":"NA","2":"NA","3":"NA","4":"1.5","5":"control","6":"1","7":"2","8":"01 vs 02","9":"1","10":"2","11":"01 vs 02","12":"1","13":"2","_rn_":"206"},{"1":"NA","2":"NA","3":"NA","4":"1.5","5":"control","6":"1","7":"2","8":"01 vs 02","9":"1","10":"2","11":"01 vs 02","12":"1","13":"2","_rn_":"221"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
 <pre class="r"><code>P = pnorm(seq(0.4,2,0.2))
 P = P - (1-P) 
 DF = dfDeltaAIPairwise
@@ -652,12 +337,12 @@ DF$group = paste(DF$what, DF$geneORsnp, DF$ij)
 head(DF)</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["deltaAI"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["AI1"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["AI2"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["MeanCov"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["what"],"name":[5],"type":["chr"],"align":["left"]},{"label":["iLocal"],"name":[6],"type":["int"],"align":["right"]},{"label":["jLocal"],"name":[7],"type":["int"],"align":["right"]},{"label":["ijLocal"],"name":[8],"type":["chr"],"align":["left"]},{"label":["i"],"name":[9],"type":["int"],"align":["right"]},{"label":["j"],"name":[10],"type":["int"],"align":["right"]},{"label":["ij"],"name":[11],"type":["chr"],"align":["left"]},{"label":["thrLow"],"name":[12],"type":["dbl"],"align":["right"]},{"label":["thrHigh"],"name":[13],"type":["dbl"],"align":["right"]},{"label":["geneORsnp"],"name":[14],"type":["chr"],"align":["left"]},{"label":["group"],"name":[15],"type":["chr"],"align":["left"]}],"data":[{"1":"0.0000000","2":"0.0","3":"0.0000000","4":"1.0","5":"control","6":"1","7":"2","8":"01 vs 02","9":"1","10":"2","11":"01 vs 02","12":"1","13":"2","14":"Gene","15":"control Gene 01 vs 02","_rn_":"11"},{"1":"1.0000000","2":"1.0","3":"0.0000000","4":"1.0","5":"control","6":"1","7":"2","8":"01 vs 02","9":"1","10":"2","11":"01 vs 02","12":"1","13":"2","14":"Gene","15":"control Gene 01 vs 02","_rn_":"60"},{"1":"1.0000000","2":"1.0","3":"0.0000000","4":"1.0","5":"control","6":"1","7":"2","8":"01 vs 02","9":"1","10":"2","11":"01 vs 02","12":"1","13":"2","14":"Gene","15":"control Gene 01 vs 02","_rn_":"173"},{"1":"0.5000000","2":"0.5","3":"0.0000000","4":"1.0","5":"control","6":"1","7":"2","8":"01 vs 02","9":"1","10":"2","11":"01 vs 02","12":"1","13":"2","14":"Gene","15":"control Gene 01 vs 02","_rn_":"194"},{"1":"1.0000000","2":"0.0","3":"1.0000000","4":"1.5","5":"control","6":"1","7":"2","8":"01 vs 02","9":"1","10":"2","11":"01 vs 02","12":"1","13":"2","14":"Gene","15":"control Gene 01 vs 02","_rn_":"206"},{"1":"0.6666667","2":"0.0","3":"0.6666667","4":"1.5","5":"control","6":"1","7":"2","8":"01 vs 02","9":"1","10":"2","11":"01 vs 02","12":"1","13":"2","14":"Gene","15":"control Gene 01 vs 02","_rn_":"221"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["deltaAI"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["AI1"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["AI2"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["MeanCov"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["what"],"name":[5],"type":["chr"],"align":["left"]},{"label":["iLocal"],"name":[6],"type":["int"],"align":["right"]},{"label":["jLocal"],"name":[7],"type":["int"],"align":["right"]},{"label":["ijLocal"],"name":[8],"type":["chr"],"align":["left"]},{"label":["i"],"name":[9],"type":["int"],"align":["right"]},{"label":["j"],"name":[10],"type":["int"],"align":["right"]},{"label":["ij"],"name":[11],"type":["chr"],"align":["left"]},{"label":["thrLow"],"name":[12],"type":["dbl"],"align":["right"]},{"label":["thrHigh"],"name":[13],"type":["dbl"],"align":["right"]},{"label":["geneORsnp"],"name":[14],"type":["chr"],"align":["left"]},{"label":["group"],"name":[15],"type":["chr"],"align":["left"]}],"data":[{"1":"NA","2":"NA","3":"NA","4":"1.0","5":"control","6":"1","7":"2","8":"01 vs 02","9":"1","10":"2","11":"01 vs 02","12":"1","13":"2","14":"Gene","15":"control Gene 01 vs 02","_rn_":"11"},{"1":"NA","2":"NA","3":"NA","4":"1.0","5":"control","6":"1","7":"2","8":"01 vs 02","9":"1","10":"2","11":"01 vs 02","12":"1","13":"2","14":"Gene","15":"control Gene 01 vs 02","_rn_":"60"},{"1":"NA","2":"NA","3":"NA","4":"1.0","5":"control","6":"1","7":"2","8":"01 vs 02","9":"1","10":"2","11":"01 vs 02","12":"1","13":"2","14":"Gene","15":"control Gene 01 vs 02","_rn_":"173"},{"1":"NA","2":"NA","3":"NA","4":"1.0","5":"control","6":"1","7":"2","8":"01 vs 02","9":"1","10":"2","11":"01 vs 02","12":"1","13":"2","14":"Gene","15":"control Gene 01 vs 02","_rn_":"194"},{"1":"NA","2":"NA","3":"NA","4":"1.5","5":"control","6":"1","7":"2","8":"01 vs 02","9":"1","10":"2","11":"01 vs 02","12":"1","13":"2","14":"Gene","15":"control Gene 01 vs 02","_rn_":"206"},{"1":"NA","2":"NA","3":"NA","4":"1.5","5":"control","6":"1","7":"2","8":"01 vs 02","9":"1","10":"2","11":"01 vs 02","12":"1","13":"2","14":"Gene","15":"control Gene 01 vs 02","_rn_":"221"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>DFQ = do.call(rbind, lapply(unique(DF$group), 
                             function(r){
-                              CreateObservedQuartilesDF(DF[DF$group == r, ], 
+                              CreateObservedQuantilesDF(DF[DF$group == r, ], 
                                                         P, ep=1.3, logbase=T, 
                                                         coverageLimit=2000, group=r)
                             })
@@ -665,7 +350,7 @@ head(DF)</code></pre>
 head(DFQ)</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["coverageBin"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["deltaAI"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["binNObservations"],"name":[3],"type":["int"],"align":["right"]},{"label":["Q"],"name":[4],"type":["fctr"],"align":["left"]},{"label":["group"],"name":[5],"type":["fctr"],"align":["left"]}],"data":[{"1":"1","2":"0.00000000","3":"652","4":"0.310843483220648","5":"control Gene 01 vs 02 0.310843483220648","_rn_":"1"},{"1":"2","2":"0.00000000","3":"362","4":"0.310843483220648","5":"control Gene 01 vs 02 0.310843483220648","_rn_":"2"},{"1":"3","2":"0.10000000","3":"268","4":"0.310843483220648","5":"control Gene 01 vs 02 0.310843483220648","_rn_":"3"},{"1":"4","2":"0.06666667","3":"369","4":"0.310843483220648","5":"control Gene 01 vs 02 0.310843483220648","_rn_":"4"},{"1":"6","2":"0.08333333","3":"253","4":"0.310843483220648","5":"control Gene 01 vs 02 0.310843483220648","_rn_":"5"},{"1":"8","2":"0.02542016","3":"209","4":"0.310843483220648","5":"control Gene 01 vs 02 0.310843483220648","_rn_":"6"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["coverageBin"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["deltaAI"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["binNObservations"],"name":[3],"type":["int"],"align":["right"]},{"label":["Q"],"name":[4],"type":["fctr"],"align":["left"]},{"label":["group"],"name":[5],"type":["fctr"],"align":["left"]}],"data":[{"1":"1","2":"NA","3":"652","4":"0.310843483220648","5":"control Gene 01 vs 02 0.310843483220648","_rn_":"1"},{"1":"2","2":"NA","3":"362","4":"0.310843483220648","5":"control Gene 01 vs 02 0.310843483220648","_rn_":"2"},{"1":"3","2":"NA","3":"268","4":"0.310843483220648","5":"control Gene 01 vs 02 0.310843483220648","_rn_":"3"},{"1":"4","2":"NA","3":"369","4":"0.310843483220648","5":"control Gene 01 vs 02 0.310843483220648","_rn_":"4"},{"1":"6","2":"NA","3":"253","4":"0.310843483220648","5":"control Gene 01 vs 02 0.310843483220648","_rn_":"5"},{"1":"8","2":"NA","3":"209","4":"0.310843483220648","5":"control Gene 01 vs 02 0.310843483220648","_rn_":"6"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 <pre class="r"><code>DFQ$ij = sapply(as.character(DFQ$group), function(x){paste(unlist(strsplit(x, ' '))[3:5], collapse = ' ')})</code></pre>
@@ -681,20 +366,36 @@ head(DFQ)</code></pre>
 coeffDF &lt;- data.frame(t(do.call(rbind, groupsIntercepts)))
 colnames(coeffDF) &lt;- paste0(&quot;q_&quot;, round(as.numeric(as.character(unique(DFQ$Q))),3))</code></pre>
 <p>Add names column:</p>
-<pre class="r"><code>coeffDF$exp &lt;- rep(designMatrix$replicateNames, choose(designMatrix$replicateNumbers, 2))
+<pre class="r"><code>coeffDF$exp &lt;- rep(designMatrix$experimentNames, choose(designMatrix$techReps, 2))
 coeffDF &lt;- coeffDF[,c(dim(coeffDF)[2],1:(dim(coeffDF)[2]-1))]</code></pre>
 <p>Let’s compare conditions DMSO (experiment 2) and medium 5aza treatment (experiment 4). We will construct 95%-CIs around AIs and get the resulting classification into genes demonstrating difference in AI between conditions (based on non-overlapping CIs):</p>
-<pre class="r"><code>RESULT = PerformDiffAIAnalysisFor2Conditions(geneCountTab, unlist(designMatrix$replicateNums[2]), unlist(designMatrix$replicateNums[4]), Q=0.95)
-head(RESULT[, c(1,2,4,10)])</code></pre>
+<pre class="r"><code>DiffAI_DMSO_medium &lt;- PerformDiffAIAnalysisFor2Conditions(geneCountTab, 
+                                                          vect1CondReps = unlist(designMatrix$replicateNums[2]), 
+                                                          vect2CondReps = unlist(designMatrix$replicateNums[4]), 
+                                                          Q=0.95,
+                                                          thr=40)
+DiffAI_DMSO_medium$deltaAI &lt;- abs(DiffAI_DMSO_medium$meanAI1 - DiffAI_DMSO_medium$meanAI2)
+head(DiffAI_DMSO_medium[, c(1,2,4,10,11)])</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["meanAI1"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["meanAI2"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["diffAI"],"name":[4],"type":["lgl"],"align":["right"]}],"data":[{"1":"ENSMUSG00000051951","2":"0.0000000","3":"0.0000000","4":"FALSE","_rn_":"1"},{"1":"ENSMUSG00000025900","2":"0.5000000","3":"0.2000000","4":"FALSE","_rn_":"2"},{"1":"ENSMUSG00000025902","2":"0.6618247","3":"0.6965338","4":"TRUE","_rn_":"3"},{"1":"ENSMUSG00000033845","2":"0.5672681","3":"0.5362873","4":"TRUE","_rn_":"4"},{"1":"ENSMUSG00000025903","2":"0.3481481","3":"0.4457247","4":"TRUE","_rn_":"5"},{"1":"ENSMUSG00000033813","2":"0.4191469","3":"0.4335490","4":"TRUE","_rn_":"6"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["meanAI1"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["meanAI2"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["diffAI"],"name":[4],"type":["lgl"],"align":["right"]},{"label":["deltaAI"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"ENSMUSG00000051951","2":"NA","3":"NA","4":"NA","5":"NA","_rn_":"1"},{"1":"ENSMUSG00000025900","2":"NA","3":"NA","4":"NA","5":"NA","_rn_":"2"},{"1":"ENSMUSG00000025902","2":"0.6618247","3":"0.6965338","4":"TRUE","5":"0.03470909","_rn_":"3"},{"1":"ENSMUSG00000033845","2":"0.5672681","3":"0.5362873","4":"TRUE","5":"0.03098083","_rn_":"4"},{"1":"ENSMUSG00000025903","2":"0.3481481","3":"0.4457247","4":"TRUE","5":"0.09757652","_rn_":"5"},{"1":"ENSMUSG00000033813","2":"0.4191469","3":"0.4335490","4":"TRUE","5":"0.01440208","_rn_":"6"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
-<pre class="r"><code>print(paste0(&quot;number of genes with differential AI &quot;, table(RESULT$diffAI)[2]))</code></pre>
-<pre><code>## [1] &quot;number of genes with differential AI 5611&quot;</code></pre>
-<pre class="r"><code>print(paste0(&quot;number of genes with no differential AI &quot;, table(RESULT$diffAI)[1]))</code></pre>
-<pre><code>## [1] &quot;number of genes with no differential AI 13791&quot;</code></pre>
+<p>Numbers:</p>
+<pre class="r"><code>paste0(&quot;number of genes with differential AI &quot;, table(DiffAI_DMSO_medium$diffAI)[2])</code></pre>
+<pre><code>## [1] &quot;number of genes with differential AI 3811&quot;</code></pre>
+<pre class="r"><code>paste0(&quot;number of genes with no differential AI &quot;, table(DiffAI_DMSO_medium$diffAI)[1])</code></pre>
+<pre><code>## [1] &quot;number of genes with no differential AI 3239&quot;</code></pre>
+<p>Let’s look at top DE genes:</p>
+<pre class="r"><code>minDifference &lt;- 0.2
+GenesAIDiff &lt;- DiffAI_DMSO_medium[!is.na(DiffAI_DMSO_medium$diffAI), ]
+GenesAIDiff &lt;- GenesAIDiff[GenesAIDiff$diffAI==T &amp; GenesAIDiff$deltaAI&gt;=minDifference, ]
+head(GenesAIDiff[, c(1,2,4,10,11)])</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["ID"],"name":[1],"type":["chr"],"align":["left"]},{"label":["meanAI1"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["meanAI2"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["diffAI"],"name":[4],"type":["lgl"],"align":["right"]},{"label":["deltaAI"],"name":[5],"type":["dbl"],"align":["right"]}],"data":[{"1":"ENSMUSG00000025997","2":"0.01923785","3":"0.2436969","4":"TRUE","5":"0.2244590","_rn_":"283"},{"1":"ENSMUSG00000058715","2":"0.15576923","3":"0.3630242","4":"TRUE","5":"0.2072550","_rn_":"838"},{"1":"ENSMUSG00000026520","2":"0.22440639","3":"0.4941952","4":"TRUE","5":"0.2697888","_rn_":"950"},{"1":"ENSMUSG00000019846","2":"0.99367089","3":"0.7020962","4":"TRUE","5":"0.2915747","_rn_":"1190"},{"1":"ENSMUSG00000020464","2":"0.51742810","3":"0.7292643","4":"TRUE","5":"0.2118362","_rn_":"2105"},{"1":"ENSMUSG00000011256","2":"0.61104218","3":"0.3286585","4":"TRUE","5":"0.2823837","_rn_":"2195"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
 </div>
 </div>
 

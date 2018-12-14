@@ -133,10 +133,10 @@ MeanCoverage <- function(df, reps=NA){
 # ---------------------------------------------------------------------------------------
 
 NumToDoulbledigitChar <- function(x){
-  #' Creates double-digit character from a number or a vector of numbers (up t0 99).
+  #' Creates double-digit character from a number or a vector of numbers (up t0 99)
   #'
-  #' @param x A number from 0 to 99.
-  #' @return Double-digit character (or vector) from a number ('x' or '0x').
+  #' @param x A number from 0 to 99
+  #' @return Double-digit character (or vector) from a number ('x' or '0x')
   #' @examples
   #'
   if(length(x)==1){ x = c(x) }
@@ -145,6 +145,23 @@ NumToDoulbledigitChar <- function(x){
     else { return(as.character(x[i])) }
   })
   return(doubledigitsChars)
+}
+
+BuildDesign <- function(experimentNames, techReps){
+  #' Creates a design matrix for the experiment
+  #'
+  #' @param experimentNames Vector with names of the experiments
+  #' @param techReps Vector with number of technical replicates in each experiment
+  #' @return Dataframe with experiments numbered and numbers of columns
+  #' @examples
+  #'
+  rowsSp <- data.frame(matrix(lapply(1:length(techReps), function(x){(2*sum(techReps[1:x-1])+1):(2*sum(techReps[1:x]))}), nrow=length(techReps), byrow=T),stringsAsFactors=FALSE)
+  colnames(rowsSp) <- "replicateCols"
+  colExp <- data.frame(matrix(lapply(1:length(techReps), function(x){(sum(techReps[1:x])-techReps[x]+1):(sum(techReps[1:x]))}), nrow=length(techReps), byrow=T),stringsAsFactors=FALSE)
+  colnames(colExp) <- "replicateNums"
+  designMatrix <- cbind(experimentNames, techReps, rowsSp, colExp)
+  colnames(designMatrix) <- c("experimentNames", "techReps", "replicateCols", "replicateNums")
+  return(designMatrix)
 }
 
 # ---------------------------------------------------------------------------------------
@@ -261,7 +278,7 @@ CreateMergedDeltaAIPairwiseDF <- function(df, thrs=2**c(0:12), thrsSide='both', 
 #                 FUNCTIONS: BINNING AND QUARTILLING
 # ---------------------------------------------------------------------------------------
 
-CreateObservedQuartilesDF <- function(df, P, ep, logbase=T, coverageLimit, group=''){
+CreateObservedQuantilesDF <- function(df, P, ep, logbase=T, coverageLimit, group=''){
   #' Creates a table with quantiles and numbers of bins for technical replicates for a given table, binned into log intervals
   #'
   #' @param df A dataframe - output of CreateMergedDeltaAIPairwiseDF()
@@ -317,7 +334,7 @@ CreateObservedQuartilesDF <- function(df, P, ep, logbase=T, coverageLimit, group
 FitLmIntercept <- function(inDf, binNObs, morethan = 10, logoutput = TRUE){
   #' Fits linear model to logarithmic data and outputs intercept for the model with slope=1/2 restriction
   #
-  #' @param inDf A dataframe - output of CreateObservedQuartilesDF()
+  #' @param inDf A dataframe - output of CreateObservedQuantilesDF()
   #' @param N_obs_bin Threshold on number of observations per bin
   #' @param morethan Theshold on gene coverage for lm (default = 10)
   #' @param logoutput Return log intercept? (default = true)
@@ -339,7 +356,7 @@ FitLmIntercept <- function(inDf, binNObs, morethan = 10, logoutput = TRUE){
 #' FitLmIntercept <- function(inDf, binNObs, morethan=10, logoutput=T){
 #'   #' Fits linear model to logarithmic data and counts intersept for model with *1/2 restriction
 #'   #'
-#'   #' @param inDf A dataframe-output of CreateObservedQuartilesDF()
+#'   #' @param inDf A dataframe-output of CreateObservedQuantilesDF()
 #'   #' @param N_obs_bin Threshold on number of observations per bin
 #'   #' @param morethan Theshold on gene coverage for lm (default = 10)
 #'   #' @param logoutput Return log intercept? (default = true)
