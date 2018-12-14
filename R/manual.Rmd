@@ -48,10 +48,11 @@ Now we can look at the data:
 ```{r, message=FALSE, warning=FALSE}
 inTabs <- "~/Dropbox (Partners HealthCare)/replicates_ASE/data/5aza/pr_20180714_ISEKI_processed_gene_extended2.txt"
 geneCountTab <- GetGatkPipelineTabs(inTabs, replicateNumbers, multiple = F)
-kable(head(geneCountTab))
+head(geneCountTab)
 ```
 
 We can calculate allelic imbalances for all genes for all experimental conditions pooling technical replicates:
+AI = \frac{maternal counts}{maternal counts + paternal counts}
 
 ```{r, message=FALSE, warning=FALSE}
 thr <- 10
@@ -68,7 +69,7 @@ geneCountTab_10 <- geneCountTab_10 %>% dplyr::filter(exp1_rep1_ref + exp1_rep1_a
 aiTable <- do.call(cbind, lapply(1:length(replicateNumbers), function(x){
       round(CountsToAI(geneCountTab_10, reps = unlist(designMatrix$replicateNums[x])),3)
     }))
-aiTable <- cbind(geneCountTab$ensembl_gene_id, aiTable)
+aiTable <- cbind(geneCountTab_10$ensembl_gene_id, aiTable)
 colnames(aiTable) <- c("ensembl_gene_id", designMatrix$replicateNames)
 kable(head(aiTable))
 write.table(aiTable, file = "~/Dropbox (Partners HealthCare)/replicates_ASE/data/5aza/ai_full.txt", row.names = F, quote = F, sep="\t")
@@ -79,9 +80,9 @@ Then get row-concatenated table of pairewise delta AI for all the 3 experiments:
 
 ```{r, warning=FALSE, message=FALSE}
 dfDeltaAIPairwise <- do.call(rbind, lapply(1:length(replicateNumbers), function(x){
-      CreateMergedDeltaAIPairwiseDF(geneCountTab, mlns=F, repnums = unlist(designMatrix$replicateNums[x]), what=designMatrix$replicateNames[x])
+      CreateMergedDeltaAIPairwiseDF(geneCountTab, mlns=F, repnums = unlist(designMatrix$replicateNums[x]), what=designMatrix$replicateNames[x], thr=10)
     }))
-kable(head(dfDeltaAIPairwise))
+head(dfDeltaAIPairwise)
 ```
 
 
