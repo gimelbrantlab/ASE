@@ -20,15 +20,15 @@ source("yet_another_functions_up_to_date_24112018.R")
 # ---------------------------------------------------------------------------------------
 
 PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondReps, cond1Name="Condition1", cond2Name="Condition2", Q=0.95, thr=NA){
-  #' Input: data frame with gene names and counts (reference and alternative) + number of replicates for each condition
+  #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for each condition
   #'
   #' @param inDF A table with ref & alt counts per gene/SNP for each replicate plus the first column with gene/SNP names
   #' @param vect1CondReps A vector (>=2) of replicate numbers that should be considered as first condition's tech reps
   #' @param vect2CondReps A vector (>=2) of replicate numbers that should be considered as second condition's tech reps
-  #' @param cond1Name A one-word name for condition 1
-  #' @param cond2Name A one-word name for condition 2
-  #' @param Q %-quantile (for example 0.95, 0.8, etc)
-  #' @param thr Optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
+  #' @param cond1Name An optional parameter; one-word name for condition 1
+  #' @param cond2Name An optional parameter; one-word name for condition 2
+  #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
+  #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
   #' @return A table of gene names, AIs + CIs for each condition, classification into genes demonstrating differential AI and those that don't
   #' @examples
   #'
@@ -38,8 +38,8 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
                       cond2 = inDF[, sort(c(1, vect2CondReps*2, vect2CondReps*2+1))])
 
   # Create pairvise AI differences for all techreps pairs:
-  deltaAIPairwiseDF <- rbind(CreateMergedDeltaAIPairwiseDF(dfCondition$cond1, what=cond1Name, thr),
-                             CreateMergedDeltaAIPairwiseDF(dfCondition$cond2, what=cond2Name, thr))
+  deltaAIPairwiseDF <- rbind(CreateMergedDeltaAIPairwiseDF(dfCondition$cond1, what=cond1Name, thr=thr),
+                             CreateMergedDeltaAIPairwiseDF(dfCondition$cond2, what=cond2Name, thr=thr))
   deltaAIPairwiseDF$group <- paste(deltaAIPairwiseDF$what, deltaAIPairwiseDF$ij)
 
   # Count quartiles for Mean Coverage bins

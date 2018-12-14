@@ -230,6 +230,7 @@ CreateDeltaAIPairwiseDF <- function(df, thrs=2**c(0:12), thrsSide='both', mlns=F
   }))
   return(DFThrNPairsRep)
 }
+
 CreateMergedDeltaAIPairwiseDF <- function(df, thrs=2**c(0:12), thrsSide='both', mlns=F, repnums=F, what="noname", thr=NA){
   #' Creates a technical replicates-row-concatenated table for pairwise comparisons of technical replicates in given table
   #'
@@ -243,7 +244,7 @@ CreateMergedDeltaAIPairwiseDF <- function(df, thrs=2**c(0:12), thrsSide='both', 
   #' @return A technical replicates-row-concatenated table of parwise comparisons for technical replicates.
   #' @examples
   #'
-  if (!mlns){ # if it's not list of millions tabs:
+  if (!mlns) { # if it's not list of millions tabs:
     ddf <- CreateDeltaAIPairwiseDF(df, thrs, thrsSide, mlns, repnums, what, thr)
   } else { # if it's list of tabs (mlns):
     subtabs <- names(df)
