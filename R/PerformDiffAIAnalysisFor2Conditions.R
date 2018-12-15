@@ -11,6 +11,8 @@
 #'* write documentation for CreatePMforAi
 #'* pm Infinite - 1) why? 2) should be taken care of inside the function
 #'* add option to calculate AI between replicates two ways - CountsToAI
+#'* check P and Q
+
 # _______________________________________________________________________________________
 
 options(stringsAsFactors = FALSE)
@@ -94,11 +96,10 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
 
   QCI <- data.frame(ID = inDF[, 1],
                     meanAI1 = aiCondition$cond1,
-                    pm1 = CreatePMforAI(linIntercepts[[cond1Name]], dfCovCondition$cond1),
+                    pm1 = CreatePMforAI(linIntercepts[[cond1Name]], dfAICondition$cond1, dfCovCondition$cond1),
                     meanAI2 = aiCondition$cond2,
-                    pm2 = CreatePMforAI(linIntercepts[[cond2Name]], dfCovCondition$cond2))
+                    pm2 = CreatePMforAI(linIntercepts[[cond2Name]], dfAICondition$cond2, dfCovCondition$cond2))
 
-  # TODO when is it infinite? Should be taken care of inside CreatePMforAI
 
   QCI$pm1[is.infinite(QCI$pm1)] = 1
   QCI$pm2[is.infinite(QCI$pm2)] = 1
@@ -120,16 +121,17 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
 }
 
 
-CreatePMforAI <- function(dfInt, dfCov){
-  #' Input:
+CreatePMforAI <- function(dfInt, dfAI, dfCov){
+  #' Input: two data frames, one including replicate-gene coverages, one with constants for each technical replicates pair
   #'
-  #' @param dfInt
-  #' @param dfCov
-  #' @return
+  #' @param dfInt A table with column "linInt" of correction constants for each replicates combination (rows), the order of rows should be consistent with columns in dfCov, s.t. pairs are alphabetically ordered
+  #' @param dfAI A table with columns for each technical replicate, the rows correspond to genes, the values are AI
+  #' @param dfCov A table with columns for each technical replicate, the rows correspond to genes, the values are coverage
+  #' @return Plus-minus intervals to determine AI Confidence Intervals for each gene
   #' @examples
   #'
-  #' TODO: write documentation and formulas for this!
   covSumsCombs <- combn(1:ncol(dfCov), 2, function(x){rowSums(dfCov[, x])})
+  covSumsCombs[rowMeans(is.na(dfAI))>0, ] <- NA
   invertCovSumsCombs <- 1 / covSumsCombs
   if(ncol(dfCov) == 2){
     qres = apply(invertCovSumsCombs, 1, function(c){c * dfInt$linInt**2})

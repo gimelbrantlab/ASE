@@ -106,7 +106,6 @@ CountsToAI <- function(df, reps=NA, thr=NA){
   else {
     greaterThanThr <- ((ref + alt) >= thr)
     greaterThanThr[greaterThanThr==FALSE] <- NA
-    greaterThanThr[greaterThanThr==FALSE] <- 1
     p <- (ref/(ref + alt))*greaterThanThr
   }
   p[is.nan(p)] <- NA
