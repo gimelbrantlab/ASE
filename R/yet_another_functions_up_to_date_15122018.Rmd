@@ -11,7 +11,8 @@ Load functions from the corresponding file:
 ```{r, warning=FALSE}
 library("tidyverse")
 
-source("yet_another_functions_up_to_date_24112018.R")
+source("yet_another_functions_up_to_date_15122018.R")
+source("PerformDiffAIAnalysisFor2Conditions.R")
 ```
 
 Suppose I work with 3 files for 18 replicates, without deduplication:
@@ -58,6 +59,7 @@ Let us want to look at sd (denoted as 0) and 0.5, 0.8 and 0.9 quantiles:
 
 ```{r}
 #P = c(0, 0.5, 0.68, 0.8, 0.9)
+# or
 #P = pnorm(seq(0.2,2,0.2))
 P = pnorm(seq(0.4,2,0.2))
 P = P - (1-P) 

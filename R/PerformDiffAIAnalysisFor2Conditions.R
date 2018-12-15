@@ -7,12 +7,11 @@
 #'* add correction on overdispersion
 #'* add bins->limits
 #'* think about renaming columns to rep1_ref and so on, it's bad
-#'* check P and Q
 
 # _______________________________________________________________________________________
 
 options(stringsAsFactors = FALSE)
-source("yet_another_functions_up_to_date_24112018.R")
+source("yet_another_functions_up_to_date_15122018.R")
 # _______________________________________________________________________________________
 
 # ---------------------------------------------------------------------------------------
@@ -102,11 +101,22 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
 # EXAMPLE TEST:
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #
+# removeX <- function(DF, legitim_chrgenes){
+#   return(DF[DF$ensembl_gene_id %in% legitim_chrgenes$gene, ])
+# }
+# chrgenes = read.delim('../../../data/Mus_musculus.GRCm38.68.chrgenes.txt', col.names = c('chr', 'gene'))
+#
 # inTabs = paste0("../../../data/full/",
-#                  c("NEB", "SMARTseq10ng", "SMARTseq100pg"),
-#                  "_processed_gene_extended2.txt")
-# inDF = GetGatkPipelineTabs(inTabs, c(6,6,6))
-# RESULT = PerformDiffAIAnalysisFor2Conditions(inDF, vect1CondReps=2:4, vect2CondReps=7:8, Q=0.95)
-# head(RESULT)
+#                 c("NEB", "SMARTseq10ng", "SMARTseq100pg"),
+#                 "_processed_gene_extended2.txt")
+# inTab = "../../../data/5aza/pr_20180714_ISEKI_processed_gene_extended2.txt"
+#
+# inDF18 = removeX(GetGatkPipelineTabs(inTabs, c(6,6,6)), chrgenes)
+# inDF5aza = removeX(GetGatkPipelineTabs(inTab, c(13), multiple = F), chrgenes)
+#
+# RESULT18 = PerformDiffAIAnalysisFor2Conditions(inDF18, vect1CondReps=2:3, vect2CondReps=7:9, Q=0.95)
+# RESULT5aza = PerformDiffAIAnalysisFor2Conditions(inDF5aza, vect1CondReps=3:4, vect2CondReps=7:9, Q=0.95)
+#
+# RESULT18; RESULT5aza
 
 
