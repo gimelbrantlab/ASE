@@ -1,0 +1,240 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+Load functions from the corresponding file:
+
+```{r, warning=FALSE}
+library("tidyverse")
+
+source("yet_another_functions_up_to_date_24112018.R")
+```
+
+Suppose I work with 3 files for 18 replicates, without deduplication:
+
+[Структура этих файлов такова: первая колонка -- имена генов, несколько колонок, по количеству реплик -- пары материнских и отеческих каунтов на ген, и столько же по снипам, строки, разделённые запятыми]
+
+```{r}
+inTabs = paste0("../../../data/full/",
+                c("NEB", "SMARTseq10ng", "SMARTseq100pg"),
+                "_processed_gene_extended2.txt")
+inTabs
+#on o2:
+# inTabs = paste0("/n/scratch2/am717/kidney/data/allelecount_results_nodup/", 
+#                 c("NEB_100ng/NEB", "SMART_10ng/SMARTseq10ng", "SMART_100pg/SMARTseq100pg"), 
+#                 "_processed_gene_extended2.txt")
+#deduplicated: /n/scratch2/am717/kidney/data/allelecount_results/*/*_processed_gene_extended2.txt
+```
+
+Get corresponding pooled tab of counts:
+
+[Будем работать с таблицей, в которой остались только колонки с именами генов и материнские и отеческие каунты на ген, 1+18*2 колонки]
+
+```{r, warning=FALSE, message=FALSE}
+geneCountTab = GetGatkPipelineTabs(inTabs, c(6,6,6))
+head(geneCountTab)
+```
+
+Then get row-concatenated table of pairewise delta AI for all the 3 experiments:
+
+[CreateMergedDeltaAIPairwiseDF берёт таблицу с материнско-отеческими каунтами и делает табличку попарных аллельных разниц, проходясь по всем заданным парам. Мы запоминаем какие пары мы смотрели (колонки 'ij' говорят про реплики, а 'what' хранит инфу про эксперимент, тул и прочие предобработки), поэтому мы всё сливаем в одну табличку row by row]
+
+```{r, warning=FALSE, message=FALSE}
+dfDeltaAIPairwise = rbind(
+  CreateMergedDeltaAIPairwiseDF(geneCountTab, mlns=F, repnums = c(1:6), what="NEB_mlnFULL"),
+  CreateMergedDeltaAIPairwiseDF(geneCountTab, mlns=F, repnums = c(7:12), what="SMART10ng_mlnFULL"),
+  CreateMergedDeltaAIPairwiseDF(geneCountTab, mlns=F, repnums = c(13:18), what="SMART100pg_mlnFULL")
+)
+head(dfDeltaAIPairwise)
+```
+
+Let us want to look at sd (denoted as 0) and 0.5, 0.8 and 0.9 quantiles:
+
+[P - это вектор процентов, который мы хотим далее переводить в квантили, он может быть любой, ниже приведён пример для каких-то процентов и для процентов, соответствующим разным долям сигмы, с шагом 0.2]
+
+```{r}
+#P = c(0, 0.5, 0.68, 0.8, 0.9)
+#P = pnorm(seq(0.2,2,0.2))
+P = pnorm(seq(0.4,2,0.2))
+P = P - (1-P) 
+P
+```
+
+Let us extend the dataframe, add columns for identification (it's not necessary here) and obtain logbase binned quartiles tables:
+
+[CreateObservedQuartilesDF ест табличку с парными разницами AI, выдачу CreateMergedDeltaAIPairwiseDF, и проходится логарифмическим окном (при logbase=T, с базой ep), считая в каждом квантили по всем попавшим туда генам. Мы опять делаем мета-таблицу, запоминая что откуда пришло в специальных столбцах, проходимся по всем группам (метод + пара реплик, в этом случае), получаем таблицу с бинами и квантилями в бине для каждой группы -- для дальнейшего lm.]
+
+```{r}
+DF = dfDeltaAIPairwise
+DF$geneORsnp = "Gene" 
+DF$group = paste(DF$what, DF$geneORsnp, DF$ij)
+head(DF)
+
+DFQ = do.call(rbind, lapply(unique(DF$group), 
+                            function(r){
+                              CreateObservedQuartilesDF(DF[DF$group == r, ], 
+                                                        P, ep=1.3, logbase=T, 
+                                                        coverageLimit=2000, group=r)
+                            })
+) 
+head(DFQ)
+```
+Extra columns for simplisity:
+
+```{r}
+DFQ$method = sapply(as.character(DFQ$group), function(x){unlist(strsplit(x, '_'))[1]})
+DFQ$ij = sapply(as.character(DFQ$group), function(x){paste(unlist(strsplit(x, ' '))[3:5], collapse = ' ')})
+head(DFQ)
+```
+
+Then count intercepts:
+
+[Берём табличку с бинами и квантилями в бинах для каждой группы (метод + пара реплик), выдача CreateObservedQuartilesDF. И считаем intercept для всех методов, пар реплик и квантилей. FitLmIntercept забивает на несколько первых бинов, которые содержат малопокрытые гены (morethan=10) и смотрит до тех пор, пока бины содержат больше какого-то трешхолда (тут -- 40).]
+
+```{r}
+groupsIntercepts = lapply(unique(DFQ$Q), function(q){
+  ddf = do.call(rbind, lapply(unique(DFQ$method), function(m){
+    df = DFQ[DFQ$Q == q & DFQ$method == m, ] # метод и квантиль
+    res = sapply(unique(df$ij), function(x){ # проход по всем парам
+      FitLmIntercept(df[df$ij == x, ], 40, morethan=10, logoutput=T)
+    })
+    names(res) = unique(df$ij)
+    res
+  }))
+  row.names(ddf) = paste(unique(DFQ$method), "_ Q%:", 
+                         round(as.double(as.character(q)),4))
+  2**ddf # вернулись от логарифма обратно
+})
+
+data.frame(do.call(rbind, groupsIntercepts))
+
+```
+
+Let's plot quntiles:
+
+```{r, fig.width=5, fig.height=5}
+plot(seq(0.4,2,0.2), seq(0.4,2,0.2), type='l', 
+     ylim=c(0.4,4.5), xlab = "", xaxt = "n", lwd = 5)
+axis(1, at=seq(0.4,2,0.2), labels = round(P,3), las=2)
+
+colorMethod = c('green', 'red', 'blue')
+for(i in 1:3){
+  for(j in 1:15){
+    lines(seq(0.4,2,0.2), unlist(lapply(groupsIntercepts, function(x){x[i,j]})), col=colorMethod[i])
+  }
+}
+
+```
+Or means:
+
+```{r, fig.width=5, fig.height=5}
+plot(seq(0.4,2,0.2), seq(0.4,2,0.2), type='l', 
+     ylim=c(0.4,4.5), xlab = "", xaxt = "n", lwd = 5)
+axis(1, at=seq(0.4,2,0.2), labels = round(P,3), las=2)
+
+nebMeanIntercepts = unlist(lapply(groupsIntercepts, function(x){mean(x[1, 6:15])}))
+smart10ngMeanIntercepts = unlist(lapply(groupsIntercepts, function(x){mean(x[2, ])}))
+smart100pgMeanIntercepts = unlist(lapply(groupsIntercepts, function(x){mean(x[3, ])}))
+meanIntercepts = rbind(nebMeanIntercepts, smart10ngMeanIntercepts, smart100pgMeanIntercepts)
+
+colorMethod = c('green', 'red', 'blue')
+for(i in 1:3){
+  lines(seq(0.4,2,0.2), meanIntercepts[i, ], col=colorMethod[i], type='p')
+  df = data.frame(inters = meanIntercepts[i, ], zscores = seq(0.4,2,0.2))
+  lmDf = lm(data = df, inters ~ zscores)$coefficients
+  lines(c(0.4,2), lmDf[1]+lmDf[2]*c(0.4,2), 
+        col=colorMethod[i], type='l')
+}
+```
+
+
+Count AIs and counts for replicates:
+
+```{r}
+dfAI = data.frame(ensembl_gene_id = geneCountTab$ensembl_gene_id,
+                  do.call(cbind, lapply(1:18, function(i){CountsToAI(geneCountTab, reps=i)})))
+names(dfAI) = c("ensembl_gene_id", paste0("rep", 1:18))
+head(dfAI)
+
+dfCOV = data.frame(ensembl_gene_id = geneCountTab$ensembl_gene_id,
+                   do.call(cbind, lapply(1:18, function(i){MeanCoverage(geneCountTab, reps=i)})))
+names(dfCOV) = c("ensembl_gene_id", paste0("rep", 1:18))
+head(dfCOV)
+```
+```{r}
+removeX <- function(DF, legitim_chrgenes){
+  return(DF[DF$ensembl_gene_id %in% legitim_chrgenes$gene, ])
+}
+chrgenes = read.delim('../../../data/Mus_musculus.GRCm38.68.chrgenes.txt', col.names = c('chr', 'gene'))
+
+inTabs = paste0("../../../data/full/",
+                c("NEB", "SMARTseq10ng", "SMARTseq100pg"),
+                "_processed_gene_extended2.txt")
+inTab = "../../../data/5aza/pr_20180714_ISEKI_processed_gene_extended2.txt"
+
+inDF18 = removeX(GetGatkPipelineTabs(inTabs, c(6,6,6)), chrgenes)
+inDF5aza = removeX(GetGatkPipelineTabs(inTab, c(13), multiple = F), chrgenes)
+
+RESULT18 = PerformDiffAIAnalysisFor2Conditions(inDF18, vect1CondReps=2:3, vect2CondReps=7:9, Q=0.95)
+RESULT5aza = PerformDiffAIAnalysisFor2Conditions(inDF5aza, vect1CondReps=3:4, vect2CondReps=7:9, Q=0.95)
+
+RESULT18; RESULT5aza
+
+#inDF5aza[inDF5aza$ensembl_gene_id=="ENSMUSG00000046934", ]
+
+```
+
+```{r}
+
+repnumNnumberdiffaiS10N = sapply(2:5, function(i){
+  combs = combn(1:6, i)
+  combs1 = combs[, sample(ncol(combs), 6)]
+  combs2 = combs[, sample(ncol(combs), 6)]
+  sapply(1:6, function(j){
+    print(cbind((combs1[,j]), (combs2[,j])))
+    sum(PerformDiffAIAnalysisFor2Conditions(inDF18, 
+                                            vect1CondReps=combs1[,j], 
+                                            vect2CondReps=6+combs2[,j], 
+                                            Q=0.95)$diffAI)
+  })
+})
+
+NDiffS10S100 = data.frame(t(repnumNnumberdiffaiS10S100))
+names(NDiffS10S100) = paste("trial#", 1:6)
+row.names(NDiffS10S100) = paste(2:5, "techrep per condition")
+NDiffS10S100
+
+NDiffS10N = data.frame(t(repnumNnumberdiffaiS10N))
+names(NDiffS10N) = paste("trial#", 1:6)
+row.names(NDiffS10N) = paste(2:5, "techrep per condition")
+NDiffS10N
+
+repnumNnumberdiffaiS100S100 = sapply(2:3, function(i){
+  combs = combn(1:6, i)
+  C = 1:ncol(combs)
+  c1 = sample(C, 6)
+  c2 = sample(C[!C%in%c1], 6)
+  combs1 = combs[, c1]
+  combs2 = combs[, c2]
+  sapply(1:6, function(j){
+    print(cbind((combs1[,j]), (combs2[,j])))
+    sum(PerformDiffAIAnalysisFor2Conditions(inDF18, 
+                                            vect1CondReps=12+combs1[,j], 
+                                            vect2CondReps=12+combs2[,j], 
+                                            Q=0.95)$diffAI)
+  })
+})
+NDiffS100S100 = data.frame(t(repnumNnumberdiffaiS100S100))
+names(NDiffS100S100) = paste("trial#", 1:6)
+row.names(NDiffS100S100) = paste(2:3, "techrep per condition")
+NDiffS100S100
+NDiffS10S100
+NDiffS10N
+```
+
+
+
