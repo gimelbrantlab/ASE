@@ -184,38 +184,12 @@ RESULT5aza = PerformDiffAIAnalysisFor2Conditions(inDF5aza, vect1CondReps=3:4, ve
 
 RESULT18; RESULT5aza
 
+#inDF5aza[inDF5aza$ensembl_gene_id=="ENSMUSG00000046934", ]
+
 ```
 
 ```{r}
-sapply(1:4, function(i){sum(PerformDiffAIAnalysisFor2Conditions(inDF18, 
-                                                                vect1CondReps=2:(2+i), 
-                                                                vect2CondReps=7:(7+i), 
-                                                                Q=0.95)$diffAI)})
 
-lapply(2:6, function(i){
-  combn(1:6, i, function(c1){
-    combn(1:6, i, function(c2){
-      print(paste(c1, c2))
-      sum(PerformDiffAIAnalysisFor2Conditions(inDF18, 
-                                              vect1CondReps=12+c1, 
-                                              vect2CondReps=6+c2, 
-                                              Q=0.95)$diffAI)
-    })
-  })  
-})
-
-repnumNnumberdiffaiS10S100 = sapply(2:5, function(i){
-  combs = combn(1:6, i)
-  combs1 = combs[, sample(ncol(combs), 6)]
-  combs2 = combs[, sample(ncol(combs), 6)]
-  sapply(1:6, function(j){
-    print(cbind((combs1[,j]), (combs2[,j])))
-    sum(PerformDiffAIAnalysisFor2Conditions(inDF18, 
-                                            vect1CondReps=12+combs1[,j], 
-                                            vect2CondReps=6+combs2[,j], 
-                                            Q=0.95)$diffAI)
-  })
-})
 repnumNnumberdiffaiS10N = sapply(2:5, function(i){
   combs = combn(1:6, i)
   combs1 = combs[, sample(ncol(combs), 6)]
@@ -258,7 +232,8 @@ NDiffS100S100 = data.frame(t(repnumNnumberdiffaiS100S100))
 names(NDiffS100S100) = paste("trial#", 1:6)
 row.names(NDiffS100S100) = paste(2:3, "techrep per condition")
 NDiffS100S100
-
+NDiffS10S100
+NDiffS10N
 ```
 
 

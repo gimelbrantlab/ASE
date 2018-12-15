@@ -78,12 +78,13 @@ GetGatkPipelineSNPTabs <- function(inFiles, nReps){
 #                 FUNCTIONS: ALLELIC IMBALANSE AND MEAN COVERAGE
 # ---------------------------------------------------------------------------------------
 
-CountsToAI <- function(df, reps=NA, thr=NA){
+CountsToAI <- function(df, reps=NA, meth="mergedToProportion", thr=NA){
   #' Calculates allelic imbalances from merged counts over given replicates (ai(sum_reps(gene)))
   #'
   #' @param df A dataframe of genes/transcripts and parental counts for technical replicates in columns
   #' @param reps An optional parameter for a range op replicates for consideration (default = all replicates in df)
-  #' @param thr An optional parameter for a threshold on counts
+  #' @param meth An optional parameter for method to use, either sum(m)/sum(p), or sum(m/p) (default = sum(m)/sum(p))
+  #' @param thr An optional parameter for a threshold on mean coverage (default = no thr)
   #' @return mean(mean(m_1,...,m_6))_SNP / mean(mean(m_1+p_1,...,m_6+p6))_SNP
   #' @examples
   #'
@@ -92,21 +93,25 @@ CountsToAI <- function(df, reps=NA, thr=NA){
   }
   cs  <- sort(c(sapply(reps, function(x){c(x*2, x*2+1)}))) # columns numbers
   ddf <- df[, cs] # df with needed columns and without gene names column
+  if (is.na(thr)) {
+    thr <- 0
+  }
+  greaterThanThr <- (rowSums(ddf)/length(reps) >= thr)
+  greaterThanThr[greaterThanThr==FALSE] <- NA
 
   if (ncol(ddf) == 2) { # if 1 replicate
-    ref <- ddf[, 1]
-    alt <- ddf[, 2]
+    p <- (ddf[, 1]/rowSums(ddf)) * greaterThanThr
   } else {             # if more than 1 replicates
-    ref <- rowSums(ddf[, seq(1, ncol(ddf), 2)])
-    alt <- rowSums(ddf[, seq(2, ncol(ddf), 2)])
-  }
-  if (is.na(thr)) {
-    p <- (ref/(ref + alt))
-  }
-  else {
-    greaterThanThr <- ((ref + alt) >= thr)
-    greaterThanThr[greaterThanThr==FALSE] <- NA
-    p <- (ref/(ref + alt))*greaterThanThr
+    if (meth == "mergedToProportion") {
+      ref <- rowSums(ddf[, seq(1, ncol(ddf), 2)])
+      alt <- rowSums(ddf[, seq(2, ncol(ddf), 2)])
+      p   <- (ref/(ref + alt)) * greaterThanThr
+    } else if (meth == "meanOfProportions") {
+      aitab <- sapply(1:length(reps), function(i){
+        ddf[, i*2-1]/(ddf[, i*2-1]+ddf[, i*2])
+      })
+      p <- rowMeans(aitab) * greaterThanThr
+    }
   }
   p[is.nan(p)] <- NA
   return(p)
@@ -377,6 +382,54 @@ FitLmIntercept <- function(inDf, binNObs, morethan = 10, logoutput = TRUE){
 #'   }
 #' }
 
+
+# ---------------------------------------------------------------------------------------
+#                 FUNCTIONS: AI CI ESTIMATES
+# ---------------------------------------------------------------------------------------
+CreatePMforAI <- function(dfInt, dfAI, dfCov){
+  #' Input: two data frames, one including replicate-gene coverages, one with constants for each technical replicates pair
+  #'
+  #' @param dfInt A table with column "linInt" of correction constants for each replicates combination (rows), the order of rows should be consistent with columns in dfCov, s.t. pairs are alphabetically ordered
+  #' @param dfAI A table with columns for each technical replicate, the rows correspond to genes, the values are AI
+  #' @param dfCov A table with columns for each technical replicate, the rows correspond to genes, the values are coverage
+  #' @return Plus-minus intervals to determine AI Confidence Intervals for each gene
+  #' @examples
+  #'
+  covSumsCombs <- combn(1:ncol(dfCov), 2, function(x){rowSums(dfCov[, x])})
+  covSumsCombs[rowMeans(is.na(dfAI))>0, ] <- NA
+  invertCovSumsCombs <- 1 / covSumsCombs
+  if(ncol(dfCov) == 2){
+    qres = apply(invertCovSumsCombs, 1, function(c){c * dfInt$linInt**2})
+  } else if(ncol(dfCov) > 2){
+    qres = rowSums(t(apply(invertCovSumsCombs, 1, function(c){c * dfInt$linInt**2})))
+  }
+  return(0.5/(ncol(dfCov)*(ncol(dfCov)-1))*sqrt(qres))
+}
+CreateCIforAI <- function(dfInt, dfCounts, thr=NA){
+  #' Input: two data frames, one including replicate-gene mat|pat coverages, one with constants for each technical replicates pair
+  #'
+  #' @param dfInt A table with column "linInt" of correction constants for each replicates combination (rows), the order of rows should be consistent with columns in dfCounts, s.t. pairs are alphabetically ordered
+  #' @param dfAI A table with columns for each technical replicate, the rows correspond to genes, the values are AI
+  #' @param dfCounts A table with pairs of columns for each technical replicate, the rows correspond to genes, the values are mat|pat coverages
+  #' @return 5-column df: ID, AI, Plus-minus intervals, AI Confidence Intervals left and right ends
+  #' @examples
+  #'
+  dfAI  <- sapply(1:(ncol(dfCounts)%/%2), function(i){
+    CountsToAI(dfCounts, reps=i, thr=thr)
+  })
+  dfCov <- sapply(1:(ncol(dfCounts)%/%2), function(i){
+    dfCounts[, (2*i)] + dfCounts[, (2*i+1)]
+  })
+
+  df <- data.frame(
+    ID = dfCounts[,1],
+    meanAI = CountsToAI(dfCounts, meth="meanOfProportions", thr=thr),
+    pm = CreatePMforAI(dfInt, dfAI, dfCov)
+  )
+  df$meanAILow  <- sapply(df$meanAI-df$pm, function(x){max(0, x)})
+  df$meanAIHigh <- sapply(df$meanAI+df$pm, function(x){min(1, x)})
+  return(df)
+}
 # .......................................................................................
 # Aftercomments:
 # _______________________________________________________________________________________
