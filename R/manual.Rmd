@@ -10,7 +10,7 @@ We start by loading the libraries and functions we will need:
 ```{r, warning=FALSE, warning=FALSE}
 library("tidyverse")
 library("knitr")
-source("yet_another_functions_up_to_date_24112018.R")
+source("ASE_functions.R")
 source("PerformDiffAIAnalysisFor2Conditions.R")
 ```
 
