@@ -349,7 +349,7 @@ FitLmIntercept <- function(inDf, binNObs, morethan = 10, logoutput = TRUE){
   df <- df[df$coverageBin > morethan &
            df$binNObservations > binNObs, ]
   df[, c('coverageBin','deltaAI')] <- log2(df[, c('coverageBin','deltaAI')])
-  loglm <- lm(data = df, deltaAI ~ offset(-0.5*coverageBin))$coefficients
+  loglm <- lm(data = df, deltaAI ~ offset(-0.5*coverageBin), na.action=na.exclude)$coefficients
   if(logoutput){
     return(loglm[1])
   } else {

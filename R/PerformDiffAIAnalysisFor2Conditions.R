@@ -6,19 +6,20 @@
 #'* add correction of CI on mean(AI_gene)
 #'* add correction on overdispersion
 #'* add bins->limits
+#'* more smart lm needed
 #'* think about renaming columns to rep1_ref and so on, it's bad
 
 # _______________________________________________________________________________________
 
 options(stringsAsFactors = FALSE)
-source("yet_another_functions_up_to_date_15122018.R")
+source("ASE_functions.R")
 # _______________________________________________________________________________________
 
 # ---------------------------------------------------------------------------------------
 #                 FUNCTIONS: PERFORM DIFF AI ANALYSIS ON 2 CONDITIONS
 # ---------------------------------------------------------------------------------------
 
-PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondReps, cond1Name="Condition1", cond2Name="Condition2", Q=0.95, thr=NA){
+PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondReps, cond1Name="Condition1", cond2Name="Condition2", Q=0.95, thr=NA, fullOUT=F){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for each condition
   #'
   #' @param inDF A table with ref & alt counts per gene/SNP for each replicate plus the first column with gene/SNP names
@@ -91,7 +92,15 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
   QCI$diffAI <- !(QCI$meanAI1Low < QCI$meanAI2Low & QCI$meanAI1High >= QCI$meanAI2Low |
                   QCI$meanAI1Low >= QCI$meanAI2Low & QCI$meanAI1Low <= QCI$meanAI2High)
 
-  return(QCI)
+  if (!fullOUT){
+    return(QCI)
+  } else {
+    return(list(deltaAIPairwise = deltaAIPairwiseDF,
+                observedQuartiles = observedQuartilesDF,
+                intercepts = linIntercepts,
+                AICI = QCI))
+  }
+
 }
 
 
