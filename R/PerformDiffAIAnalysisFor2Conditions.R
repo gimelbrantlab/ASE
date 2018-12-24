@@ -84,8 +84,8 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
                     CreateCIforAI(linIntercepts[[cond2Name]], dfCondition$cond2, thr=thr)[, -1]
   )
   names(QCI) = c("ID",
-                 "meanAI1", "pm1", "meanAI1Low", "meanAI1High",
-                 "meanAI2", "pm2", "meanAI2Low", "meanAI2High")
+                 "meanCov1", "meanAI1", "pm1", "meanAI1Low", "meanAI1High",
+                 "meanCov2", "meanAI2", "pm2", "meanAI2Low", "meanAI2High")
 
   # Find intersecting intervals > call them FALSE
 
@@ -110,22 +110,22 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
 # EXAMPLE TEST:
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #
-# removeX <- function(DF, legitim_chrgenes){
-#   return(DF[DF$ensembl_gene_id %in% legitim_chrgenes$gene, ])
-# }
-# chrgenes = read.delim('../../../data/Mus_musculus.GRCm38.68.chrgenes.txt', col.names = c('chr', 'gene'))
-#
-# inTabs = paste0("../../../data/full/",
-#                 c("NEB", "SMARTseq10ng", "SMARTseq100pg"),
-#                 "_processed_gene_extended2.txt")
-# inTab = "../../../data/5aza/pr_20180714_ISEKI_processed_gene_extended2.txt"
-#
-# inDF18 = removeX(GetGatkPipelineTabs(inTabs, c(6,6,6)), chrgenes)
-# inDF5aza = removeX(GetGatkPipelineTabs(inTab, c(13), multiple = F), chrgenes)
-#
-# RESULT18 = PerformDiffAIAnalysisFor2Conditions(inDF18, vect1CondReps=2:3, vect2CondReps=7:9, Q=0.95)
-# RESULT5aza = PerformDiffAIAnalysisFor2Conditions(inDF5aza, vect1CondReps=3:4, vect2CondReps=7:9, Q=0.95)
-#
-# RESULT18; RESULT5aza
+removeX <- function(DF, legitim_chrgenes){
+  return(DF[DF$ensembl_gene_id %in% legitim_chrgenes$gene, ])
+}
+chrgenes = read.delim('../../../data/Mus_musculus.GRCm38.68.chrgenes.txt', col.names = c('chr', 'gene'))
+
+inTabs = paste0("../../../data/full/",
+                c("NEB", "SMARTseq10ng", "SMARTseq100pg"),
+                "_processed_gene_extended2.txt")
+inTab = "../../../data/5aza/pr_20180714_ISEKI_processed_gene_extended2.txt"
+
+inDF18 = removeX(GetGatkPipelineTabs(inTabs, c(6,6,6)), chrgenes)
+inDF5aza = removeX(GetGatkPipelineTabs(inTab, c(13), multiple = F), chrgenes)
+
+RESULT18 = PerformDiffAIAnalysisFor2Conditions(inDF18, vect1CondReps=2:3, vect2CondReps=7:9, Q=0.95)
+RESULT5aza = PerformDiffAIAnalysisFor2Conditions(inDF5aza, vect1CondReps=3:4, vect2CondReps=7:9, Q=0.95)
+
+RESULT18; RESULT5aza
 
 

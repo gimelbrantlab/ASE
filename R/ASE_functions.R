@@ -422,9 +422,10 @@ CreateCIforAI <- function(dfInt, dfCounts, thr=NA){
   })
 
   df <- data.frame(
-    ID = dfCounts[,1],
-    meanAI = CountsToAI(dfCounts, meth="meanOfProportions", thr=thr),
-    pm = CreatePMforAI(dfInt, dfAI, dfCov)
+    ID      = dfCounts[,1],
+    meanCov = rowMeans(dfCov),
+    meanAI  = CountsToAI(dfCounts, meth="meanOfProportions", thr=thr),
+    pm      = CreatePMforAI(dfInt, dfAI, dfCov)
   )
   df$meanAILow  <- sapply(df$meanAI-df$pm, function(x){max(0, x)})
   df$meanAIHigh <- sapply(df$meanAI+df$pm, function(x){min(1, x)})

@@ -42,7 +42,7 @@ kable(designMatrix)
 Now we can look at the data. Here is the *geneCountTab* dataframe with counts for all genes, all replicates and conditions:
 
 ```{r, message=FALSE, warning=FALSE}
-inTabs <- "~/Dropbox (Partners HealthCare)/replicates_ASE/data/5aza/pr_20180714_ISEKI_processed_gene_extended2.txt"
+inTabs <- "../../../data/5aza/pr_20180714_ISEKI_processed_gene_extended2.txt"
 geneCountTab <- GetGatkPipelineTabs(inTabs, designMatrix$techReps, multiple = F)
 head(geneCountTab)
 ```
@@ -68,7 +68,7 @@ aiTable <- do.call(cbind, lapply(1:length(designMatrix$techReps), function(x){
 aiTable <- cbind(geneCountTab_10$ensembl_gene_id, aiTable)
 colnames(aiTable) <- c("ensembl_gene_id", designMatrix$experimentNames)
 kable(head(aiTable))
-write.table(aiTable, file = "~/Dropbox (Partners HealthCare)/replicates_ASE/data/5aza/ai_full.txt", row.names = F, quote = F, sep="\t")
+write.table(aiTable, file = "../../../data/5aza/ai_full.txt", row.names = F, quote = F, sep="\t")
 ```
 
 
@@ -134,7 +134,7 @@ DiffAI_DMSO_medium <- PerformDiffAIAnalysisFor2Conditions(geneCountTab,
                                                           Q=0.95,
                                                           thr=40)
 DiffAI_DMSO_medium$deltaAI <- abs(DiffAI_DMSO_medium$meanAI1 - DiffAI_DMSO_medium$meanAI2)
-head(DiffAI_DMSO_medium[, c(1,2,4,10,11)])
+head(DiffAI_DMSO_medium[, c(1,5,6,10,11)])
 ```
 
 Numbers:
@@ -148,5 +148,5 @@ Let's look at top DE genes:
 minDifference <- 0.2
 GenesAIDiff <- DiffAI_DMSO_medium[!is.na(DiffAI_DMSO_medium$diffAI), ]
 GenesAIDiff <- GenesAIDiff[GenesAIDiff$diffAI==T & GenesAIDiff$deltaAI>=minDifference, ]
-head(GenesAIDiff[, c(1,2,4,10,11)])
+head(GenesAIDiff[, c(1,5,6,10,11)])
 ```
