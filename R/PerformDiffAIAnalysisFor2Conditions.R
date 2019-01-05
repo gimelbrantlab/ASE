@@ -19,7 +19,9 @@ source("ASE_functions.R")
 #                 FUNCTIONS: PERFORM DIFF AI ANALYSIS ON 2 CONDITIONS
 # ---------------------------------------------------------------------------------------
 
-PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondReps, cond1Name="Condition1", cond2Name="Condition2", Q=0.95, thr=NA, fullOUT=F){
+PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondReps,
+                                                cond1Name="Condition1", cond2Name="Condition2",
+                                                Q=0.95, EPS=1.3, BF=T, thr=NA, fullOUT=F){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for each condition
   #'
   #' @param inDF A table with ref & alt counts per gene/SNP for each replicate plus the first column with gene/SNP names
@@ -29,6 +31,8 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
   #' @param cond2Name An optional parameter; one-word name for condition 2
   #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
   #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
+  #' @param fullOUT Set true if you want full output with all computationally-internal dfs.
+  #' @param BF Bonferroni correction, default = true.
   #' @return A table of gene names, AIs + CIs for each condition, classification into genes demonstrating differential AI and those that don't
   #' @examples
   #'
@@ -42,14 +46,18 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
                              CreateMergedDeltaAIPairwiseDF(dfCondition$cond2, what=cond2Name, thr=thr))
   deltaAIPairwiseDF$group <- paste(deltaAIPairwiseDF$what, deltaAIPairwiseDF$ij)
 
-  # Count quartiles for Mean Coverage bins
+  # Bonferroni correction:
+  if(BF == T){
+    Q = 1 - (1-Q)/nrow(inDF)
+  }
 
+  # Count quartiles for Mean Coverage bins:
   observedQuartilesDF <- do.call(rbind,
     lapply(unique(deltaAIPairwiseDF$group),
            function(gr){
              df  <- deltaAIPairwiseDF[deltaAIPairwiseDF$group == gr, ]
              res <- CreateObservedQuantilesDF(df,
-                                              P=Q, ep=1.3, logbase=T,
+                                              P=Q, ep=EPS, logbase=T,
                                               coverageLimit=quantile(deltaAIPairwiseDF$MeanCov, 0.995),
                                               group=gr)
            }
@@ -110,22 +118,39 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
 # EXAMPLE TEST:
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #
-removeX <- function(DF, legitim_chrgenes){
-  return(DF[DF$ensembl_gene_id %in% legitim_chrgenes$gene, ])
-}
-chrgenes = read.delim('../../../data/Mus_musculus.GRCm38.68.chrgenes.txt', col.names = c('chr', 'gene'))
-
-inTabs = paste0("../../../data/full/",
-                c("NEB", "SMARTseq10ng", "SMARTseq100pg"),
-                "_processed_gene_extended2.txt")
-inTab = "../../../data/5aza/pr_20180714_ISEKI_processed_gene_extended2.txt"
-
-inDF18 = removeX(GetGatkPipelineTabs(inTabs, c(6,6,6)), chrgenes)
-inDF5aza = removeX(GetGatkPipelineTabs(inTab, c(13), multiple = F), chrgenes)
-
-RESULT18 = PerformDiffAIAnalysisFor2Conditions(inDF18, vect1CondReps=2:3, vect2CondReps=7:9, Q=0.95)
-RESULT5aza = PerformDiffAIAnalysisFor2Conditions(inDF5aza, vect1CondReps=3:4, vect2CondReps=7:9, Q=0.95)
-
-RESULT18; RESULT5aza
-
-
+# removeX <- function(DF, legitim_chrgenes){
+#   return(DF[DF$ensembl_gene_id %in% legitim_chrgenes$gene, ])
+# }
+# chrgenes = read.delim('../../../data/Mus_musculus.GRCm38.68.chrgenes.txt', col.names = c('chr', 'gene'))
+#
+# inTabs = paste0("../../../data/full/",
+#                 c("NEB", "SMARTseq10ng", "SMARTseq100pg"),
+#                 "_processed_gene_extended2.txt")
+# inTab = "../../../data/5aza/pr_20180714_ISEKI_processed_gene_extended2.txt"
+#
+# inDF18 = removeX(GetGatkPipelineTabs(inTabs, c(6,6,6)), chrgenes)
+# inDF5aza = removeX(GetGatkPipelineTabs(inTab, c(13), multiple = F), chrgenes)
+#
+# RESULT18 = PerformDiffAIAnalysisFor2Conditions(inDF18, vect1CondReps=2:3, vect2CondReps=7:9, Q=0.95, BF=T)
+# RESULT5aza = PerformDiffAIAnalysisFor2Conditions(inDF5aza, vect1CondReps=3:4, vect2CondReps=7:9, Q=0.95, BF=T)
+#
+# RESULT18; RESULT5aza
+#
+# RESULT18_noBF = PerformDiffAIAnalysisFor2Conditions(inDF18, vect1CondReps=2:3, vect2CondReps=7:9, Q=0.95, BF=F)
+#
+# RESULT18_noBF; RESULT18
+#
+# nrow(RESULT18[!is.na(RESULT18$diffAI) & RESULT18$diffAI==T, ])
+# nrow(RESULT18_noBF[!is.na(RESULT18_noBF$diffAI) & RESULT18_noBF$diffAI==T, ])
+# nrow(RESULT18[!is.na(RESULT18$diffAI) & RESULT18$diffAI==T & RESULT18_noBF$diffAI==F, ])
+# nrow(RESULT18_noBF[!is.na(RESULT18_noBF$diffAI) & RESULT18_noBF$diffAI==T & RESULT18$diffAI==F, ])
+#
+# R18BF = RESULT18[!is.na(RESULT18$diffAI) & RESULT18$diffAI==T, c("ID", "meanCov1", "meanAI1", "pm1", "meanCov2", "meanAI2", "pm2")]
+# R18BF[, c(2,5)] = round(R18BF[, c(2,5)])
+#
+# RESULT18same = PerformDiffAIAnalysisFor2Conditions(inDF18, vect1CondReps=10:12, vect2CondReps=7:9, Q=0.95, BF=T)
+# nrow(RESULT18same[!is.na(RESULT18same$diffAI) & RESULT18same$diffAI==T, ])
+# R18sameBF = RESULT18same[!is.na(RESULT18same$diffAI) & RESULT18same$diffAI==T, c("ID", "meanCov1", "meanAI1", "pm1", "meanCov2", "meanAI2", "pm2")]
+# R18sameBF[, c(2,5)] = round(R18sameBF[, c(2,5)])
+#
+# ### !!! FDR =(
