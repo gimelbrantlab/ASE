@@ -229,7 +229,7 @@ def main():
 
     # 2. F1 VCF:
     if (args.F1VCF=="True") :
-        os.makedirs(f1_dir, exist_ok=True)
+        os.makedirs(args.f1_dir, exist_ok=True)
          
         pair_vcf = tempfile.NamedTemporaryFile(delete=False, suffix=".vcf")
          
@@ -240,12 +240,12 @@ def main():
             SepToPair_VCF(args.ref, args.vcf_mat, args.vcf_pat, pair_vcf.name, name_mat, name_pat)
          
         # 2.2 F1 VCF:
-        vcf_f1 = os.path.join(f1_dir, "_".join("F1", name_mat, name_pat)+'.vcf')
+        vcf_f1 = os.path.join(args.f1_dir, "_".join("F1", name_mat, name_pat)+'.vcf')
         PairToF1_VCF(pair_vcf.name, vcf_f1, name_mat, name_pat)
         gzip_tabix_VCF(vcf_f1)
 
         # 2.3 Exon F1 VCF:
-        vcf_f1exon = os.path.join(f1_dir, "_".join("F1", name_mat, name_pat, "exon")+'.vcf')
+        vcf_f1exon = os.path.join(fr1_dir, "_".join("F1", name_mat, name_pat, "exon")+'.vcf')
         GATK_SelectVariants(r=args.ref, v=vcf_f1, g=args.gtf, o=vcf_f1exon)
         gzip_tabix_VCF(vcf_f1exon)
 
