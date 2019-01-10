@@ -72,7 +72,12 @@ def GATK_SelectVariants(r, v, o, g=None, n=None, b=False):
     return
 
 def JointToPair_VCF(ref, vcf, ofile, name_mat, name_pat):
-    GATK_SelectVariants(r=ref, v=vcf, o=ofile, n=[name_mat, name_pat])
+    if (name_mat=="ref"):
+        GATK_SelectVariants(r=ref, v=vcf, o=ofile, n=name_pat)
+    elif (name_pat=="ref"):
+        GATK_SelectVariants(r=ref, v=vcf, o=ofile, n=name_mat)
+    else:
+        GATK_SelectVariants(r=ref, v=vcf, o=ofile, n=[name_mat, name_pat])
     return
 
 def SepToPair_VCF(ref, vcf_mat, vcf_pat, ofile, name_mat, name_pat):
@@ -128,6 +133,51 @@ def PairToF1_VCF(vcf_pair, vcf_f1, name_mat, name_pat):
             ### IF THERE ARE OTHER FIELDS IN COLUMN TO BE CHANGED? ###
 
             colnames_out = '\t'.join(row[ :min(mat_col, pat_col)] + row[pat_col] + row[max(mat_col, pat_col)+1: ])
+            out_stream.write(colnames_out)
+
+    vcf_stream.close()
+    out_stream.close()
+    return
+
+def PairRefToF1_VCF(vcf_pair, vcf_f1, name_mat, name_pat):
+    print(vcf_pair + "  -->  " + vcf_f1)
+    vcf_stream = open(vcf_pair, 'r')
+    out_stream = open(vcf_f1, 'w')
+
+    if (name_mat=="ref"):
+        name_alt = name_mat
+    if (name_pat=="ref"):
+        name_alt = name_pat
+
+    # header:
+    ### REWRITE ACCURATE header filtering ###
+    row = vcf_stream.readline()
+    while (row.startswith("##")):
+        out_stream.write(row)
+        row = vcf_stream.readline()
+
+    colnames = row.replace('#','').strip().split()
+    name_col = colnames.index(name_alt)
+    format_col = colnames.index("FORMAT")
+    ref_col = colnames.index("REF")
+    alt_col = colnames.index("ALT")
+
+    colnames_out = '\t'.join(row[ :name_col] + ["F1"] + row[name_col+1: ])
+    out_stream.write(colnames_out)
+
+    # body:
+    for row in vcf_stream:
+        row = row.strip().split()
+        gt_index = row[format_col].split(":").index("GT")
+        gt_name = row[name_col].split(":")[gt_index]
+        if (gt_name[0]==gt_name[2] and gt_name[0]!=0):
+            row[ref_col] = row[ref_col]
+            row[alt_col] = row[alt_col].split(',')[gt_name[0]-1]
+            row[name_col].replace(gt_name, "0|1")
+
+            ### IF THERE ARE OTHER FIELDS IN COLUMN TO BE CHANGED? ###
+
+            colnames_out = '\t'.join(row)
             out_stream.write(colnames_out)
 
     vcf_stream.close()
@@ -241,7 +291,10 @@ def main():
          
         # 2.2 F1 VCF:
         vcf_f1 = os.path.join(args.f1_dir, "_".join("F1", name_mat, name_pat)+'.vcf')
-        PairToF1_VCF(pair_vcf.name, vcf_f1, name_mat, name_pat)
+        if (name_mat=="ref" or name_pat=="ref"):
+            PairRefToF1_VCF(pair_vcf.name, vcf_f1, name_mat, name_pat)
+        else:
+            PairToF1_VCF(pair_vcf.name, vcf_f1, name_mat, name_pat)
         gzip_tabix_VCF(vcf_f1)
 
         # 2.3 Exon F1 VCF:
