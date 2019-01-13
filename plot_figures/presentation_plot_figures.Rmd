@@ -7,8 +7,8 @@ output: html_notebook
 library("tidyverse")
 library(ggpubr)
 
-source("../R/ASE_functions.R")
-source("../R/PerformDiffAIAnalysisFor2Conditions.R")
+source(file.path(".","..","R","ASE_functions.R"))
+source(file.path(".","..","R","PerformDiffAIAnalysisFor2Conditions.R"))
 ```
 ```{r}
 removeX <- function(DF, legitim_chrgenes){
