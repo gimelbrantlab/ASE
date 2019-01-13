@@ -148,7 +148,7 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
 # R18BF = RESULT18[!is.na(RESULT18$diffAI) & RESULT18$diffAI==T, c("ID", "meanCov1", "meanAI1", "pm1", "meanCov2", "meanAI2", "pm2")]
 # R18BF[, c(2,5)] = round(R18BF[, c(2,5)])
 #
-# RESULT18same = PerformDiffAIAnalysisFor2Conditions(inDF18, vect1CondReps=10:12, vect2CondReps=7:9, Q=0.95, BF=T)
+# RESULT18same = PerformDiffAIAnalysisFor2Conditions(inDF18, vect1CondReps=7:9, vect2CondReps=10:12, Q=0.95, BF=T)
 # nrow(RESULT18same[!is.na(RESULT18same$diffAI) & RESULT18same$diffAI==T, ])
 # R18sameBF = RESULT18same[!is.na(RESULT18same$diffAI) & RESULT18same$diffAI==T, c("ID", "meanCov1", "meanAI1", "pm1", "meanCov2", "meanAI2", "pm2")]
 # R18sameBF[, c(2,5)] = round(R18sameBF[, c(2,5)])
