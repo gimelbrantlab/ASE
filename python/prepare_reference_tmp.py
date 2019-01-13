@@ -46,7 +46,7 @@ def GATK_SelectVariants(r, v, o, g=None, n=None, b=False):
     if (g):
         # tmp exons bed file:
         exon_bed = tempfile.NamedTemporaryFile(delete=False, suffix=".bed")
-        cmd_exon = " ".join("grep -w 'exon'", g, "| grep '^[0-9XY]' | awk 'BEGIN{FS=OFS="    "}; {print $1,$4-1,$5}' >", exon_bed.name)
+        cmd_exon = " ".join(["grep -w 'exon'", g, "| grep '^[0-9XY]' | awk 'BEGIN{FS=OFS="    "}; {print $1,$4-1,$5}' >", exon_bed.name])
         print(cmd_exon)
         subprocess.check_output(cmd_exon, shell=True)
         flags['-L'] = exon_bed.name
@@ -82,7 +82,7 @@ def JointToPair_VCF(ref, vcf, ofile, name_mat, name_pat):
 
 def SepToPair_VCF(ref, vcf_mat, vcf_pat, ofile, name_mat, name_pat):
     unfiltered = tempfile.NamedTemporaryFile(delete=False, suffix=".vcf")
-    cmd_merge = " ".join("bcftools merge", vcf_mat, vcf_pat, "-m both -o", unfiltered.name)
+    cmd_merge = " ".join(["bcftools merge", vcf_mat, vcf_pat, "-m both -o", unfiltered.name])
     print(cmd_merge)
     subprocess.check_output(cmd_merge, shell=True)
     GATK_SelectVariants(r=ref, v=unfiltered.name, o=ofile)
@@ -290,7 +290,7 @@ def main():
             SepToPair_VCF(args.ref, args.vcf_mat, args.vcf_pat, pair_vcf.name, name_mat, name_pat)
          
         # 2.2 F1 VCF:
-        vcf_f1 = os.path.join(args.f1_dir, "_".join("F1", name_mat, name_pat)+'.vcf')
+        vcf_f1 = os.path.join(args.f1_dir, "_".join(["F1", name_mat, name_pat])+'.vcf')
         if (name_mat=="ref" or name_pat=="ref"):
             PairRefToF1_VCF(pair_vcf.name, vcf_f1, name_mat, name_pat)
         else:
@@ -298,7 +298,7 @@ def main():
         gzip_tabix_VCF(vcf_f1)
 
         # 2.3 Exon F1 VCF:
-        vcf_f1exon = os.path.join(fr1_dir, "_".join("F1", name_mat, name_pat, "exon")+'.vcf')
+        vcf_f1exon = os.path.join(fr1_dir, "_".join(["F1", name_mat, name_pat, "exon"])+'.vcf')
         GATK_SelectVariants(r=args.ref, v=vcf_f1, g=args.gtf, o=vcf_f1exon)
         gzip_tabix_VCF(vcf_f1exon)
 
