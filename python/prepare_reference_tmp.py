@@ -156,29 +156,29 @@ def PairRefToF1_VCF(vcf_pair, vcf_f1, name_mat, name_pat):
         out_stream.write(row)
         row = vcf_stream.readline()
 
-    colnames = row.replace('#','').strip().split()
+    colnames = row.strip().split('\t')
     name_col = colnames.index(name_alt)
     format_col = colnames.index("FORMAT")
     ref_col = colnames.index("REF")
     alt_col = colnames.index("ALT")
 
-    colnames_out = '\t'.join(row[ :name_col] + ["F1"] + row[name_col+1: ])
-    out_stream.write(colnames_out)
+    colnames_out = '\t'.join(colnames[ :name_col] + ["F1"] + colnames[name_col+1: ])
+    out_stream.write(colnames_out + '\n')
 
     # body:
     for row in vcf_stream:
-        row = row.strip().split()
+        row = row.strip().split('\t')
         gt_index = row[format_col].split(":").index("GT")
         gt_name = row[name_col].split(":")[gt_index]
-        if (gt_name[0]==gt_name[2] and gt_name[0]!=0):
+        if (gt_name[0]==gt_name[2] and gt_name[0]!='0' and gt_name[0]!='.'):
             row[ref_col] = row[ref_col]
-            row[alt_col] = row[alt_col].split(',')[gt_name[0]-1]
+            row[alt_col] = row[alt_col].split(',')[int(gt_name[0])-1]
             row[name_col].replace(gt_name, "0|1")
 
             ### IF THERE ARE OTHER FIELDS IN COLUMN TO BE CHANGED? ###
 
             colnames_out = '\t'.join(row)
-            out_stream.write(colnames_out)
+            out_stream.write(colnames_out + '\n')
 
     vcf_stream.close()
     out_stream.close()
