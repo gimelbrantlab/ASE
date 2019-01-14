@@ -145,9 +145,9 @@ def PairRefToF1_VCF(vcf_pair, vcf_f1, name_mat, name_pat):
     out_stream = open(vcf_f1, 'w')
 
     if (name_mat=="ref"):
-        name_alt = name_mat
-    if (name_pat=="ref"):
         name_alt = name_pat
+    if (name_pat=="ref"):
+        name_alt = name_mat
 
     # header:
     ### REWRITE ACCURATE header filtering ###
