@@ -6,10 +6,12 @@ output: html_notebook
 ```{r}
 library("tidyverse")
 library(ggpubr)
+library(ggrepel)
 
 source(file.path(".","..","R","ASE_functions.R"))
 source(file.path(".","..","R","PerformDiffAIAnalysisFor2Conditions.R"))
 ```
+
 ```{r}
 removeX <- function(DF, legitim_chrgenes){
   return(DF[DF$ensembl_gene_id %in% legitim_chrgenes$gene, ])
@@ -19,6 +21,7 @@ inTabs = paste0("../../../data/full/",
                 c("NEB", "SMARTseq10ng", "SMARTseq100pg"),
                 "_processed_gene_extended2.txt")
 inDF18 = removeX(GetGatkPipelineTabs(inTabs, c(6,6,6)), chrgenes)
+inDF18 
 ```
 
 
@@ -31,6 +34,12 @@ RESULT18_Q_humanread = lapply(Ph, function(p){
 DF18_covai = RESULT18_Q_humanread[[1]]$deltaAIPairwise
 DF18_covai = DF18_covai[DF18_covai$group=="Condition2 01 vs 02", c("deltaAI", "MeanCov", "AI1")]
 
+DF18_hobq = do.call(rbind, lapply(1:length(RESULT18_Q_humanread), function(i){
+  df = RESULT18_Q_humanread[[i]]$observedQuartiles
+  df = df[df$condition=="Condition2" & df$ij=="01 vs 02", ]
+  df[df$binNObservations >= 20, c("coverageBin", "deltaAI", "Q")]
+}))
+
 gg_covai = ggplot() +
   geom_point(data=DF18_covai, aes(MeanCov, deltaAI), size=0.5) +
   geom_line(data=DF18_hobq[DF18_hobq$coverageBin>=10, ], aes(coverageBin, deltaAI, color=Q)) +
@@ -41,18 +50,11 @@ gg_covai = ggplot() +
   theme(legend.position = c(0.85, 0.8), text = element_text(size=12)) +
   xlim(0, 3500)
 
-
-DF18_hobq = do.call(rbind, lapply(1:length(RESULT18_Q_humanread), function(i){
-  df = RESULT18_Q_humanread[[i]]$observedQuartiles
-  df = df[df$condition=="Condition2" & df$ij=="01 vs 02", ]
-  df[df$binNObservations >= 20, c("coverageBin", "deltaAI", "Q")]
-}))
-
 gg_covai_lin = ggplot(data=DF18_hobq[DF18_hobq$coverageBin>=10, ], aes(x=coverageBin, y=deltaAI, group=Q, color=Q)) +
   geom_point(size=0.5) + 
   theme_bw() + 
   ggtitle("") + 
-  xlab('Gene Mean Coverage') + ylab('Quantile(AI)') +
+  xlab('Mean Gene Coverage') + ylab('Quantile(AI)') +
   theme(legend.position=c(0.85, 0.8), text = element_text(size=12)) +
   scale_x_continuous(trans='log2') +
   scale_y_continuous(trans='log2') +
@@ -60,17 +62,23 @@ gg_covai_lin = ggplot(data=DF18_hobq[DF18_hobq$coverageBin>=10, ], aes(x=coverag
 
 
 HQint = sapply(1:length(Ph), function(i){RESULT18_Q_humanread[[i]]$intercepts$Condition2}$linInt)
-HQint_Zscore = rbind(data.frame(binomialZscore = Ph, 
+HQint_Zscore = rbind(data.frame(quantile = Ph, 
                                 observation = HQint/HQint[2], 
                                 x = "Correction constant"),
-                     data.frame(binomialZscore = Ph, 
+                     data.frame(quantile = Ph, 
                                 observation = qnorm(Ph + (1-Ph)/2) / qnorm(0.84), 
                                 x = "Binomial Z-score"))
 HQint_Zscore$x = factor(HQint_Zscore$x)
 
 gg_qcoeff  = ggplot(HQint_Zscore, aes(x, observation, color=x)) +
-  geom_point(aes(color=x)) +
-  labs(x = " ", y = "Observed correction constant") +
+  geom_point(aes(color=x)) + 
+  geom_label_repel(aes(label = quantile),
+                  box.padding   = 0.35, 
+                  point.padding = 0.5,
+                  segment.color = 'grey50',
+                  direction     = "y",
+                  hjust         = 0) + 
+  labs(x = "Type", y = "sd proportion") +
   ggtitle("") +
   theme_bw() +
   theme(legend.position = c(0.5, 0.9), text = element_text(size=12), legend.title = element_blank())   
@@ -84,3 +92,38 @@ ggarrange(gg_covai,
           ncol = 3, nrow = 1)
 #dev.off()
 ```
+```{r, fig.height=15, fig.width=15}
+method_lib = c("NEB 100ng", "SMARTseq 10 ng", "SMARTseq 100 pg")
+INTC18_90_humanread = do.call(rbind, lapply(0:2, function(i){
+  C = (1:6)+i*6    
+  data.frame(PerformDiffAIAnalysisFor2Conditions(inDF18, vect1CondReps=3:4, 
+                                                 vect2CondReps=C, Q=0.90, fullOUT=T, BF=F)$intercepts$Condition2[, c("ij","linInt")],
+             method = method_lib[i+1])
+}))
+INTC18_90_humanread$method = factor(INTC18_90_humanread$method)
+
+gg_mcoeff  = ggplot(INTC18_90_humanread, aes(method, linInt, color=method)) +
+  geom_point(aes(color=method)) + 
+  geom_label_repel(aes(label = ij),
+                  box.padding   = 0.35, 
+                  point.padding = 0.5,
+                  segment.color = 'grey50') +
+  labs(x = "Lib Preparation Method", y = "Observed correction constant") +
+  ggtitle("") +
+  theme_bw() +
+  ylim(0, max(INTC18_90_humanread$linInt)) +
+  theme(legend.position = c(0.85, 0.1), text = element_text(size=12))
+
+#pdf("/home/asya/covai2.pdf", width = 15, height = 15)
+ggarrange(gg_covai, 
+          gg_covai_lin, 
+          gg_mcoeff,
+          gg_qcoeff,
+          labels = c("A", "B", "C", "D"),
+          ncol = 2, nrow = 2)
+#dev.off()
+
+```
+
+
+
