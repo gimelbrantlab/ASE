@@ -71,7 +71,9 @@ FALSE NEGATIVE binomial results:
 
 ```{r}
 X = (1:nrow(RES2OUR))[RES2OUR$diffAI==T & RES2BIN$diffAI==F & S10_10_11_aicov$scov>200 & N_1_2_aicov$scov>200 & abs(S10_mAI-N_mAI)>0.15 &
-                      (N_mAI<0.5 & S10_mAI>0.5 | S10_mAI<0.5 & N_mAI>0.5)]
+                      (N_mAI<0.5 & S10_mAI>0.5 | S10_mAI<0.5 & N_mAI>0.5) & 
+                      RES2OUR$meanAI1Low < N_mAI & N_mAI < RES2OUR$meanAI1High& 
+                      RES2OUR$meanAI2Low < N_mAI & S10_mAI < RES2OUR$meanAI2High]
 X
 
 data.frame(RES2OUR[X, 1:4], x = "_______FN", RES2BIN[X, 1:4])
