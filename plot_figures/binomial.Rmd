@@ -1,8 +1,12 @@
 ---
 title: "R Notebook"
+<<<<<<< HEAD
 output:
   html_document:
     df_print: paged
+=======
+output: html_notebook
+>>>>>>> 0baed79b8e8920b5db571b64615054ef0729bde7
 ---
 
 ```{r, echo=F}
@@ -20,7 +24,11 @@ removeX <- function(DF, legitim_chrgenes){
   return(DF[DF$ensembl_gene_id %in% legitim_chrgenes$gene, ])
 }
 chrgenes = read.delim('../../../data/Mus_musculus.GRCm38.68.chrgenes.txt', col.names = c('chr', 'gene'))
+<<<<<<< HEAD
 inTabs = paste0("../../../data/kidney/full/",
+=======
+inTabs = paste0("../../../data/full/",
+>>>>>>> 0baed79b8e8920b5db571b64615054ef0729bde7
                 c("NEB", "SMARTseq10ng", "SMARTseq100pg"),
                 "_processed_gene_extended2.txt")
 inDF18 = removeX(GetGatkPipelineTabs(inTabs, c(6,6,6)), chrgenes)
@@ -73,7 +81,13 @@ FALSE NEGATIVE binomial results:
 
 ```{r}
 X = (1:nrow(RES2OUR))[RES2OUR$diffAI==T & RES2BIN$diffAI==F & S10_10_11_aicov$scov>200 & N_1_2_aicov$scov>200 & abs(S10_mAI-N_mAI)>0.15 &
+<<<<<<< HEAD
                       (N_mAI<0.5 & S10_mAI>0.5 | S10_mAI<0.5 & N_mAI>0.5)]
+=======
+                      (N_mAI<0.5 & S10_mAI>0.5 | S10_mAI<0.5 & N_mAI>0.5) & 
+                      RES2OUR$meanAI1Low < N_mAI & N_mAI < RES2OUR$meanAI1High& 
+                      RES2OUR$meanAI2Low < N_mAI & S10_mAI < RES2OUR$meanAI2High]
+>>>>>>> 0baed79b8e8920b5db571b64615054ef0729bde7
 X
 
 data.frame(RES2OUR[X, 1:4], x = "_______FN", RES2BIN[X, 1:4])

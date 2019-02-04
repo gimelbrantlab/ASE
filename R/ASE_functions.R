@@ -119,9 +119,9 @@ CountsToAI <- function(df, reps=NA, meth="mergedToProportion", thr=NA){
       alt <- rowSums(ddf[, seq(2, ncol(ddf), 2)])
       p   <- (ref/(ref + alt)) * greaterThanThr
     } else if (meth == "meanOfProportions") {
-      aitab <- sapply(1:length(reps), function(i){
+      aitab <- do.call(cbind, lapply(1:length(reps), function(i){
         ddf[, i*2-1]/(ddf[, i*2-1]+ddf[, i*2])
-      })
+      }))
       p <- rowMeans(aitab) * greaterThanThr
     }
   }
@@ -142,6 +142,24 @@ MeanCoverage <- function(df, reps=NA){
   }
   cs <- sort(c(sapply(reps, function(x){c(x*2-1, x*2)})) + 1)
   return(rowMeans(df[, cs], na.rm=T)*2)
+}
+
+MergeSumCounts <- function(df, reps=NA){
+  #' Creates a table of sums of maternal and paternal count for given replicates.
+  #'
+  #' @param df A dataframe of genes/transcripts and parental counts for technical replicates in columns.
+  #' @param reps An optional parameter for a range op replicates for consideration (default = all replicates in df).
+  #' @return Table with sums of mat and pat coverages among given replicates.
+  #' @examples
+  #'
+  if(all(is.na(reps))){
+    reps <- 1:((ncol(df)-1)/2)
+  }
+  if(length(reps)==1){
+    return(data.frame(ref_reps = df[, reps*2], alt_reps = df[, reps*2+1]))
+  }
+  return(data.frame(ref_reps = rowSums(df[, reps*2]),
+                    alt_reps = rowSums(df[, reps*2+1])))
 }
 
 # ---------------------------------------------------------------------------------------
