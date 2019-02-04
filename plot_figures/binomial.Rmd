@@ -1,0 +1,107 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r, echo=F}
+library("tidyverse")
+library(ggpubr)
+library(ggrepel)
+library(permute)
+
+source(file.path(".","..","R","ASE_functions.R"))
+source(file.path(".","..","R","PerformDiffAIAnalysisFor2Conditions.R"))
+```
+
+```{r}
+removeX <- function(DF, legitim_chrgenes){
+  return(DF[DF$ensembl_gene_id %in% legitim_chrgenes$gene, ])
+}
+chrgenes = read.delim('../../../data/Mus_musculus.GRCm38.68.chrgenes.txt', col.names = c('chr', 'gene'))
+inTabs = paste0("../../../data/kidney/full/",
+                c("NEB", "SMARTseq10ng", "SMARTseq100pg"),
+                "_processed_gene_extended2.txt")
+inDF18 = removeX(GetGatkPipelineTabs(inTabs, c(6,6,6)), chrgenes)
+inDF18 
+```
+
+TABLES GENERATION NEB 1,2 and SMART10ng 10,11 were taken:
+
+```{r}
+S10_10_11_AverageAI = CountsToAI(inDF18, reps=10:11, meth="meanOfProportions")
+S10_10_11_SumCoverage = round(rowSums(inDF18[, (10*2):(11*2+1)]))
+# N_1_2_AIofAverage = CountsToAI(inDF18, reps=5:6)
+N_1_2_AverageAI = CountsToAI(inDF18, reps=1:2, meth="meanOfProportions")
+N_1_2_SumCoverage = round(rowSums(inDF18[, (1*2):(2*2+1)]))
+
+S10_AI = do.call(cbind, lapply(7:12, function(i){CountsToAI(data.frame(inDF18), reps=i)}))[S10_10_11_SumCoverage > 20 & N_1_2_SumCoverage > 20, ]
+N_AI = do.call(cbind, lapply(c(1:3,5,6), function(i){CountsToAI(data.frame(inDF18), reps=i)}))[S10_10_11_SumCoverage > 20 & N_1_2_SumCoverage > 20, ]
+S10_mAI = CountsToAI(data.frame(inDF18), reps=7:12)[S10_10_11_SumCoverage > 20 & N_1_2_SumCoverage > 20]
+N_mAI = CountsToAI(data.frame(inDF18), reps=c(1:3,5,6))[S10_10_11_SumCoverage > 20 & N_1_2_SumCoverage > 20]
+
+
+S10_10_11_aicov = data.frame(scov = S10_10_11_SumCoverage, ai = S10_10_11_AverageAI)[S10_10_11_SumCoverage > 20 & N_1_2_SumCoverage > 20, ]
+N_1_2_aicov = data.frame(scov = N_1_2_SumCoverage, ai = N_1_2_AverageAI)[S10_10_11_SumCoverage > 20 & N_1_2_SumCoverage > 20, ]
+
+p = 0.025/nrow(S10_10_11_aicov)
+S10_10_11_CIs = t(sapply(1:nrow(S10_10_11_aicov), function(r){
+  c(qbinom(p, S10_10_11_aicov$scov[r], S10_10_11_aicov$ai[r], lower.tail = TRUE, log.p = FALSE),
+    qbinom(1-p, S10_10_11_aicov$scov[r], S10_10_11_aicov$ai[r], lower.tail = TRUE, log.p = FALSE))
+}))
+N_1_2_CIs = t(sapply(1:nrow(N_1_2_aicov), function(r){
+  c(qbinom(p, N_1_2_aicov$scov[r], N_1_2_aicov$ai[r], lower.tail = TRUE, log.p = FALSE),
+    qbinom(1-p, N_1_2_aicov$scov[r], N_1_2_aicov$ai[r], lower.tail = TRUE, log.p = FALSE))
+}))
+
+RES2BIN = data.frame(round(N_1_2_CIs/N_1_2_aicov$scov, 3), round(S10_10_11_CIs/S10_10_11_aicov$scov, 3))
+RES2BIN$diffAI = ((RES2BIN[, 2] < RES2BIN[, 3]) | (RES2BIN[, 1] > RES2BIN[, 4]))
+
+names(RES2BIN)[1:4] = c("meanAI1Low", "meanAI1High", "meanAI2Low", "meanAI2High")
+RES2BIN
+```
+
+```{r}
+RES2_S10N = PerformDiffAIAnalysisFor2Conditions(inDF18, vect1CondReps=1:2, vect2CondReps=10:11, Q=0.95, fullOUT=T, BF=T)
+RES2OUR0 = RES2_S10N[[4]][RES2_S10N[[4]]$ID %in% inDF18[S10_10_11_SumCoverage > 20 & N_1_2_SumCoverage > 20, 1], ]
+RES2OUR = RES2OUR0[, c("meanAI1Low", "meanAI1High", "meanAI2Low", "meanAI2High", "diffAI")]
+RES2OUR[, 1:4] = round(RES2OUR[, 1:4], 3)
+RES2OUR
+```
+FALSE NEGATIVE binomial results:
+
+```{r}
+X = (1:nrow(RES2OUR))[RES2OUR$diffAI==T & RES2BIN$diffAI==F & S10_10_11_aicov$scov>200 & N_1_2_aicov$scov>200 & abs(S10_mAI-N_mAI)>0.15 &
+                      (N_mAI<0.5 & S10_mAI>0.5 | S10_mAI<0.5 & N_mAI>0.5)]
+X
+
+data.frame(RES2OUR[X, 1:4], x = "_______FN", RES2BIN[X, 1:4])
+
+data.frame(a1 = N_1_2_aicov$ai[X], A1 = N_mAI[X],
+           a2 = S10_10_11_aicov$ai[X], A2 = S10_mAI[X],
+           c1 = N_1_2_aicov$scov[X],
+           c2 = S10_10_11_aicov$scov[X], 
+           (N_AI[X, 1:2]), (S10_AI[X, 4:5]))
+
+## Looking at genes:
+
+inDF18[inDF18$ensembl_gene_id == RES2OUR0$ID[ X[length(X)-2] ], c(1, 2:5, 20:23)]
+```
+
+FALSE POSITIVE binomial:
+
+```{r}
+Y = (1:nrow(RES2OUR))[RES2OUR$diffAI==F & RES2BIN$diffAI==T]
+Y = Y[!is.na(Y)]
+
+data.frame(RES2OUR[Y, 1:4], x = "_______FP", RES2BIN[Y, 1:4])
+
+data.frame(a1 = N_1_2_aicov$ai[Y], A1 = N_mAI[Y],
+           a2 = S10_10_11_aicov$ai[Y], A2 = S10_mAI[Y],
+           c1 = N_1_2_aicov$scov[Y],
+           c2 = S10_10_11_aicov$scov[Y], 
+           (N_AI[Y, 1:2]), (S10_AI[Y, 4:5]))
+```
+
+

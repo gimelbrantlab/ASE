@@ -9,7 +9,7 @@ We start by loading the libraries and functions we will need:
 
 ```{r, warning=FALSE, warning=FALSE}
 library("tidyverse")
-library("knitr")
+#library("knitr")
 source("ASE_functions.R")
 source("PerformDiffAIAnalysisFor2Conditions.R")
 ```
@@ -36,7 +36,7 @@ The first step is to create design matrix describing the experiment:
 experimentNames <- c("control","DMSO","low","medium","high")
 techReps <- c(2,2,2,5,2)
 designMatrix <- BuildDesign(experimentNames, techReps)
-kable(designMatrix)
+#kable(designMatrix)
 ```
 
 Now we can look at the data. Here is the *geneCountTab* dataframe with counts for all genes, all replicates and conditions:
@@ -67,7 +67,13 @@ aiTable <- do.call(cbind, lapply(1:length(designMatrix$techReps), function(x){
     }))
 aiTable <- cbind(geneCountTab_10$ensembl_gene_id, aiTable)
 colnames(aiTable) <- c("ensembl_gene_id", designMatrix$experimentNames)
-kable(head(aiTable))
+aiTable <- data.frame(aiTable)
+aiTable$control <- as.numeric(aiTable$control)
+aiTable$DMSO <- as.numeric(aiTable$DMSO)
+aiTable$low <- as.numeric(aiTable$low)
+aiTable$medium <- as.numeric(aiTable$medium)
+aiTable$high <- as.numeric(aiTable$high)
+#kable(head(aiTable))
 write.table(aiTable, file = "../../../data/5aza/ai_full.txt", row.names = F, quote = F, sep="\t")
 ```
 
@@ -125,16 +131,19 @@ coeffDF <- coeffDF[,c(dim(coeffDF)[2],1:(dim(coeffDF)[2]-1))]
 ```
 
 
-Let's compare conditions DMSO (experiment 2) and medium 5aza treatment (experiment 4). We will construct 95%-CIs around AIs and get the resulting classification into genes demonstrating difference in AI between conditions (based on non-overlapping CIs):
+Let's compare conditions DMSO (experiment 2) and high 5aza treatment (experiment 5). We will construct 95%-CIs around AIs and get the resulting classification into genes demonstrating difference in AI between conditions (based on non-overlapping CIs):
 
 ```{r}
-DiffAI_DMSO_medium <- PerformDiffAIAnalysisFor2Conditions(geneCountTab, 
+DiffAI_DMSO_high <- PerformDiffAIAnalysisFor2Conditions(geneCountTab, 
                                                           vect1CondReps = unlist(designMatrix$replicateNums[2]), 
-                                                          vect2CondReps = unlist(designMatrix$replicateNums[4]), 
+                                                          vect2CondReps = unlist(designMatrix$replicateNums[5]), 
                                                           Q=0.95,
-                                                          thr=40)
-DiffAI_DMSO_medium$deltaAI <- abs(DiffAI_DMSO_medium$meanAI1 - DiffAI_DMSO_medium$meanAI2)
-head(DiffAI_DMSO_medium[, c(1,5,6,10,11)])
+                                                          thr=40, 
+                                                        EPS=1.3, 
+                                                        BF=T, 
+                                                        fullOUT=F)
+DiffAI_DMSO_high$deltaAI <- abs(DiffAI_DMSO_high$meanAI1 - DiffAI_DMSO_high$meanAI2)
+head(DiffAI_DMSO_high[, c(1,5,6,10,11)])
 ```
 
 Numbers:

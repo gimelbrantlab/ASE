@@ -9,12 +9,13 @@ options(stringsAsFactors = FALSE)
 #                 TODO: 1. Kallisto functions
 # ---------------------------------------------------------------------------------------
 
-GetGatkPipelineTabs <- function(inFiles, nReps, multiple = TRUE){
+GetGatkPipelineTabs <- function(inFiles, nReps, multiple = TRUE, chrom = F){
   #' (GATK pipeline) Concatenate vertically (uniting merge) tables from inFiles.
   #'
   #' @param inFiles A vector of full pathes to files with gene names and allelic counts
   #' @param nReps A vector of numbers, each entry is a number of replicates in the corresponding file
   #' @param multiple Parameter defining if multiple input files are used, default set to TRUE
+  #' @param chrom Parameter defining if the resulting table includes chromosome column, default set to FALSE
   #' @return A concatenated table with means/counts, each row corresponds to a gene
   #' @examples
   #'
@@ -27,11 +28,16 @@ GetGatkPipelineTabs <- function(inFiles, nReps, multiple = TRUE){
                  }
                  )
     )
+    # TODO add chrom option for multiple files
   }
   else {
     df <- read_delim(inFiles, delim="\t", escape_double = FALSE, trim_ws = TRUE)
+    df_chrom <- df[,c("ensembl_gene_id","chr")]
     df <- df[,c(1:(2*sum(nReps)+1))]
     df <- as.data.frame(df)
+    if (chrom) {
+      df <- merge(df, df_chrom, by.x = "ensembl_gene_id", by.y = "ensembl_gene_id")
+    }
   }
   nameColumns <- function(rep_n)  {
     paste0("rep", rep(1:rep_n, each = 2), rep(c("_ref", "_alt"), rep_n))
@@ -39,9 +45,15 @@ GetGatkPipelineTabs <- function(inFiles, nReps, multiple = TRUE){
   if (multiple) {
     names(df) <- c("ensembl_gene_id",
                    paste0("rep", rep(1:sum(nReps), each=2), c("_ref", "_alt")))
+    if (chrom) {
+      names(df)[ncol(df)] <- "chr"
+    }
   }
   else {
     names(df) <- c("ensembl_gene_id", unlist(sapply(nReps, nameColumns)))
+    if (chrom) {
+      names(df)[ncol(df)] <- "chr"
+    }
   }
   return(df)
 }
