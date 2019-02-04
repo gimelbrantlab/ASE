@@ -1,8 +1,4 @@
-# Required soft and versions:
-
-
-
-# Prerequisites as input:
+# Files needed for the analysis
 
 1. RNA-seq data for F1-cross, fastq file (single end or paired end)
 
