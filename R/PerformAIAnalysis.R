@@ -100,7 +100,7 @@ PerformCIAIAnalysis <- function(inDF, vectReps, condName="Condition",
   } else {
     return(list(AICI = QCI,
                 FULL_OUT = list(observedQuantiles = observedQuantilesDF,
-                                intercepts = linIntercepts))
+                                intercepts = linIntercepts)))
   }
 }
 
