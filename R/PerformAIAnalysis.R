@@ -72,6 +72,9 @@ PerformCIAIAnalysis <- function(inDF, vectReps, condName="Condition",
   #' @examples
   #'
   
+  # Take subtable:
+  dfCondition <- inDF[, sort(c(1, vectReps*2, vectReps*2+1))]
+  
   observedQuantilesDF <- PerformDAIQuantilesAnalysis(inDF, vectReps, condName, Q, EPS, thr)
   
   # Count intercepts:
