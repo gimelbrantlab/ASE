@@ -8,7 +8,7 @@ You will need to run genome_and_files_preparation.sh once for every F1 genome (f
 
 ## Allelic Imbalance estimation and differential allelic expression
 
-As a result of completing the previous step, you should have a file "" containing information about number of maternal and paternal counts per gene. Next step is to estimate allelic imbalances for each gene and condition, calculate confidence intervals using technical replicates and then finally detect gene demonstrating differential allelic imbalance. To do this, please refer to the [manual](https://github.com/gimelbrantlab/ASE/blob/master/R/manual.md)).
+As a result of completing the previous step, you should have a file "*_processed_gene_extended2.txt" containing information about number of maternal and paternal counts per gene. Next step is to estimate allelic imbalances for each gene and condition, calculate confidence intervals using technical replicates and then finally detect gene demonstrating differential allelic imbalance. To do this, please refer to the [manual](https://github.com/gimelbrantlab/ASE/blob/master/R/manual.md)).
 
 ## Credits
 TODO: Write credits
