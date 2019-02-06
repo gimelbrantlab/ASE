@@ -28,7 +28,7 @@ PerformDAIQuantilesAnalysis <- function(inDF, vectReps, condName="Condition",
   #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
   #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
   #' @param fullOUT Set true if you want full output with all computationally-internal dfs
-  #' @return A table of quartiles in coverage bins 
+  #' @return A table of quantiles in coverage bins 
   #' @examples
   #'
   
@@ -40,7 +40,7 @@ PerformDAIQuantilesAnalysis <- function(inDF, vectReps, condName="Condition",
   deltaAIPairwiseDF$group <- paste(condName, deltaAIPairwiseDF$ij)
   
   # Count quantiles for Mean Coverage bins:
-  observedQuartilesDF <- do.call(rbind,
+  observedQuantilesDF <- do.call(rbind,
                                  lapply(unique(deltaAIPairwiseDF$group),
                                         function(gr){
                                           df  <- deltaAIPairwiseDF[deltaAIPairwiseDF$group == gr, ]
@@ -51,11 +51,11 @@ PerformDAIQuantilesAnalysis <- function(inDF, vectReps, condName="Condition",
                                         }
                                  )
   )
-  observedQuartilesDF$condition <- condName
-  observedQuartilesDF$ij <- sapply(as.character(observedQuartilesDF$group),
+  observedQuantilesDF$condition <- condName
+  observedQuantilesDF$ij <- sapply(as.character(observedQuantilesDF$group),
                                    function(x){paste(unlist(strsplit(x, ' '))[2:4], collapse=' ')})
   
-  return(observedQuartilesDF)
+  return(observedQuantilesDF)
 }
 
 PerformCIAIAnalysis <- function(inDF, vectReps, condName="Condition", 
@@ -76,9 +76,9 @@ PerformCIAIAnalysis <- function(inDF, vectReps, condName="Condition",
   
   # Count intercepts:
   linIntercepts <- data.frame(condition = condName, 
-                              ij = unique(observedQuartilesDF$ij),
-                              linInt = as.double(sapply(unique(observedQuartilesDF$ij), function(x){ 
-                                FitLmIntercept(observedQuartilesDF[observedQuartilesDF$ij == x, ], 
+                              ij = unique(observedQuantilesDF$ij),
+                              linInt = as.double(sapply(unique(observedQuantilesDF$ij), function(x){ 
+                                FitLmIntercept(observedQuantilesDF[observedQuantilesDF$ij == x, ], 
                                                binNObs=30, morethan=10, logoutput=F)
                               })))
                           
@@ -96,7 +96,7 @@ PerformCIAIAnalysis <- function(inDF, vectReps, condName="Condition",
     return(QCI)
   } else {
     return(list(AICI = QCI,
-                FULL_OUT = list(observedQuartiles = observedQuartilesDF,
+                FULL_OUT = list(observedQuantiles = observedQuantilesDF,
                                 intercepts = linIntercepts))
   }
 }
