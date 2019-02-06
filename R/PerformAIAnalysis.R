@@ -126,12 +126,15 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
   Q <- 1 - (1-Q)/nrow(inDF)
   
   if (!fullOUT){
-    QCI <- data.frame(PerformCIAIAnalysis(inDF, vect1CondReps, cond1Name, Q, EPS, thr, fullOUT=F), 
+    QCI <- data.frame(inDF[, 1], 
+                      cond1Name, 
+                      PerformCIAIAnalysis(inDF, vect1CondReps, cond1Name, Q, EPS, thr, fullOUT=F)[, -1], 
+                      cond2Name, 
                       PerformCIAIAnalysis(inDF, vect2CondReps, cond2Name, Q, EPS, thr, fullOUT=F)[, -1]) 
   } else {
     OUT <- list(cond1 = PerformCIAIAnalysis(inDF, vect1CondReps, cond1Name, Q, EPS, thr, fullOUT=T),
                 cond2 = PerformCIAIAnalysis(inDF, vect2CondReps, cond2Name, Q, EPS, thr, fullOUT=T))
-    QCI <- data.frame(OUT$cond1$AICI[, 1], 
+    QCI <- data.frame(inDF[, 1], 
                       cond1Name, OUT$cond1$AICI[, -1], 
                       cond2Name, OUT$cond2$AICI[, -1]) 
   }
