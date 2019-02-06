@@ -46,7 +46,7 @@ def GATK_SelectVariants(r, v, o, g=None, n=None, b=False):
     if (g):
         # tmp exons bed file:
         exon_bed = tempfile.NamedTemporaryFile(delete=False, suffix=".bed")
-        cmd_exon = " ".join(["grep -w 'exon'", g, "| grep '^[0-9XY]' | awk 'BEGIN{FS=OFS="    "}; {print $1,$4-1,$5}' >", exon_bed.name])
+        cmd_exon = " ".join(["grep -w 'exon'", g, "| grep '^[0-9XY]' | awk 'BEGIN{FS=OFS=", '"\t"', "}; {print $1,$4-1,$5}' >", exon_bed.name])
         print(cmd_exon)
         subprocess.check_output(cmd_exon, shell=True)
         flags['-L'] = exon_bed.name
@@ -298,9 +298,12 @@ def main():
         gzip_tabix_VCF(vcf_f1)
 
         # 2.3 Exon F1 VCF:
-        vcf_f1exon = os.path.join(fr1_dir, "_".join(["F1", name_mat, name_pat, "exon"])+'.vcf')
+        subprocess.check_output("gatk IndexFeatureFile -F " + vcf_f1 + ".gz", shell=True)
+        vcf_f1exon = os.path.join(args.f1_dir, "_".join(["F1", name_mat, name_pat, "exon"])+'.vcf')
         GATK_SelectVariants(r=args.ref, v=vcf_f1, g=args.gtf, o=vcf_f1exon)
         gzip_tabix_VCF(vcf_f1exon)
+
+        os.remove(pair_vcf.name)
 
 if __name__ == "__main__":
     main()
