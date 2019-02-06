@@ -95,9 +95,9 @@ PerformCIAIAnalysis <- function(inDF, vectReps, condName="Condition",
   if (!fullOUT){
     return(QCI)
   } else {
-    return(list(observedQuartiles = observedQuartilesDF,
-                intercepts = linIntercepts,
-                AICI = QCI))
+    return(list(AICI = QCI,
+                FULL_OUT = list(observedQuartiles = observedQuartilesDF,
+                                intercepts = linIntercepts))
   }
 }
 
@@ -131,10 +131,14 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
   } else {
     OUT <- list(cond1 = PerformCIAIAnalysis(inDF, vect1CondReps, cond1Name, Q, EPS, thr, fullOUT=T),
                 cond2 = PerformCIAIAnalysis(inDF, vect2CondReps, cond2Name, Q, EPS, thr, fullOUT=T))
-    QCI <- data.frame(OUT$cond1$AICI, OUT$cond2$AICI[, -1]) 
+    QCI <- data.frame(OUT$cond1$AICI[, 1], 
+                      cond1Name, OUT$cond1$AICI[, -1], 
+                      cond2Name, OUT$cond2$AICI[, -1]) 
   }
   names(QCI) = c("ID",
+                 "condition1", 
                  "meanCov1", "meanAI1", "pm1", "meanAI1Low", "meanAI1High",
+                 "condition2",
                  "meanCov2", "meanAI2", "pm2", "meanAI2Low", "meanAI2High")
   
   # Find intersecting intervals > call them FALSE
