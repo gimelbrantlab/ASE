@@ -12,7 +12,7 @@ Load functions from the corresponding file:
 library("tidyverse")
 
 source("ASE_functions.R")
-source("PerformDiffAIAnalysisFor2Conditions.R")
+source("PerformAIAnalysis.R")
 ```
 
 Suppose I work with 3 files for 18 replicates, without deduplication:
