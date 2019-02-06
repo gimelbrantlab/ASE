@@ -62,6 +62,7 @@ geneCountTab_10 <- geneCountTab_10 %>% dplyr::filter(exp1_rep1_ref + exp1_rep1_a
                              exp5_rep1_ref + exp5_rep1_alt >=thr & exp1_rep2_ref + exp1_rep2_alt >=thr & 
                              exp2_rep2_ref + exp2_rep2_alt >=thr & exp3_rep2_ref + exp3_rep2_alt >=thr & 
                              exp4_rep2_ref + exp4_rep2_alt >=thr & exp5_rep2_ref + exp5_rep2_alt >=thr)
+# TODO: use thr in CountsToAI (thr=10) and take care of downstream cbind (change to df and then merge)
 aiTable <- do.call(cbind, lapply(1:length(designMatrix$techReps), function(x){
       round(CountsToAI(geneCountTab_10, reps = unlist(designMatrix$replicateNums[x])),3)
     }))
@@ -74,7 +75,7 @@ aiTable$low <- as.numeric(aiTable$low)
 aiTable$medium <- as.numeric(aiTable$medium)
 aiTable$high <- as.numeric(aiTable$high)
 #kable(head(aiTable))
-write.table(aiTable, file = "../../../data/5aza/ai_full.txt", row.names = F, quote = F, sep="\t")
+write.table(aiTable, file = "../../../data/5aza/ai_full_thr_10.txt", row.names = F, quote = F, sep="\t")
 ```
 
 
@@ -146,16 +147,11 @@ DiffAI_DMSO_high$deltaAI <- abs(DiffAI_DMSO_high$meanAI1 - DiffAI_DMSO_high$mean
 head(DiffAI_DMSO_high[, c(1,5,6,10,11)])
 ```
 
-Numbers:
-```{r}
-paste0("number of genes with differential AI ", table(DiffAI_DMSO_medium$diffAI)[2])
-paste0("number of genes with no differential AI ", table(DiffAI_DMSO_medium$diffAI)[1])
-```
 
 Let's look at top DE genes:
 ```{r}
 minDifference <- 0.2
-GenesAIDiff <- DiffAI_DMSO_medium[!is.na(DiffAI_DMSO_medium$diffAI), ]
+GenesAIDiff <- DiffAI_DMSO_high[!is.na(DiffAI_DMSO_high$diffAI), ]
 GenesAIDiff <- GenesAIDiff[GenesAIDiff$diffAI==T & GenesAIDiff$deltaAI>=minDifference, ]
 head(GenesAIDiff[, c(1,5,6,10,11)])
 ```

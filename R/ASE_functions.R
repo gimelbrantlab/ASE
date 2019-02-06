@@ -90,7 +90,7 @@ GetGatkPipelineSNPTabs <- function(inFiles, nReps){
 #                 FUNCTIONS: ALLELIC IMBALANSE AND MEAN COVERAGE
 # ---------------------------------------------------------------------------------------
 
-CountsToAI <- function(df, reps=NA, meth="mergedToProportion", thr=NA, thrType="each"){
+CountsToAI <- function(df, reps=NA, meth="meanOfProportions", thr=NA, thrType="each"){
   #' Calculates allelic imbalances from merged counts over given replicates (ai(sum_reps(gene)))
   #'
   #' @param df A dataframe of genes/transcripts and parental counts for technical replicates in columns
