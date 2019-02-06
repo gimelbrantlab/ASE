@@ -90,13 +90,14 @@ GetGatkPipelineSNPTabs <- function(inFiles, nReps){
 #                 FUNCTIONS: ALLELIC IMBALANSE AND MEAN COVERAGE
 # ---------------------------------------------------------------------------------------
 
-CountsToAI <- function(df, reps=NA, meth="mergedToProportion", thr=NA){
+CountsToAI <- function(df, reps=NA, meth="mergedToProportion", thr=NA, thrType="each"){
   #' Calculates allelic imbalances from merged counts over given replicates (ai(sum_reps(gene)))
   #'
   #' @param df A dataframe of genes/transcripts and parental counts for technical replicates in columns
   #' @param reps An optional parameter for a range op replicates for consideration (default = all replicates in df)
   #' @param meth An optional parameter for method to use, either sum(m)/sum(p), or sum(m/p) (default = sum(m)/sum(p))
   #' @param thr An optional parameter for a threshold on mean coverage (default = no thr)
+  #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
   #' @return mean(mean(m_1,...,m_6))_SNP / mean(mean(m_1+p_1,...,m_6+p6))_SNP
   #' @examples
   #'
@@ -107,9 +108,17 @@ CountsToAI <- function(df, reps=NA, meth="mergedToProportion", thr=NA){
   ddf <- df[, cs] # df with needed columns and without gene names column
   if (is.na(thr)) {
     thr <- 0
+    greaterThanThr <- rep(T, nrow(ddf))
   }
-  greaterThanThr <- (rowSums(ddf)/length(reps) >= thr)
-  greaterThanThr[greaterThanThr==FALSE] <- NA
+  if (thrType == "each"){
+    greaterThanThr <- (sapply(1:length(reps),
+                             function(x){rowSums(ddf[, c(2*x-1, 2*x)])}) >= thr)
+    greaterThanThr[greaterThanThr==FALSE] <- NA
+    greaterThanThr <- rowSums(greaterThanThr)/length(reps)
+  } else if (thrType == "average"){
+    greaterThanThr <- (rowSums(ddf)/length(reps) >= thr)
+    greaterThanThr[greaterThanThr==FALSE] <- NA
+  }
 
   if (ncol(ddf) == 2) { # if 1 replicate
     p <- (ddf[, 1]/rowSums(ddf)) * greaterThanThr
