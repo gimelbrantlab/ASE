@@ -173,7 +173,8 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
 # ---------------------------------------------------------------------------------------
 
 PerformDiffAIAnalysisForConditionNPoint <- function(inDF, vectReps, condName="Condition", pt = 0.5,
-                                                Q=0.95, EPS=1.3, thr=NA, fullOUT=F){
+                                                    Q=0.95, EPS=1.3, thr=NA, thrUP=NA, thrType="each",
+                                                    fullOUT=F){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for condition + point estimate to compare
   #'
   #' @param inDF A table with ref & alt counts per gene/SNP for each replicate plus the first column with gene/SNP names
@@ -181,6 +182,8 @@ PerformDiffAIAnalysisForConditionNPoint <- function(inDF, vectReps, condName="Co
   #' @param condName An optional parameter; one-word name for condition
   #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
   #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
+  #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
+  #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
   #' @param fullOUT Set true if you want full output with all computationally-internal dfs
   #' @return A table of gene names, AIs + CIs, classification into genes demonstrating differential from point estimate AI and those that don't
   #' @examples
@@ -190,9 +193,9 @@ PerformDiffAIAnalysisForConditionNPoint <- function(inDF, vectReps, condName="Co
     Q <- 1 - (1-Q)/nrow(inDF)
 
   if (!fullOUT){
-    QCI <- PerformCIAIAnalysis(inDF, vectReps, condName, Q, EPS, thr, fullOUT=F)
+    QCI <- PerformCIAIAnalysis(inDF, vectReps, condName, Q, EPS, thr, thrUP, thrType, fullOUT=F)
   } else {
-    OUT <- PerformCIAIAnalysis(inDF, vectReps, condName, Q, EPS, thr, fullOUT=T)
+    OUT <- PerformCIAIAnalysis(inDF, vectReps, condName, Q, EPS, thr, thrUP, thrType, fullOUT=T)
     QCI <- OUT$AICI
   }
 

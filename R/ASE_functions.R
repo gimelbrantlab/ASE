@@ -295,14 +295,13 @@ CreateDeltaAIForAPairRepsDF <- function(df, reps, thr=NA, thrUP=NA, thrType="eac
   return(na.omit(ddf))
 }
 
-CreateDeltaAIPairwiseDF <- function(df, mlns=F, reps=NA, what="noname",
-                                    thr=NA, thrUP=NA, thrType="each"){
+CreateMergedDeltaAIPairwiseDF <- function(df, reps=NA, what="noname",
+                                          thr=NA, thrUP=NA, thrType="each"){
   #' Creates a table of parwise comparisons for technical replicates in given table
   #'
   #' @param df A dataframe of genes/transcripts and parental counts for technical replicates in columns
-  #' @param mlns An optionsl binary parameter: if the file contains data of millionr read sampling, FALSE or TRUE (default = F)
   #' @param reps An optional parameter for a range op replicates for consideration (default = all replicates in df)
-  #' @param what A name, is needed if not mlns and no names in list (default = "noname")
+  #' @param what A name (default = "noname")
   #' @param thr An optional parameter for a threshold on gene coverage (default = NA)
   #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
   #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
@@ -321,55 +320,15 @@ CreateDeltaAIPairwiseDF <- function(df, mlns=F, reps=NA, what="noname",
     ddf          <- CreateDeltaAIForAPairRepsDF(df, combs[,y], thr, thrUP, thrType)
     ddf$deltaAI  <- abs(ddf$deltaAI)
     ddf$what     <- what
-    ddf$iLocal   <- combs[1,y]
-    ddf$jLocal   <- combs[2,y]
-    ddf$ijLocal  <- paste(NumToDoulbledigitChar(combs[1,y]),
-                          'vs',
-                          NumToDoulbledigitChar(combs[2,y]))
-    if(mlns==F) {
-      ddf$i      <- combs[1,y]
-      ddf$j      <- combs[2,y]
-      ddf$ij     <- paste(NumToDoulbledigitChar(combs[1,y]),
-                          'vs',
-                          NumToDoulbledigitChar(combs[2,y]))
-    } else {
-      ddf$i      <- combs[1,y]%/%5 + 1
-      ddf$j      <- combs[2,y]%/%5 + 1
-      ddf$ij     <- paste(NumToDoulbledigitChar(combs[1,y]%/%5 + 1),
-                          'vs',
-                          NumToDoulbledigitChar(combs[2,y]%/%5 + 1))
-    }
+    ddf$i   <- combs[1,y]
+    ddf$j   <- combs[2,y]
+    ddf$ij  <- paste(NumToDoulbledigitChar(combs[1,y]),
+                     'vs',
+                     NumToDoulbledigitChar(combs[2,y]))
     return(ddf)
   }))
 
   return(ddfPairs)
-}
-
-CreateMergedDeltaAIPairwiseDF <- function(df, mlns=F, reps=NA, what="noname",
-                                          thr=NA, thrUP=NA, thrType="each"){
-  #' Creates a technical replicates-row-concatenated table for pairwise comparisons of technical replicates in given table
-  #'
-  #' @param df A dataframe of genes/transcripts and parental counts for technical replicates in columns
-  #' @param mlns An optionsl binary parameter: if the file contains data of millionr read sampling, FALSE or TRUE (default = F)
-  #' @param reps An optional parameter for a range op replicates for consideration, it can be subreplicates in case of files with millions, as far there 5x columns per each (default = all replicates in df)
-  #' @param what A name, is needed if not mlns and no names in list (default = "noname")
-  #' @param thr An optional parameter for a threshold on gene coverage (default = NA)
-  #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
-  #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
-  #' @return A technical replicates-row-concatenated table of parwise comparisons for technical replicates.
-  #' @examples
-  #'
-  if (!mlns) { # if it's not list of millions tabs:
-    ddf <- CreateDeltaAIPairwiseDF(df, mlns, reps, what, thr, thrUP, thrType)
-  } else { # if it's list of tabs (mlns):
-    subtabs <- names(df)
-    ddf <- do.call(rbind, lapply(subtabs, function(s){
-      subdf <- data.frame(df[[s]])
-      what  <- s
-      return(CreateDeltaAIPairwiseDF(subdf, mlns, reps, what, thr, thrUP, thrType))
-    }))
-  }
-  return(ddf)
 }
 
 # ---------------------------------------------------------------------------------------
