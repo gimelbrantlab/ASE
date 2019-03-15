@@ -19,7 +19,7 @@ options(stringsAsFactors = FALSE)
 # ---------------------------------------------------------------------------------------
 
 PerformDAIQuantilesAnalysis <- function(inDF, vectReps, condName="Condition",
-                                       Q=0.95, EPS=1.3, thr=NA){
+                                        Q=0.95, EPS=1.3, thr=NA, thrUP=NA, thrType="each"){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use
   #'
   #' @param inDF A table with ref & alt counts per gene/SNP for each replicate plus the first column with gene/SNP names
@@ -27,6 +27,8 @@ PerformDAIQuantilesAnalysis <- function(inDF, vectReps, condName="Condition",
   #' @param condName An optional parameter; one-word name for condition
   #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
   #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
+  #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
+  #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
   #' @param fullOUT Set true if you want full output with all computationally-internal dfs
   #' @return A table of quantiles in coverage bins
   #' @examples
@@ -36,7 +38,7 @@ PerformDAIQuantilesAnalysis <- function(inDF, vectReps, condName="Condition",
   dfCondition <- inDF[, sort(c(1, vectReps*2, vectReps*2+1))]
 
   # Create pairvise AI differences for all techreps pairs:
-  deltaAIPairwiseDF <- CreateMergedDeltaAIPairwiseDF(dfCondition, what=condName, thr=thr)
+  deltaAIPairwiseDF <- CreateMergedDeltaAIPairwiseDF(dfCondition, what=condName, thr=thr, thrUP=thrUP, thrType=thrType)
   deltaAIPairwiseDF$group <- paste(condName, deltaAIPairwiseDF$ij)
 
   # Count quantiles for Mean Coverage bins:
@@ -59,7 +61,8 @@ PerformDAIQuantilesAnalysis <- function(inDF, vectReps, condName="Condition",
 }
 
 PerformCIAIAnalysis <- function(inDF, vectReps, condName="Condition",
-                                Q=0.95, EPS=1.3, thr=NA, fullOUT=F){
+                                Q=0.95, EPS=1.3, thr=NA, thrUP=NA, thrType="each",
+                                fullOUT=F){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use
   #'
   #' @param inDF A table with ref & alt counts per gene/SNP for each replicate plus the first column with gene/SNP names
@@ -67,6 +70,8 @@ PerformCIAIAnalysis <- function(inDF, vectReps, condName="Condition",
   #' @param condName An optional parameter; one-word name for condition
   #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
   #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
+  #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
+  #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
   #' @param fullOUT Set true if you want full output with all computationally-internal dfs
   #' @return A table of gene names, AIs + CIs
   #' @examples
@@ -75,7 +80,7 @@ PerformCIAIAnalysis <- function(inDF, vectReps, condName="Condition",
   # Take subtable:
   dfCondition <- inDF[, sort(c(1, vectReps*2, vectReps*2+1))]
 
-  observedQuantilesDF <- PerformDAIQuantilesAnalysis(inDF, vectReps, condName, Q, EPS, thr)
+  observedQuantilesDF <- PerformDAIQuantilesAnalysis(inDF, vectReps, condName, Q, EPS, thr, thrUP, thrType)
 
   # Count intercepts:
   linIntercepts <- data.frame(condition = condName,
@@ -93,7 +98,7 @@ PerformCIAIAnalysis <- function(inDF, vectReps, condName="Condition",
 
   # Calculate AI CIs:
 
-  QCI <- CreateCIforAI(linIntercepts, dfCondition, thr=thr)
+  QCI <- CreateCIforAI(linIntercepts, dfCondition, thr=thr, thrUP, thrType)
 
   if (!fullOUT){
     return(QCI)
@@ -109,8 +114,9 @@ PerformCIAIAnalysis <- function(inDF, vectReps, condName="Condition",
 #                 FUNCTIONS: PERFORM DIFF AI ANALYSIS ON 2 CONDITIONS
 # ---------------------------------------------------------------------------------------
 PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondReps,
-                                                    cond1Name="Condition1", cond2Name="Condition2",
-                                                    Q=0.95, EPS=1.3, thr=NA, fullOUT=F){
+                                                cond1Name="Condition1", cond2Name="Condition2",
+                                                Q=0.95, EPS=1.3, thr=NA, thrUP=NA, thrType="each",
+                                                fullOUT=F){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for each condition
   #'
   #' @param inDF A table with ref & alt counts per gene/SNP for each replicate plus the first column with gene/SNP names
@@ -120,6 +126,8 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
   #' @param cond2Name An optional parameter; one-word name for condition 2
   #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
   #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
+  #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
+  #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
   #' @param fullOUT Set true if you want full output with all computationally-internal dfs.
   #' @return A table of gene names, AIs + CIs for each condition, classification into genes demonstrating differential AI and those that don't
   #' @examples
@@ -131,12 +139,12 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
   if (!fullOUT){
     QCI <- data.frame(inDF[, 1],
                       cond1Name,
-                      PerformCIAIAnalysis(inDF, vect1CondReps, cond1Name, Q, EPS, thr, fullOUT=F)[, -1],
+                      PerformCIAIAnalysis(inDF, vect1CondReps, cond1Name, Q, EPS, thr, thrUP, thrType, fullOUT=F)[, -1],
                       cond2Name,
-                      PerformCIAIAnalysis(inDF, vect2CondReps, cond2Name, Q, EPS, thr, fullOUT=F)[, -1])
+                      PerformCIAIAnalysis(inDF, vect2CondReps, cond2Name, Q, EPS, thr, thrUP, thrType, fullOUT=F)[, -1])
   } else {
-    OUT <- list(cond1 = PerformCIAIAnalysis(inDF, vect1CondReps, cond1Name, Q, EPS, thr, fullOUT=T),
-                cond2 = PerformCIAIAnalysis(inDF, vect2CondReps, cond2Name, Q, EPS, thr, fullOUT=T))
+    OUT <- list(cond1 = PerformCIAIAnalysis(inDF, vect1CondReps, cond1Name, Q, EPS, thr, thrUP, thrType, fullOUT=T),
+                cond2 = PerformCIAIAnalysis(inDF, vect2CondReps, cond2Name, Q, EPS, thr, thrUP, thrType, fullOUT=T))
     QCI <- data.frame(inDF[, 1],
                       cond1Name, OUT$cond1$AICI[, -1],
                       cond2Name, OUT$cond2$AICI[, -1])
