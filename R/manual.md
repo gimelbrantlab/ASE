@@ -100,6 +100,49 @@ ggplot(aiTable, aes_string(x=as.name(designMatrix$experimentNames[2]), y=as.name
 
 ![](manual_files/figure-markdown_github/unnamed-chunk-5-1.png)
 
+We can also make MA plots if we load log2Fold changes from DESeq2 analysis:
+
+``` r
+DE_SG3_SG2 <- read_csv("~/Dropbox (Partners HealthCare)/MAE screen/DE_analysis/DE_SG3_SG2.txt")
+ai_plus_DE_low_DMSO <- merge(aiTable[,c(1,3,4)], DE_SG3_SG2[,c(1:3)], by.x="ensembl_gene_id", by.y="gene_id")
+ai_plus_DE_low_DMSO$aiDiff <- ai_plus_DE_low_DMSO$low - ai_plus_DE_low_DMSO$DMSO
+ai_plus_DE_low_DMSO <- ai_plus_DE_low_DMSO[!is.na(ai_plus_DE_low_DMSO$DMSO),]
+ai_plus_DE_low_DMSO <- ai_plus_DE_low_DMSO[!is.na(ai_plus_DE_low_DMSO$low),]
+
+ApplyQuintiles <- function(x) {
+  cut(x, breaks=seq(0, 0.6, by = 0.10), 
+      labels=c("<0.1","0.1-0.2","0.2-0.3","0.3-0.4","0.4-0.5", ">0.5"), include.lowest=TRUE)
+}
+ai_plus_DE_low_DMSO$aiDiff_q <- sapply(abs(ai_plus_DE_low_DMSO$aiDiff), ApplyQuintiles)
+table(ai_plus_DE_low_DMSO$aiDiff_q)
+```
+
+    ## 
+    ##    <0.1 0.1-0.2 0.2-0.3 0.3-0.4 0.4-0.5    >0.5 
+    ##    7657     719     120      17       4       2
+
+``` r
+ai_thr <- 0.1
+ai_plus_DE_low_DMSO$ai_col <- ifelse(ai_plus_DE_low_DMSO$aiDiff > ai_thr, "red", "gray")
+
+
+ggplot(ai_plus_DE_low_DMSO, aes(x=aiDiff, y=log2FoldChange)) +
+  geom_point(size=0.5) +
+  xlim(c(-0.5, 0.5))
+```
+
+![](manual_files/figure-markdown_github/unnamed-chunk-6-1.png)
+
+``` r
+ggplot(ai_plus_DE_low_DMSO, aes(x=baseMean, y=log2FoldChange, col=ai_col)) +
+  geom_point(size=0.5) +
+  scale_x_continuous(trans="log10") +
+  scale_color_manual(values=ai_plus_DE_low_DMSO$ai_col) +
+  theme_bw()
+```
+
+![](manual_files/figure-markdown_github/unnamed-chunk-6-2.png)
+
 ### Differential AI analysis
 
 Let's compare conditions DMSO (experiment 2) and high 5aza treatment (experiment 5). We will construct 95%-CIs around AIs and get the resulting classification finding the genes demonstrating difference in AI between conditions (based on non-overlapping CIs).
