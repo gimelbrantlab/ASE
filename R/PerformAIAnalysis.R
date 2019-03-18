@@ -38,7 +38,7 @@ PerformDAIQuantilesAnalysis <- function(inDF, vectReps, condName="Condition",
   dfCondition <- inDF[, sort(c(1, vectReps*2, vectReps*2+1))]
 
   # Create pairvise AI differences for all techreps pairs:
-  deltaAIPairwiseDF <- CreateMergedDeltaAIPairwiseDF(dfCondition, what=condName, thr=thr, thrUP=thrUP, thrType=thrType)
+  deltaAIPairwiseDF <- CreateMergedDeltaAIPairwiseDF(df=dfCondition, what=condName, thr=thr, thrUP=thrUP, thrType=thrType)
   deltaAIPairwiseDF$group <- paste(condName, deltaAIPairwiseDF$ij)
 
   # Count quantiles for Mean Coverage bins:
@@ -46,7 +46,7 @@ PerformDAIQuantilesAnalysis <- function(inDF, vectReps, condName="Condition",
                                  lapply(unique(deltaAIPairwiseDF$group),
                                         function(gr){
                                           df  <- deltaAIPairwiseDF[deltaAIPairwiseDF$group == gr, ]
-                                          res <- CreateObservedQuantilesDF(df,
+                                          res <- CreateObservedQuantilesDF(df=df,
                                                                            P=Q, ep=EPS, logbase=T,
                                                                            coverageLimit=quantile(deltaAIPairwiseDF$MeanCov, 0.995),
                                                                            group=gr)
@@ -80,13 +80,14 @@ PerformCIAIAnalysis <- function(inDF, vectReps, condName="Condition",
   # Take subtable:
   dfCondition <- inDF[, sort(c(1, vectReps*2, vectReps*2+1))]
 
-  observedQuantilesDF <- PerformDAIQuantilesAnalysis(inDF, vectReps, condName, Q, EPS, thr, thrUP, thrType)
+  observedQuantilesDF <- PerformDAIQuantilesAnalysis(inDF=inDF, vectReps=vectReps, condName=condName,
+                                                     Q=Q, EPS=EPS, thr=thr, thrUP=thrUP, thrType=thrType)
 
   # Count intercepts:
   linIntercepts <- data.frame(condition = condName,
                               ij = unique(observedQuantilesDF$ij),
                               linInt = as.double(sapply(unique(observedQuantilesDF$ij), function(x){
-                                FitLmIntercept(observedQuantilesDF[observedQuantilesDF$ij == x, ],
+                                FitLmIntercept(inDF=observedQuantilesDF[observedQuantilesDF$ij == x, ],
                                                binNObs=30, morethan=10, logoutput=F)
                               })))
 
@@ -98,7 +99,8 @@ PerformCIAIAnalysis <- function(inDF, vectReps, condName="Condition",
 
   # Calculate AI CIs:
 
-  QCI <- CreateCIforAI(linIntercepts, dfCondition, thr=thr, thrUP, thrType)
+  QCI <- CreateCIforAI(dfInt=linIntercepts, dfCounts=dfCondition,
+                       condName=condName, thr=thr, thrUP, thrType)
 
   if (!fullOUT){
     return(QCI)
@@ -138,27 +140,28 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
 
   if (!fullOUT){
     QCI <- data.frame(inDF[, 1],
-                      cond1Name,
-                      PerformCIAIAnalysis(inDF, vect1CondReps, cond1Name, Q, EPS, thr, thrUP, thrType, fullOUT=F)[, -1],
-                      cond2Name,
-                      PerformCIAIAnalysis(inDF, vect2CondReps, cond2Name, Q, EPS, thr, thrUP, thrType, fullOUT=F)[, -1])
+                      PerformCIAIAnalysis(inDF=inDF, vectReps=vect1CondReps, condName=cond1Name,
+                                          Q=Q, EPS=EPS, thr=thr, thrUP=thrUP, thrType=thrType, fullOUT=F)[, -1],
+                      PerformCIAIAnalysis(inDF=inDF, vectReps=vect2CondReps, condName=cond2Name,
+                                          Q=Q, EPS=EPS, thr=thr, thrUP=thrUP, thrType=thrType, fullOUT=F)[, -1])
   } else {
-    OUT <- list(cond1 = PerformCIAIAnalysis(inDF, vect1CondReps, cond1Name, Q, EPS, thr, thrUP, thrType, fullOUT=T),
-                cond2 = PerformCIAIAnalysis(inDF, vect2CondReps, cond2Name, Q, EPS, thr, thrUP, thrType, fullOUT=T))
+    OUT <- list(cond1 = PerformCIAIAnalysis(inDF=inDF, vectReps=vect1CondReps, condName=cond1Name,
+                                            Q=Q, EPS=EPS, thr=thr, thrUP=thrUP, thrType=thrType, fullOUT=T),
+                cond2 = PerformCIAIAnalysis(inDF=inDF, vectReps=vect2CondReps, condName=cond2Name,
+                                            Q=Q, EPS=EPS, thr=thr, thrUP=thrUP, thrType=thrType, fullOUT=T))
     QCI <- data.frame(inDF[, 1],
-                      cond1Name, OUT$cond1$AICI[, -1],
-                      cond2Name, OUT$cond2$AICI[, -1])
+                      OUT$cond1$AICI[, -1],
+                      OUT$cond2$AICI[, -1])
   }
-  names(QCI) = c("ID",
-                 "condition1",
-                 "meanCov1", "meanAI1", "pm1", "meanAI1Low", "meanAI1High",
-                 "condition2",
-                 "meanCov2", "meanAI2", "pm2", "meanAI2Low", "meanAI2High")
+  names(QCI) = c("ID", paste0(c("condition", "meanCov", "meanAI",
+                                "pm", "meanAILow", "meanAIHigh"),
+                              '_', rep(1:2, each=6))
+                )
 
-  # Find intersecting intervals > call them FALSE
+  # Find intersecting intervals > call them FALSE (non-rejected H_0)
 
-  QCI$diffAI <- !(QCI$meanAI1Low < QCI$meanAI2Low & QCI$meanAI1High >= QCI$meanAI2Low |
-                    QCI$meanAI1Low >= QCI$meanAI2Low & QCI$meanAI1Low <= QCI$meanAI2High)
+  QCI$diffAI <- !(QCI$meanAILow_1 < QCI$meanAILow_2 & QCI$meanAIHigh_1 >= QCI$meanAILow_2 |
+                  QCI$meanAILow_1 >= QCI$meanAILow_2 & QCI$meanAILow_1 <= QCI$meanAIHigh_2)
 
   if (!fullOUT){
     return(QCI)
@@ -193,13 +196,15 @@ PerformDiffAIAnalysisForConditionNPoint <- function(inDF, vectReps, condName="Co
     Q <- 1 - (1-Q)/nrow(inDF)
 
   if (!fullOUT){
-    QCI <- PerformCIAIAnalysis(inDF, vectReps, condName, Q, EPS, thr, thrUP, thrType, fullOUT=F)
+    QCI <- PerformCIAIAnalysis(inDF=inDF, vectReps=vectReps, condName=condName,
+                               Q=Q, EPS=EPS, thr=thr, thrUP=thrUP, thrType=thrType, fullOUT=F)
   } else {
-    OUT <- PerformCIAIAnalysis(inDF, vectReps, condName, Q, EPS, thr, thrUP, thrType, fullOUT=T)
+    OUT <- PerformCIAIAnalysis(inDF=inDF, vectReps=vectReps, condName=condName,
+                               Q=Q, EPS=EPS, thr=thr, thrUP=thrUP, thrType=thrType, fullOUT=T)
     QCI <- OUT$AICI
   }
 
-  # Find intersecting intervals > call them FALSE
+  # Find intersecting intervals > call them FALSE (non-rejected H_0)
 
   QCI$diffAI <- !(QCI$meanAILow <= pt & QCI$meanAIHigh >= pt)
 

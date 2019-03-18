@@ -434,11 +434,12 @@ CreatePMforAI <- function(dfInt, dfAI, dfCov){
   return(0.5/(ncol(dfCov)*(ncol(dfCov)-1))*sqrt(qres))
 }
 
-CreateCIforAI <- function(dfInt, dfCounts, thr=NA, thrUP=NA, thrType="each"){
+CreateCIforAI <- function(dfInt, dfCounts, condName="Condition", thr=NA, thrUP=NA, thrType="each"){
   #' Input: two data frames, one including replicate-gene mat|pat coverages, one with constants for each technical replicates pair
   #'
   #' @param dfInt A table with column "linInt" of correction constants for each replicates combination (rows), the order of rows should be consistent with columns in dfCounts, s.t. pairs are alphabetically ordered
   #' @param dfCounts A table with pairs of columns for each technical replicate, the rows correspond to genes, the values are mat|pat coverages
+  #' @param condName An optional parameter; one-word name for condition
   #' @param thr An optional parameter for a threshold on gene coverage (default = NA)
   #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
   #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
@@ -453,10 +454,11 @@ CreateCIforAI <- function(dfInt, dfCounts, thr=NA, thrUP=NA, thrType="each"){
   })
 
   df <- data.frame(
-    ID      = dfCounts[,1],
-    meanCov = rowMeans(dfCov),
-    meanAI  = CountsToAI(dfCounts, meth="meanOfProportions", thr=thr, thrUP=thrUP, thrType=thrType)$AI,
-    pm      = CreatePMforAI(dfInt, dfAI, dfCov)
+    ID        = dfCounts[,1],
+    condition = condName,
+    meanCov   = rowMeans(dfCov),
+    meanAI    = CountsToAI(dfCounts, meth="meanOfProportions", thr=thr, thrUP=thrUP, thrType=thrType)$AI,
+    pm        = CreatePMforAI(dfInt, dfAI, dfCov)
   )
   df$meanAILow  <- sapply(df$meanAI-df$pm, function(x){max(0, x)})
   df$meanAIHigh <- sapply(df$meanAI+df$pm, function(x){min(1, x)})
