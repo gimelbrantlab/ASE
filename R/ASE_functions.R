@@ -387,18 +387,21 @@ CreateObservedQuantilesDF <- function(df, P, ep, logbase=T, coverageLimit, group
 #                 FUNCTIONS: FITTING LM
 # ---------------------------------------------------------------------------------------
 
-# Was: fit_lm_intercept_how_we_want_morethan(inDf, N_obs_bin, morethan=10)
-FitLmIntercept <- function(inDf, binNObs, morethan = 10, logoutput = TRUE){
+# Was: fit_lm_intercept_how_we_want_morethan(inDF, N_obs_bin, morethan=10)
+#
+# TODO: ADD LESSTEN?
+#
+FitLmIntercept <- function(inDF, binNObs, morethan = 10, logoutput = TRUE){
   #' Fits linear model to logarithmic data and outputs intercept for the model with slope=1/2 restriction
   #
-  #' @param inDf A dataframe - output of CreateObservedQuantilesDF()
+  #' @param inDF A dataframe - output of CreateObservedQuantilesDF()
   #' @param N_obs_bin Threshold on number of observations per bin
   #' @param morethan Theshold on gene coverage for lm (default = 10)
   #' @param logoutput Return log intercept? (default = true)
   #' @return lm intercept or log2(lm intercept)
   #' @examples
   #'
-  df <- inDf[, c('coverageBin','deltaAI','binNObservations')]
+  df <- inDF[, c('coverageBin','deltaAI','binNObservations')]
   df <- df[df$coverageBin > morethan &
            df$binNObservations > binNObs, ]
   df[, c('coverageBin','deltaAI')] <- log2(df[, c('coverageBin','deltaAI')])
