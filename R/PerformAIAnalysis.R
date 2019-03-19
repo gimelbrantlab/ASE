@@ -123,7 +123,7 @@ PerformCIAIAnalysis <- function(inDF, vectReps, condName="Condition",
 PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondReps,
                                                 cond1Name="Condition1", cond2Name="Condition2",
                                                 Q=0.95, EPS=1.3, thr=NA, thrUP=NA, thrType="each",
-                                                minDifference=0.1,
+                                                minDifference=NA,
                                                 fullOUT=F){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for each condition
   #'
@@ -136,6 +136,7 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
   #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
   #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
   #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
+  #' @param minDifference if specified, one additional column DAE is added to the output (T/F depending if the gene changed AI expression more than minDifference in addition to having non-overlapping CIs)
   #' @param fullOUT Set true if you want full output with all computationally-internal dfs.
   #' @return A table of gene names, AIs + CIs for each condition, classification into genes demonstrating differential AI and those that don't
   #' @examples
@@ -167,7 +168,10 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
   # Find intersecting intervals > call them FALSE (non-rejected H_0)
   QCI$diffAI <- !(QCI$meanAILow_1 < QCI$meanAILow_2 & QCI$meanAIHigh_1 >= QCI$meanAILow_2 |
                   QCI$meanAILow_1 >= QCI$meanAILow_2 & QCI$meanAILow_1 <= QCI$meanAIHigh_2)
-  QCI$DAE <- (QCI$diffAI & (abs(QCI$meanAI_1 - QCI$meanAI_2) >= minDifference))
+  if (!is.na(minDifference))
+    {
+    QCI$DAE <- (QCI$diffAI & (abs(QCI$meanAI_1 - QCI$meanAI_2) >= minDifference))
+  }
 
   if (!fullOUT){
     return(QCI)
@@ -183,7 +187,7 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
 
 PerformDiffAIAnalysisForConditionNPoint <- function(inDF, vectReps, condName="Condition", pt = 0.5,
                                                     Q=0.95, EPS=1.3, thr=NA, thrUP=NA, thrType="each",
-                                                    minDifference=0.1,
+                                                    minDifference=NA,
                                                     fullOUT=F){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for condition + point estimate to compare
   #'
@@ -215,7 +219,10 @@ PerformDiffAIAnalysisForConditionNPoint <- function(inDF, vectReps, condName="Co
 
   # Find intersecting intervals > call them FALSE (non-rejected H_0)
   QCI$diffAI <- !(QCI$meanAILow <= pt & QCI$meanAIHigh >= pt)
-  QCI$DAE <- (QCI$diffAI & (QCI$meanAI - pt >= minDifference))
+  if (!is.na(minDifference))
+  {
+    QCI$DAE <- (QCI$diffAI & (abs(QCI$meanAI_1 - QCI$meanAI_2) >= minDifference))
+  }
 
   if (!fullOUT){
     return(QCI)
