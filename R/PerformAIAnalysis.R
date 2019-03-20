@@ -221,7 +221,7 @@ PerformDiffAIAnalysisForConditionNPoint <- function(inDF, vectReps, condName="Co
   QCI$diffAI <- !(QCI$meanAILow <= pt & QCI$meanAIHigh >= pt)
   if (!is.na(minDifference))
   {
-    QCI$DAE <- (QCI$diffAI & (abs(QCI$meanAI_1 - QCI$meanAI_2) >= minDifference))
+    QCI$DAE <- (QCI$diffAI & (abs(QCI$meanAI - pt) >= minDifference))
   }
 
   if (!fullOUT){
