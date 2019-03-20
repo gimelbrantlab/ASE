@@ -67,15 +67,13 @@ rep12_CIs <- PerformDiffAIAnalysisForConditionNPoint(df_sample,
                                                           vectReps = 1:2,
                                                           condName="Condition", 
                                                           pt = 0.5,
-                                                          thr = 40,
-                                                     minDifference = 0.1)
+                                                          thr = 40)
 rep34_CIs <- PerformDiffAIAnalysisForConditionNPoint(df_sample, 
                                                      vectReps = 3:4,
                                                      condName="Condition", 
                                                      pt = 0.5,
-                                                     thr = 40,
-                                                     minDifference = 0.1)
-CI_method_res <- merge(rep12_CIs[,c(1,3,4,9)], rep34_CIs[,c(1,3,4,9)], by.x="ID", by.y="ID")
+                                                     thr = 40)
+CI_method_res <- merge(rep12_CIs[,c(1,3,4,8)], rep34_CIs[,c(1,3,4,8)], by.x="ID", by.y="ID")
 colnames(CI_method_res) <- c("ensembl_gene_id", "meanCov_12", "meanAI_12", "rep12_diffAI", "meanCov_34", "meanAI_34","rep34_diffAI")
 # merge tables
 finalTable_plus <- merge(finalTable, df_sample_binomial_pvals[,c(1,16:33)], by.x = "ensembl_gene_id", by.y = "ensembl_gene_id")
