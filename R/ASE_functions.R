@@ -104,7 +104,7 @@ ThresholdingCounts <- function(df, reps=NA, thr=NA, thrUP=NA, thrType="each"){
 
   # Taking replicates:
   if(anyNA(reps)){
-    reps <- 1:((ncol(df)-1)/2)
+    reps <- 1:(ncol(df)%/%2)
     ddf  <- df
   } else {
     cs  <- sort(c(sapply(reps, function(x){c(x*2, x*2+1)}))) # columns numbers
@@ -173,7 +173,7 @@ CountsToAI <- function(df, reps=NA, meth="meanOfProportions", thr=NA, thrUP=NA, 
       all <- rowSums(ddf[, 2:ncol(ddf)])
       p   <- ref/all
     } else if(meth == "meanOfProportions"){
-      aitab <- sapply(1:length(reps), function(i){
+      aitab <- sapply(1:(ncol(ddf)%/%2), function(i){
         ddf[, i*2]/(ddf[, i*2]+ddf[, i*2+1])
       })
       p <- rowMeans(aitab)
