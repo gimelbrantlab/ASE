@@ -33,7 +33,7 @@ i=${SLURM_ARRAY_TASK_ID}
 inputsam=`head -$i $1 | tail -1`
 samsize=`samtools view -c $inputsam`
 
-MLNS=`for (( j=$(($samsize % 10)); j>=1; j-- )); do echo $(( $j * 10 )); done`
+MLNS=`for (( j=$(($samsize / 10000000)); j>=1; j-- )); do echo $(( $j * 10 )); done`
 
 echo "[0] Will create ${MLNS[*]} -mlns files form $inputsam ($samsize reads)."
 
