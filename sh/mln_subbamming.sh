@@ -21,7 +21,7 @@
 
 module load gcc python R/3.4.1 samtools/1.3.1 star
 
-DIR=$1
+DIR=$2
 mkdir -p $DIR
 
 i=${SLURM_ARRAY_TASK_ID}
@@ -30,7 +30,7 @@ i=${SLURM_ARRAY_TASK_ID}
 ## 0. From i-th sam from list of files create all possible mln files
 ##
 
-inputsam=`head -$i $2 | tail -1`
+inputsam=`head -$i $1 | tail -1`
 samsize=`samtools view -c $inputsam`
 
 MLNS=`for (( j=$(($samsize % 10)); j>=1; j-- )); do echo $(( $j * 10 )); done`
