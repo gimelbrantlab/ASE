@@ -16,7 +16,7 @@
 # 2. /dir/for/outputs/ is any directory, where all outputs will be placed 
 #
 # EXAMPLE [for 18 NEB, SMARTseq10ng and SMARTseq100pg data]:
-# sbatch --array=1-18 /home/am717/scripts/mln_subbamming.sh /home/am717/sams.txt /n/scratch2/am717/kidney/data/base10_mln_bams/
+# sbatch --array=1-18 /home/am717/scripts/mln_subbamming.sh /home/am717/sams.txt /n/scratch2/am717/kidney/data/base10_mln_bams
 #
 
 module load gcc python R/3.4.1 samtools/1.3.1 star
@@ -35,7 +35,7 @@ samsize=`samtools view -c $inputsam`
 
 MLNS=`for (( j=$(($samsize / 10000000)); j>=1; j-- )); do echo $(( $j * 10 )); done`
 
-echo "[0] Will create ${MLNS[*]} -mlns files form $inputsam ($samsize reads)."
+echo "[0] Will create ${MLNS[*]} -mlns files from $inputsam ($samsize reads)."
 
 
 for mln in $MLNS; do
@@ -50,7 +50,7 @@ for mln in $MLNS; do
     ###
 
     rseed=$(( $RANDOM % 1000 ))
-    p=0`bc <<< "scale = 11; ($mln*1000000/${fileNSize[1]})"`
+    p=0`bc <<< "scale = 11; ($mln*1000000/$samsize)"`
     s=$( echo $rseed + $p | bc )
 
     samname=$( basename $inputsam )
@@ -58,10 +58,14 @@ for mln in $MLNS; do
     ALDIR=$DIR/alignments
     mkdir $ALDIR
     
-    samtools view -s $s -b -o $ALDIR/$base'.bam' $inputsam 
+    CMD11="samtools view -s $s -b -o $ALDIR/${base}.bam $inputsam"
+    echo "CMD:    " $CMD11
+    $CMD11 
 
     bam=$ALDIR/$base'.sorted.bam'
-    samtools sort -O bam -o $bam -@ 4 $ALDIR/$base'.bam'
+    CMD12="samtools sort -O bam -o $bam -@ 4 $ALDIR/${base}.bam"
+    echo "CMD:    " $CMD12
+    $CMD12
 
     echo "[1] MLN $mln No $trial : $bam created."
 
@@ -76,12 +80,11 @@ for mln in $MLNS; do
     mkdir -p $STDIR
     stat=$STDIR/$base".stat_0.txt"
 
-    python /home/am717/scripts/allelecounter.py --vcf $VCF \
-      --sample F1 --bam $bam \
-      --ref $ref129S1 --min_cov 0 --min_baseq 2 --min_mapq 10 \
-      --o $stat
+    CMD2="python /home/am717/scripts/allelecounter.py --vcf $VCF --sample F1 --bam $bam --ref $ref129S1 --min_cov 0 --min_baseq 2 --min_mapq 10 --o $stat"
+    echo "CMD:    " $CMD2 
+    $CMD2
     
-    STATS+=${stat##*/},
+    STATS+=${base}
     Nstats=$(( Nstats + 1 ))
 
     echo "[2.$Nstats] Allelecount $stat created."
@@ -97,10 +100,14 @@ for mln in $MLNS; do
   CMD_toSNP="Rscript --vanilla /home/am717/scripts/counts_to_SNPs_extended2.R -p $DIR/stat_allelecouner/ -s GRCm38 -e /n/scratch2/sv111/ASE/ -m /n/scratch2/am717/references/F1_pseudo/snp_F1_info_exons.txt"
   CMD_toGenes="Rscript /home/am717/scripts/SNPs_to_genes_extended2.2.R -p $DIR/stat_allelecouner/ -k $Nstats"
 
-  $CMD_toSNP -r MLN${MLNS[$i]}_$base -n $STATS
-  $CMD_toGenes -n MLN${MLNS[$i]}_$base
+  CMD31="$CMD_toSNP -r MLN$mln"_"$base -n $STATS"
+  CMD32="$CMD_toGenes -n MLN$mln"_"$base"
+  echo "CMD:    " $CMD31
+  echo "CMD:    " $CMD32
+  $CMD31
+  $CMD32
 
-  echo "[3] DataFrame MLN${MLNS[$i]}_$base at $DIR/stat_allelecouner/ created from $Nstats : ${STATS[*]}."
+  echo "[3] DataFrame MLN$mln"_"$base at $DIR/stat_allelecouner/ created from $Nstats : ${STATS[*]}."
 
 
 done
