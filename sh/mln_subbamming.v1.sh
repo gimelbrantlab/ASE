@@ -114,14 +114,14 @@ for mln in $MLNS; do
   CMD_toSNP="Rscript --vanilla /home/am717/scripts/counts_to_SNPs_extended2.R -p $DIR/stat_allelecouner/ -s GRCm38 -e /n/scratch2/sv111/ASE/ -m /n/scratch2/am717/references/F1_pseudo/snp_F1_info_exons.txt"
   CMD_toGenes="Rscript /home/am717/scripts/SNPs_to_genes_extended2.2.R -p $DIR/stat_allelecouner/ -k $Nstats"
 
-  CMD31="$CMD_toSNP -r MLN$mln"_"$base -n ${STATS%?}"
-  CMD32="$CMD_toGenes -n MLN$mln"_"$base"
+  CMD31="$CMD_toSNP -r MLN$mln"_"${samname%.*} -n ${STATS%?}"
+  CMD32="$CMD_toGenes -n MLN$mln"_"${samname%.*}
   echo "CMD:    " $CMD31
   echo "CMD:    " $CMD32
   $CMD31
   $CMD32
 
-  echo "[3] DataFrame MLN$mln"_"$base at $DIR/stat_allelecouner/ created from $Nstats : ${STATS%?}."
+  echo "[3] DataFrame MLN$mln"_"${samname%.*} at $DIR/stat_allelecouner/ created from $Nstats : ${STATS%?}."
 
 
 done
