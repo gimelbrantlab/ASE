@@ -1,0 +1,257 @@
+#
+# PERFORM DIFF AI ANALYSIS ON 2 CONDITIONS or CONDITION AND POINT
+# _______________________________________________________________________________________
+
+
+# _______________________________________________________________________________________
+
+options(stringsAsFactors = FALSE)
+# _______________________________________________________________________________________
+
+# wi -- weight of betabin(alphai); wi>0; w1+w2=1
+# alphai -- a=b coefficient in beta
+# c -- coverage
+# N -- number of observations (n)
+# K -- (=2) number of classes (k)
+
+LogFraction <- function(a_up, a_down, j){
+  #' Input: 3 numbers (double, double, int)
+  #'
+  #' @param a_up A table with ref & alt counts per gene/SNP for each replicate plus the first column with gene/SNP names
+  #' @param a_down A vector (2) of replicate numbers that should be considered
+  #' @param j
+  #' @return log((j + a_up) / (j + a_down))
+  #' @examples
+  #'
+  return(log1p((a_up -1)/(j+1)) - log1p((a_down -1)/(j+1)))
+}
+
+MixBetaBinomialFitStep <- function(initials_old, coverage, observations){
+  #' Input: 3 numbers (double, double, int)
+  #'
+  #' @param initials_old Initials for EM step: initials = c(w1, alpha1, alpha2), weight of first component and alphas for both beta-binomial distributions in a mixture
+  #' @param coverage A number, that reflects higher boundary of the coerage bin
+  #' @param observations A vector of maternal counts in the bin
+  #' @return Re-fitted initials for next EM step.
+  #' @examples
+  #'
+  w <- c(initials_old[1], 1-initials_old[1])
+  alpha <- initials_old[2:3]
+
+  # EM step 1:
+  gamma_n_k <- sapply(1:2, function(k){
+    a_k <- alpha[k]
+    a_notk <- alpha[2-(k+1)%%2]
+    w_k <- w[k]
+    w_notk <- w[2-(k+1)%%2]
+
+    gamma_k <- sapply(observations, function(xn){
+      if(xn == 0){
+        logFractionsProd <- sum(sapply(0:(coverage-xn-1), function(j){LogFraction(a_notk, a_k, j)})) +
+          sum(sapply(0:(coverage-1), function(j){LogFraction(2*a_k, 2*a_notk, j)}))
+      } else if(xn == coverage) {
+        logFractionsProd <- sum(sapply(0:(xn-1), function(j){LogFraction(a_notk, a_k, j)})) +
+          sum(sapply(0:(coverage-1), function(j){LogFraction(2*a_k, 2*a_notk, j)}))
+      } else {
+        logFractionsProd <- sum(sapply(0:(xn-1), function(j){LogFraction(a_notk, a_k, j)})) +
+          sum(sapply(0:(coverage-xn-1), function(j){LogFraction(a_notk, a_k, j)})) +
+          sum(sapply(0:(coverage-1), function(j){LogFraction(2*a_k, 2*a_notk, j)}))
+      }
+      result <- 1 / (1 + w_notk/w_k * exp(logFractionsProd))
+      ########################### 1 + eps != 1 (!), ну и чёрт с ним.
+      return(result)
+    })
+    return(gamma_k)
+  })
+
+  # EM step 2:
+  sum_gamma_k <- colSums(gamma_n_k)
+
+  w_new <- sum_gamma_k / length(observations)
+  #mean_new <- sapply(1:2, function(k){
+  #  sum(gamma_n_k[, k] * observations) / sum_gamma_k[k]
+  #})
+  mean_new <- c(0.5*coverage, 0.5*coverage)
+  var_new <- sapply(1:2, function(k){
+    sum(gamma_n_k[, k] * (observations - mean_new[k])**2) / sum_gamma_k[k]
+  })
+  alpha_new <- sapply(1:2, function(k){
+    (coverage**2 - 4 * var_new[k]) / (8 * var_new[k] - 2 * coverage)
+  })
+
+  initials_new <- c(w_new[1], alpha_new)
+  return(as.numeric(initials_new))
+}
+
+MixBetaBinomialFit <- function(initials, coverage, observations){
+  #' Input: 3 numbers (double, double, int)
+  #'
+  #' @param initials Initials for EM algm: initials = c(w1, alpha1, alpha2), weight of first component and alphas for both beta-binomial distributions in a mixture
+  #' @param coverage A number, that reflects higher boundary of the coerage bin
+  #' @param observations A vector of maternal counts in the bin
+  #' @return Weight of first component and alphas for both beta-binomial distributions in a mixture, to which algm coincided, plus number of steps.
+  #' @examples
+  #'
+
+  initials_old <- initials
+  initials_new <- MixBetaBinomialFitStep(initials_old, coverage, observations)
+  n_steps <- 1
+  while(all(abs(initials_new - initials_old) > 0.001)){
+    initials_old <- initials_new
+    initials_new <- MixBetaBinomialFitStep(initials_old, coverage, observations)
+    n_steps = n_steps + 1
+  }
+  return(c(initials_new, n_steps))
+}
+
+
+# ---------------------------------------------------------------------------------------
+#                 FUNCTIONS: COMPUTE CORR CONSTANT
+# ---------------------------------------------------------------------------------------
+
+ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40,
+                                        EPS=1.3, thr=NA, thrUP=NA, thrType="each",
+                                        fullOUT=F){
+  #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for each condition
+  #'
+  #' @param inDF A table with ref & alt counts per gene/SNP for each replicate plus the first column with gene/SNP names
+  #' @param reps A vector (2) of replicate numbers that should be considered
+  #' @param binNObs Threshold on number of observations per bin
+  #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
+  #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
+  #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
+  #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
+  #' @param minDifference if specified, one additional column DAE is added to the output (T/F depending if the gene changed AI expression more than minDifference in addition to having non-overlapping CIs)
+  #' @param fullOUT Set true if you want full output with all computationally-internal dfs.
+  #' @return A table of gene names, AIs + CIs for each condition, classification into genes demonstrating differential AI and those that don't
+  #' @examples
+  #'
+
+  ##-------------------------------------------------------------------------------------------------------------------------------------
+  ## 1. Compute beta-binomial parameters for merged AI distribution per each coverage bin:
+  ##-------------------------------------------------------------------------------------------------------------------------------------
+  ##     1.1. Table with counts and ai:
+  ##
+
+  meancov =  MeanCoverage(inDF, reps=reps, thr=thr, thrUP=thrUP, thrType=thrType)$meanCOV
+  df_unit_info = data.frame(ID = inDF[, 1],
+                            AI = CountsToAI(inDF, reps=reps, thr=thr, thrUP=thrUP, thrType=thrType)$AI,
+                            AI_merged = CountsToAI(inDF, reps=reps, meth="mergedToProportion", thr=thr, thrUP=thrUP, thrType=thrType)$AI,
+                            AI_1 = CountsToAI(inDF, reps=reps[1], thr=thr, thrUP=thrUP, thrType=thrType)$AI,
+                            AI_2 = CountsToAI(inDF, reps=reps[2], thr=thr, thrUP=thrUP, thrType=thrType)$AI,
+                            mCOV = meancov,
+                            COV = meancov*2,
+                            binCOV = ceiling(EPS**ceiling(log(meancov, base=EPS))))
+  df_covbinsnum = data.frame(binCOV = sort(unique(df_unit_info$binCOV)),
+                             binNUM = sapply(sort(unique(df_unit_info$binCOV)), function(x){
+                               sum(!is.na(df_unit_info$binCOV) & df_unit_info$binCOV == x)
+                             })
+                            )
+  df_unit_info = na.omit(df_unit_info)
+  df_unit_info$binNUM = sapply(df_unit_info$binCOV, function(x){
+    df_covbinsnum[df_covbinsnum$binCOV==x, ]$binNUM
+  })
+
+  ##     1.2. Calculate parameters:
+  ##
+
+  initials = c(0.5, c(10, 1/50))
+
+  covbinsGthr = df_covbinsnum$binCOV[df_covbinsnum$binNUM > binNObs]
+
+  print(paste(length(covbinsGthr), "COVERAGE BINS"))
+
+  df_betabin_params = do.call(rbind, lapply(1:length(covbinsGthr), function(i){
+    coverage = covbinsGthr[i]
+    df = df_unit_info[df_unit_info$binCOV == coverage, ]
+    observations = round(df$AI * coverage)
+
+    fitres = MixBetaBinomialFit(initials, coverage, observations)
+    dfres = data.frame(No = i,
+                       coverage = coverage,
+                       x_weight_predicted = fitres[1],
+                       x_alpha_predicted = fitres[2],
+                       y_alpha_predicted = fitres[3],
+                       algm_steps = fitres[4])
+    print(paste(i, "|", "COV:", covbinsGthr[i], ",", "#STEPS:", dfres$algm_steps, sep="    "))
+    return(dfres)
+  }))
+
+  ##-------------------------------------------------------------------------------------------------------------------------------------
+  ## 2. Simulate AI distribution based on beta patameters for each bin:
+  ##-------------------------------------------------------------------------------------------------------------------------------------
+  ##     2.1. Generating beta-distributed probabilities for each coverage bin:
+  ##
+
+  lst_ai_betafit = lapply(1:nrow(df_betabin_params), function(i){
+    A = rbeta(2000*df_betabin_params$x_weight_predicted[i],
+              df_betabin_params$x_alpha_predicted[i],
+              df_betabin_params$x_alpha_predicted[i])
+    B = rbeta(2000*(1 - df_betabin_params$x_weight_predicted[i]),
+              df_betabin_params$y_alpha_predicted[i],
+              df_betabin_params$y_alpha_predicted[i])
+    c(A,B)
+  })
+
+  ##     2.2. Generating pairs of betabin-distributed AIs for each coverage bin and prob-s:
+  ##
+
+  lst_2ai_betabinfit = lapply(1:length(covbinsGthr), function(i){
+    sapply(lst_ai_betafit[[i]], function(p){
+      rbinom(2, covbinsGthr[i], p) / covbinsGthr[i]
+    })
+  })
+
+  ##     2.3. Compute differences for fitted AI for each coverage bin:
+  ##
+
+  lst_dai_betabinfit = lapply(lst_2ai_betabinfit, function(df){
+    abs(df[1, ] - df[2, ])
+  })
+
+  ##      2.4 Compute real AI differences for each coverage bin:
+  ##
+
+  lst_dai_observed = lapply(covbinsGthr, function(covbin){
+    df = df_unit_info[df_unit_info$binCOV == covbin, ]
+    abs(df$AI_1 - df$AI_2)
+  })
+
+
+  ##-------------------------------------------------------------------------------------------------------------------------------------
+  ## 3. Compute Q% quantiles for both sets and a ratio (CC estimates per bin and Q):
+  ##-------------------------------------------------------------------------------------------------------------------------------------
+
+  QQ = c(0.2,0.35,0.5,0.65,0.8,0.9,0.95)
+
+  df_observed_expected_quantile_proportions = do.call(rbind, lapply(1:length(covbinsGthr), function(c){
+    do.call(rbind, lapply(1:length(QQ), function(q){
+      df = data.frame(Q = QQ[q],
+                      binCOV = covbinsGthr[c],
+                      QV_obs = quantile(lst_dai_observed[[c]], QQ[q], na.rm = T),
+                      QV_fit = quantile(lst_dai_betabinfit[[c]], QQ[q], na.rm = T))
+      df$CC = df$QV_obs / df$QV_fit
+      df
+    }))
+  }))
+
+  ##-------------------------------------------------------------------------------------------------------------------------------------
+  ## 4. Fit the ratio observed/predicted:
+  ##-------------------------------------------------------------------------------------------------------------------------------------
+
+  fittedCC = lm(data = df_observed_expected_quantile_proportions,
+                CC ~ 1,
+                na.action=na.exclude)$coefficients[1]
+
+
+  ##-------------------------------------------------------------------------------------------------------------------------------------
+  return(list(
+    infoTable = df_unit_info,
+    betaBinTable = df_betabin_params,
+    dAIBetaBinFit = lst_dai_betabinfit,
+    dAIObserved = lst_dai_observed,
+    QObsExpPropsTable = df_observed_expected_quantile_proportions,
+    fittedCC = fittedCC
+  ))
+
+}
