@@ -115,7 +115,7 @@ for mln in $MLNS; do
   CMD_toGenes="Rscript /home/am717/scripts/SNPs_to_genes_extended2.2.R -p $DIR/stat_allelecouner/ -k $Nstats"
 
   CMD31="$CMD_toSNP -r MLN$mln"_"${samname%.*} -n ${STATS%?}"
-  CMD32="$CMD_toGenes -n MLN$mln"_"${samname%.*}
+  CMD32="$CMD_toGenes -n MLN$mln"_"${samname%.*}"
   echo "CMD:    " $CMD31
   echo "CMD:    " $CMD32
   $CMD31
