@@ -26,6 +26,7 @@ PerformDAIQuantilesAnalysis <- function(inDF, vectReps, condName="Condition",
   #' @param vectReps A vector (>=2) of replicate numbers that should be considered as tech reps
   #' @param condName An optional parameter; one-word name for condition
   #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
+  #' @param EPS An optional parameter to set a log window for coverage binning
   #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
   #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
   #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
@@ -69,6 +70,7 @@ PerformCIAIAnalysis <- function(inDF, vectReps, condName="Condition",
   #' @param vectReps A vector (>=2) of replicate numbers that should be considered as tech reps
   #' @param condName An optional parameter; one-word name for condition
   #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
+  #' @param EPS An optional parameter to set a log window for coverage binning
   #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
   #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
   #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
@@ -133,6 +135,7 @@ PerformDiffAIAnalysisFor2Conditions <- function(inDF, vect1CondReps, vect2CondRe
   #' @param cond1Name An optional parameter; one-word name for condition 1
   #' @param cond2Name An optional parameter; one-word name for condition 2
   #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
+  #' @param EPS An optional parameter to set a log window for coverage binning
   #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
   #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
   #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
@@ -195,9 +198,11 @@ PerformDiffAIAnalysisForConditionNPoint <- function(inDF, vectReps, condName="Co
   #' @param vectReps A vector (>=2) of replicate numbers that should be considered as tech reps
   #' @param condName An optional parameter; one-word name for condition
   #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
+  #' @param EPS An optional parameter to set a log window for coverage binning
   #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
   #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
   #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
+  #' @param minDifference if specified, one additional column DAE is added to the output (T/F depending if the gene changed AI expression more than minDifference in addition to having non-overlapping CIs)
   #' @param fullOUT Set true if you want full output with all computationally-internal dfs
   #' @return A table of gene names, AIs + CIs, classification into genes demonstrating differential from point estimate AI and those that don't
   #' @examples
