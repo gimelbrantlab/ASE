@@ -347,7 +347,6 @@ CreateObservedQuantilesDF <- function(df, P, ep, logbase=T, coverageLimit, group
   #' @return A table with quantiles and numbers of bins for technical replicates for a given table
   #' @examples
   #'
-  ## P=0 is SD, like sd()
   if(logbase){
     covIntervalsStarts <- unique(floor(ep**(0:log(coverageLimit, base=ep))))
   } else {
@@ -363,12 +362,7 @@ CreateObservedQuantilesDF <- function(df, P, ep, logbase=T, coverageLimit, group
                        deltaAI = sapply(1:lenCIS, function(i){
                          dai <- df[df$MeanCov >= covIntervals[i] &
                                    df$MeanCov <  covIntervals[i+1], ]$deltaAI
-                         if(p == 0){
-                           p = 'sd'
-                           sd(dai)
-                         } else{
-                           quantile(dai, p, na.rm = T)
-                         }
+                         quantile(dai, p, na.rm = T)
                        }),
                        binNObservations = sapply(1:lenCIS, function(i){
                          nrow(df[df$MeanCov >= covIntervals[i] &

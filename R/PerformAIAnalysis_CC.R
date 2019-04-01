@@ -111,19 +111,16 @@ MixBetaBinomialFit <- function(initials, coverage, observations){
 # ---------------------------------------------------------------------------------------
 
 ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40,
-                                        EPS=1.3, thr=NA, thrUP=NA, thrType="each",
-                                        fullOUT=F){
+                                        EPS=1.3, thr=NA, thrUP=NA, thrType="each"){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for each condition
   #'
   #' @param inDF A table with ref & alt counts per gene/SNP for each replicate plus the first column with gene/SNP names
-  #' @param reps A vector (2) of replicate numbers that should be considered
+  #' @param reps A vector of 2 of replicate numbers that should be considered
   #' @param binNObs Threshold on number of observations per bin
-  #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
+  #' @param EPS An optional parameter to set a log window for coverage binning
   #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
   #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
   #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
-  #' @param minDifference if specified, one additional column DAE is added to the output (T/F depending if the gene changed AI expression more than minDifference in addition to having non-overlapping CIs)
-  #' @param fullOUT Set true if you want full output with all computationally-internal dfs.
   #' @return A table of gene names, AIs + CIs for each condition, classification into genes demonstrating differential AI and those that don't
   #' @examples
   #'
@@ -158,7 +155,8 @@ ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40,
 
   initials = c(0.5, c(10, 1/50))
 
-  covbinsGthr = df_covbinsnum$binCOV[df_covbinsnum$binNUM > binNObs]
+  covbinsGthr = df_covbinsnum$binCOV[df_covbinsnum$binNUM > binNObs & 
+                                       df_covbinsnum$binCOV >= max(50, thr)]
 
   print(paste(length(covbinsGthr), "COVERAGE BINS"))
 
@@ -258,19 +256,22 @@ ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40,
 }
 
 
-PerformBinTestAIAnalysisForConditionNPoint <- function(inDF, vectReps, pt = 0.5,
-                                                       Q=0.95, EPS=1.3, thr=NA, thrUP=NA, thrType="each",
+PerformBinTestAIAnalysisForConditionNPoint <- function(inDF, vectReps, pt = 0.5, binNObs=40,
+                                                       Q=0.95, EPS=1.3, 
+                                                       thr=NA, thrUP=NA, thrType="each",
                                                        minDifference=NA){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for condition + point estimate to compare
   #'
   #' @param inDF A table with ref & alt counts per gene/SNP for each replicate plus the first column with gene/SNP names
   #' @param vectReps A vector (>=2) of replicate numbers that should be considered as tech reps
-  #' @param condName An optional parameter; one-word name for condition
+  #' @param pt A point to compare with
+  #' @param binNObs Threshold on number of observations per bin
   #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
+  #' @param EPS An optional parameter to set a log window for coverage binning
   #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
   #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
   #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
-  #' @param fullOUT Set true if you want full output with all computationally-internal dfs
+  #' @param minDifference if specified, one additional column DAE is added to the output (T/F depending if the gene changed AI expression more than minDifference in addition to having non-overlapping CIs)
   #' @return A table of gene names, AIs + CIs, classification into genes demonstrating differential from point estimate AI and those that don't
   #' @examples
   #'
@@ -279,7 +280,7 @@ PerformBinTestAIAnalysisForConditionNPoint <- function(inDF, vectReps, pt = 0.5,
 
   fitDATA <- lapply(1:ncol(repCombs), function(j){
     x = repCombs[, j]
-    ComputeCorrConstantFor2Reps(inDF=SM100pg_20mln, reps=x,
+    ComputeCorrConstantFor2Reps(inDF=SM100pg_20mln, reps=x, binNObs=binNObs,
                                 EPS=EPS, thr=thr, thrUP=thrUP, thrType=thrType)
   })
 
@@ -325,6 +326,8 @@ PerformBinTestAIAnalysisForConditionNPoint <- function(inDF, vectReps, pt = 0.5,
     DF$BT_CC_thrDiff <- (DF$BT_CC & (abs(DF$AI - pt) >= minDifference))
   }
 
-  return(list(corrConst = CC, output = DF))
+  return(list(CorrConst = CC,
+              FitDATA = fitDATA,
+              Output = DF))
 }
 
