@@ -222,13 +222,13 @@ MergeSumCounts <- function(df, reps=NA, thr=NA, thrUP=NA, thrType="each"){
   ddf <- ThresholdingCounts(df, reps, thr, thrUP, thrType)
 
   if(ncol(ddf) == 3){
-    res_df <- data.frame(df[, 1], ref_reps = ddf[, 2], alt_reps = df[, 3])
+    res_df <- data.frame(ddf[, 1], ref_reps = ddf[, 2], alt_reps = ddf[, 3])
   } else {
-    res_df <- data.frame(df[, 1],
+    res_df <- data.frame(ddf[, 1],
                          ref_reps = rowSums(ddf[, seq(2, ncol(ddf), 2)]),
                          alt_reps = rowSums(ddf[, seq(3, ncol(ddf), 2)]))
   }
-  names(res_df)[1] <- names(df)[1]
+  names(res_df)[1] <- names(ddf)[1]
 
   return(res_df)
 }
