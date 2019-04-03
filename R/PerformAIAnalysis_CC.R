@@ -283,7 +283,7 @@ ComputeCorrConstantsForAllPairsReps <- function(inDF, vectReps, binNObs=40,
 
 
 PerformBinTestAIAnalysisForConditionNPoint_knownCC <- function(inDF, vectReps, vectRepsCombsCC,
-                                                               pt = 0.5, binNObs=40, Q=0.95, EPS=1.3, 
+                                                               pt = 0.5, binNObs=40, Q=0.95,  
                                                                thr=NA, thrUP=NA, thrType="each", minDifference=NA){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for condition + point estimate to compare
   #'
@@ -292,7 +292,6 @@ PerformBinTestAIAnalysisForConditionNPoint_knownCC <- function(inDF, vectReps, v
   #' @param pt A point to compare with
   #' @param binNObs Threshold on number of observations per bin
   #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
-  #' @param EPS An optional parameter to set a log window for coverage binning
   #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
   #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
   #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
@@ -306,7 +305,11 @@ PerformBinTestAIAnalysisForConditionNPoint_knownCC <- function(inDF, vectReps, v
   AI <- CountsToAI(inDF, reps=vectReps, meth="mergedToProportion", thr=thr, thrUP=thrUP, thrType=thrType)$AI
   tmpDF  <- ThresholdingCounts(inDF, reps=vectReps, thr=thr, thrUP=thrUP, thrType=thrType)
   sumCOV <- rowSums(tmpDF[, -1])
-  matCOV <- rowSums(tmpDF[, seq(2,ncol(tmpDF),2)])
+  if(ncol(tmpDF) == 3){
+    matCOV <- tmpDF[, 2]
+  } else {
+    matCOV <- rowSums(tmpDF[, seq(2,ncol(tmpDF),2)])
+  }
   
   DF <- data.frame(ID=inDF[,1], sumCOV=sumCOV, matCOV=matCOV, AI=AI)
   
@@ -315,7 +318,7 @@ PerformBinTestAIAnalysisForConditionNPoint_knownCC <- function(inDF, vectReps, v
   
   # Bin test:
   tmpDFbt <- t(sapply(1:nrow(DF), function(i){
-    if(is.na(matCOV[i]) | is.na(sumCOV[i])) { return(c(NA,NA,NA)) }
+    if(is.na(matCOV[i]) | is.na(sumCOV[i]) | sumCOV[i]==0) { return(c(NA,NA,NA)) }
     BT <- binom.test(matCOV[i], sumCOV[i], alternative="two.sided", conf.level = Qbf, p=pt)
     c(BT$p.value, BT$conf.int[1], BT$conf.int[2])
   }))
@@ -329,7 +332,7 @@ PerformBinTestAIAnalysisForConditionNPoint_knownCC <- function(inDF, vectReps, v
   DF$BT_CIright_CC <- sapply(DF$AI + (DF$BT_CIright - DF$AI) * CC,
                              function(ub){ min(1, ub) })
   
-  DF$BT <- (DF$BT_pval < 0.05)
+  DF$BT <- (DF$BT_pval < 0.05/nrow(na.omit(DF)))
   # Find intersecting intervals > call them FALSE (non-rejected H_0)
   DF$BT_CC <- !(DF$BT_CIleft_CC <= pt & DF$BT_CIright_CC >= pt)
   
@@ -369,7 +372,7 @@ PerformBinTestAIAnalysisForConditionNPoint <- function(inDF, vectReps, pt = 0.5,
   
   RES <- PerformBinTestAIAnalysisForConditionNPoint_knownCC(inDF, vectReps=vectReps, 
                                                             vectRepsCombsCC=vectRepsCombsCC,
-                                                            pt=pt, binNObs=binNObs, Q=Q, EPS=EPS, 
+                                                            pt=pt, binNObs=binNObs, Q=Q, 
                                                             thr=thr, thrUP=thrUP, thrType=thrType, 
                                                             minDifference=minDifference)
   
