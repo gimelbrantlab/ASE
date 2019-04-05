@@ -11,6 +11,7 @@ library("tidyverse")
 library("knitr")
 source("ASE_functions.R")
 source("PerformAIAnalysis.R")
+source("PerformAIAnalysis_CC.R")
 ```
 
 ##5aza data
@@ -54,7 +55,7 @@ $$AI=\frac{maternal\ counts}{maternal\ counts + paternal\ counts}$$
 
 ```{r, message=FALSE, warning=FALSE}
 aiTable <- do.call(cbind, lapply(1:length(designMatrix$techReps), function(x){
-      round(CountsToAI(geneCountTab, reps = unlist(designMatrix$replicateNums[x]),thr=10),3)
+      round(CountsToAI(geneCountTab, reps = unlist(designMatrix$replicateNums[x]),thr=10)$AI,3)
     }))
 aiTable <- data.frame(geneCountTab$ensembl_gene_id, aiTable)
 colnames(aiTable) <- c("ensembl_gene_id", designMatrix$experimentNames)
@@ -108,36 +109,27 @@ Let's compare conditions DMSO (experiment 2) and high 5aza treatment (experiment
 First we get 95% CIs:
 
 ```{r, message=FALSE, warning=FALSE}
-CIs_DMSO <- PerformCIAIAnalysis(geneCountTab, unlist(designMatrix$replicateNums[2]), Q=0.95, EPS=1.3, thr=NA, fullOUT=F)
-CIs_high <- PerformCIAIAnalysis(geneCountTab, unlist(designMatrix$replicateNums[5]), Q=0.95, EPS=1.3, thr=NA, fullOUT=F)
-CIs <- merge(CIs_DMSO[,c("ID", "meanAI", "pm")], CIs_high[,c("ID", "meanAI", "pm")], by="ID")
-colnames(CIs) <- c("ID", "meanAI_DMSO", "pm_DMSO", "meanAI_high", "pm_high")
+CIs_DMSO <- PerformBinTestAIAnalysisForConditionNPoint(geneCountTab, unlist(designMatrix$replicateNums[2]), Q=0.95, EPS=1.3, thr=0)
+CIs_high <- PerformBinTestAIAnalysisForConditionNPoint(geneCountTab, unlist(designMatrix$replicateNums[5]), Q=0.95, EPS=1.3, thr=0)
+CIs <- merge(CIs_DMSO$Output[,c("ID", "AI", "BT_CIleft_CC","BT_CIright_CC")], CIs_high$Output[,c("ID", "AI", "BT_CIleft_CC","BT_CIright_CC")], by="ID")
+colnames(CIs) <- c("ID", "AI_DMSO", "CI_left_DMSO", "CI_right_DMSO", "AI_high", "CI_left_high", "CI_right_high")
 head(CIs)
 ```
 
-Now let's run the differential analysis, using coverage threshold=40 and Bonferroni p-value correction:
+Now let's run the differential analysis, using coverage threshold=40 and Bonferroni p-value correction. We will define a gene as demonstrating differential allelic imbalance between two conditions if this gene has non-intersecting CIs of allelic imbalance estimates in these conditions and if the difference between these allelic imbalance estimates is bigger than some cutoff (set to 0.1 here). The cutoff value is set arbitary depending on the biological question we are asking.
 
 ```{r, message=FALSE, warning=FALSE}
-thr=40
-DiffAI_DMSO_high <- PerformDiffAIAnalysisFor2Conditions(geneCountTab, 
+thr <- 40
+minDifference <- 0.1
+DiffAI_DMSO_high <- PerformBinTestAIAnalysisForTwoConditions_knownCC(geneCountTab, 
                                                           vect1CondReps = unlist(designMatrix$replicateNums[2]), 
                                                           vect2CondReps = unlist(designMatrix$replicateNums[5]), 
+                                                          vect1CondRepsCombsCC=CIs_DMSO$CC,
+                                                          vect2CondRepsCombsCC=CIs_high$CC,
                                                           Q=0.95,
-                                                          thr=thr, 
-                                                        EPS=1.3, 
-                                                        fullOUT=F
+                                                          thr=thr,
+                                                          minDifference = minDifference
                                                         )
-head(DiffAI_DMSO_high[,c("ID","diffAI")])
+table(DiffAI_DMSO_high$BT_CC_thrDiff)
 ```
 
-We will define a gene as demonstrating differential allelic imbalance between two conditions if this gene has non-intersecting CIs of allelic imbalance estimates in these conditions and if the difference between these allelic imbalance estimates is bigger than some cutoff (set to 0.2 here). The cutoff value is set arbitary depending on the biological question we are asking.
-
-```{r, message=FALSE, warning=FALSE}
-minDifference <- 0.2
-GenesAIDiff <- DiffAI_DMSO_high[!is.na(DiffAI_DMSO_high$diffAI), ]
-GenesAIDiff$deltaAI <- abs(GenesAIDiff$meanAI1 - GenesAIDiff$meanAI2)
-GenesAIDiff <- GenesAIDiff[GenesAIDiff$diffAI==T & GenesAIDiff$deltaAI>=minDifference, ]
-GenesAIDiff <- GenesAIDiff[order(GenesAIDiff$deltaAI, decreasing = T),]
-head(GenesAIDiff[, c(1,4,10)])
-print(paste0("Number of genes demonstrating differential allelic imbalance: ", length(GenesAIDiff$ID)))
-```

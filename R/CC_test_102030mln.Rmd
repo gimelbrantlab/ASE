@@ -1,0 +1,197 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(tidyverse)
+library(fitdistrplus)
+library(cowplot)
+
+source("/Users/svetlana/Dropbox (Partners HealthCare)/replicates_ASE/code/ASE/R/ASE_functions.R")
+source("/Users/svetlana/Dropbox (Partners HealthCare)/replicates_ASE/code/ASE/R/PerformAIAnalysis_CC.R")
+```
+
+```{r}
+CreateForplotDF <- function(df_data, reppair, pairconst, libprepname) {
+  df_1out = lapply(reppair, function(i){
+    PerformBinTestAIAnalysisForConditionNPoint_knownCC(df_data, i, pairconst, thr=10)
+  })
+  df_1out
+  
+  df_bt = merge(df_1out[[1]][, c("ID", "BT", "BT_CC")], df_1out[[2]][, c("ID", "BT", "BT_CC")], by="ID")
+  df_aicov = merge(merge(CountsToAI(df_data, reps=reppair[1],thr=10),
+                    CountsToAI(df_data, reps=reppair[2], thr=10),
+                    by="ensembl_gene_id"),
+              merge(MeanCoverage(df_data, reps=reppair[1], thr=10),
+                    MeanCoverage(df_data, reps=reppair[2], thr=10),
+                    by="ensembl_gene_id"),
+              by = "ensembl_gene_id")
+  names(df_aicov)[1] = "ID"
+  
+  df_forbtplot = merge(df_bt, df_aicov, by = "ID")
+  df_forbtplot$libprep = libprepname
+  df_forbtplot
+}
+
+CreateForplotDF_btNbtcc <- function(forbtplots) {
+  df_forplot = do.call(rbind, forbtplots)
+  
+  df_forplot_bt = na.omit(data.frame(df_forplot[, !sapply(names(df_forplot), function(a){grepl("BT_CC.", a, fixed=TRUE)})],
+                                     test = "binomial"))
+  df_forplot_btcc = na.omit(data.frame(df_forplot[, !sapply(names(df_forplot), function(a){grepl("BT.", a, fixed=TRUE)})],
+                                       test = "corrected binomial"))
+  names(df_forplot_btcc) = names(df_forplot_bt)
+  
+  df_forplot_bt$BT.xyeq = (df_forplot_bt$BT.x & df_forplot_bt$BT.y | !df_forplot_bt$BT.x & !df_forplot_bt$BT.y)
+  df_forplot_btcc$BT.xyeq = (df_forplot_btcc$BT.x & df_forplot_btcc$BT.y | !df_forplot_btcc$BT.x & !df_forplot_btcc$BT.y)
+  
+  list(BTBF = df_forplot_bt, BTBFCC = df_forplot_btcc)
+}
+
+CreateForplotDF_btNbtcc_colorescapers <- function(DF_forplot){
+  res = lapply(DF_forplot, function(df_forplot){
+    percent_of_diff_color = do.call(rbind, lapply(unique(df_forplot$libprep), function(l){
+    df = df_forplot[df_forplot$libprep==l,]
+    data.frame(percentage = round(c(sum(df$BT.x & !df$BT.y)/sum(df$BT.x),
+                                  sum(!df$BT.x & df$BT.y)/sum(!df$BT.x),
+                                  sum(df$BT.y & !df$BT.x)/sum(df$BT.y),
+                                  sum(!df$BT.y & df$BT.x)/sum(!df$BT.y)
+                                  )*100, 1),
+               numberOfGenes = c(sum(df$BT.x), sum(!df$BT.x), sum(df$BT.y), sum(!df$BT.y)),
+               who = c("y_color_not_like_x_division", "y_color_not_like_x_division", "x_color_not_like_y_division", "x_color_not_like_y_division"),
+               BT.x = c(T, F, F, T),
+               BT.y = c(F, T, T, F),
+               libprep = l
+    )
+    }))
+    percent_of_diff_color$P_color_escapers = paste(percent_of_diff_color$percentage, "%")
+    percent_of_diff_color
+  })
+  names(res) = names(DF_forplot)
+  res
+
+}
+```
+
+
+
+# 10 mln data:
+
+```{r}
+data_10mln = list(GetGatkPipelineTabs(paste0("/Users/svetlana/Dropbox (Partners HealthCare)/replicates_ASE/data/kidney/submln/", "MLN10_SG", 1:6, "_N955_", "NEB",
+                                             "_R1_merged_v2.mln10_trial5_processed_gene_extended2.txt"), 
+                                      c(5,5,5,5,5,5), multiple = T),
+                  GetGatkPipelineTabs(paste0("/Users/svetlana/Dropbox (Partners HealthCare)/replicates_ASE/data/kidney/submln/", "MLN10_SG", 7:12, "_N955_", "SMARTseq_10_ng",
+                                             "_R1_merged_v2.mln10_trial5_processed_gene_extended2.txt"), 
+                                      c(5,5,5,5,5,5), multiple = T),
+                  GetGatkPipelineTabs(paste0("/Users/svetlana/Dropbox (Partners HealthCare)/replicates_ASE/data/kidney/submln/", "MLN10_SG", 1:6, "_N955_", "SMARTseq_100_pg",
+                                             "_R1_merged_v2.mln10_trial5_processed_gene_extended2.txt"), 
+                                      c(5,5,5,5,5,5), multiple = T))
+```
+
+
+
+```{r}
+sampleMreps10 = sample(0:5, 4, replace=F)*5 + sample(1:5, 4, replace=T)
+sampleMreps10
+(sampleMreps10-1)%/%5+1 # in reality
+```
+
+```{r}
+pseudopairs_10mln = lapply(1:3, function(i){
+  df = merge(MergeSumCounts(data_10mln[[i]], reps=sampleMreps10[1:2]),
+             MergeSumCounts(data_10mln[[i]], reps=sampleMreps10[3:4]),
+             by = "ensembl_gene_id")
+  names(df)[2:5] = c("rep1_ref", "rep1_alt", "rep2_ref", "rep2_alt")
+  df
+})
+pseudopairs_10mln
+```
+
+```{r}
+out_10mln = lapply(pseudopairs_10mln, function(df){
+  PerformBinTestAIAnalysisForConditionNPoint(df, 1:2, EPS=1.5, thr=10, thrUP=2000)
+})
+out_10mln
+```
+
+
+```{r}
+list_of_10mln_datas = out_10mln
+list_of_10mln_consts = list(out_10mln[[1]]$CC, out_10mln[[2]]$CC, out_10mln[[3]]$CC)
+list_of_libprepnames = list("NEB", "SMART10ng", "SMART100pg")
+reppair_1020mln = 1:2
+
+data.frame(CC_10mln = unlist(list_of_10mln_consts),
+           LibPrep = unlist(list_of_libprepnames)) 
+```
+
+```{r}
+forbtplots_10mln = lapply(1:3, function(i){
+  CreateForplotDF(pseudopairs_10mln[[i]], 1:2, list_of_10mln_consts[[i]], list_of_libprepnames[[i]])
+})
+
+DF_forplot_10mln = CreateForplotDF_btNbtcc(forbtplots_10mln)
+
+DF_forplot_10mln
+```
+
+
+
+
+
+
+```{r}
+percent_of_diff_color_10mln_df = CreateForplotDF_btNbtcc_colorescapers(DF_forplot_10mln)
+percent_of_diff_color_10mln_df
+```
+
+
+```{r, fig.height=10, fig.width=15}
+plt_bt = ggplot(DF_forplot_10mln$BTBF, aes(meanCOV.y, AI.y)) +
+  geom_point(aes(color=BT.xyeq), size=0.1) +
+  scale_color_manual(values=c("red", "black")) +
+  facet_grid(libprep ~ BT.x) +
+  theme_bw() +
+  geom_text(x=1, y=2, label="Scatter plot") +
+  ggtitle("Binomial [% = color escapers]") +
+  labs(x = "Coverage, rep 2", y = "AI, rep 2", color = "Сoherence on 2 reps") +
+  scale_x_continuous(trans='log2') +
+  theme(legend.position="bottom")
+plt_btcc = ggplot(DF_forplot_10mln$BTBFCC, aes(meanCOV.y, AI.y)) +
+  geom_point(aes(color=BT.xyeq), size=0.1) +
+  scale_color_manual(values=c("red", "black")) +
+  facet_grid(libprep ~ BT.x) +
+  theme_bw() +
+  ggtitle("Corrected Binomial [% = color escapers]") +
+  labs(x = "Coverage, rep 2", y = "AI, rep 2", color = "Сoherence on 2 reps") +
+  scale_x_continuous(trans='log2') +
+  theme(legend.position="bottom")
+
+plt_bt_p = plt_bt + 
+  geom_text(
+    data = percent_of_diff_color_10mln_df$BTBF[percent_of_diff_color_10mln_df$BTBF$who == "y_color_not_like_x_division",],
+    mapping = aes(x = 16000, y = 0.1, label = P_color_escapers)
+  ) +
+  geom_text(
+    data = percent_of_diff_color_10mln_df$BTBF[percent_of_diff_color_10mln_df$BTBF$who == "y_color_not_like_x_division",],
+    mapping = aes(x = 16000, y = 0.9, label = paste("#G =", numberOfGenes))
+  )
+plt_btcc_p = plt_btcc + 
+  geom_text(
+    data = percent_of_diff_color_10mln_df$BTBFCC[percent_of_diff_color_10mln_df$BTBFCC$who == "y_color_not_like_x_division",],
+    mapping = aes(x = 16000, y = 0.1, label = P_color_escapers)
+  ) +
+  geom_text(
+    data = percent_of_diff_color_10mln_df$BTBFCC[percent_of_diff_color_10mln_df$BTBFCC$who == "y_color_not_like_x_division",],
+    mapping = aes(x = 16000, y = 0.9, label = paste("#G =", numberOfGenes))
+  )
+
+plot_grid(plt_bt_p, plt_btcc_p, labels = "auto", rows=1)
+```
+
+
+
+
