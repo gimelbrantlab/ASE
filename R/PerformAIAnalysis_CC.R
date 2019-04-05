@@ -158,7 +158,9 @@ ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40,
   ##
 
   initials = c(0.5, c(10, 1/50))
-  if (is.na(thr)) thr = 0
+  if (is.na(thr)) {
+    thr = 0
+  }
   
   covbinsGthr = df_covbinsnum$binCOV[df_covbinsnum$binNUM > binNObs & 
                                      df_covbinsnum$binCOV >= max(50, thr*2)]
