@@ -429,7 +429,11 @@ ComputeAICIs <- function(inDF, vectReps, vectRepsCombsCC,
   DF <- data.frame(ID=inDF[,1], sumCOV=sumCOV, matCOV=matCOV, AI=AI)
   
   # Bonferroni correction:
-  Qbf <- 1 - (1-Q)/nrow(na.omit(DF))
+  if (BF) {
+    Qbf <- 1 - (1-Q)/nrow(na.omit(DF))
+  } else {
+    Qbf <- Q
+  }
   
   # Bin test:
   tmpDFbt <- t(sapply(1:nrow(DF), function(i){
@@ -491,30 +495,25 @@ PerformBinTestAIAnalysisForTwoConditions_knownCC <- function(inDF, vect1CondReps
     
   # Find intersecting intervals > call them FALSE (non-rejected H_0)
   Qbft <- 1 - (1-Q)/nrow(na.omit(DF[, c("sumCOV_1", "matCOV_1", "sumCOV_2", "matCOV_2")]))
-  DF_CI_divided_BFon2 <- lapply(1:2, function(i){
+  DF_CI_divided_BFor2 <- lapply(1:2, function(i){
     ComputeAICIs(inDF, vectReps=vectReps[[i]], vectRepsCombsCC=vectRepsCombsCC[[i]], 
                  Q=Qbft, BF=F, 
                  thr=thr, thrUP=thrUP, thrType=thrType)
   })
-  DF$BT_dCIleft_1 <- DF_CI_divided_BFon2[[1]]$BT_CIleft 
-  DF$BT_dCIright_1 <- DF_CI_divided_BFon2[[1]]$BT_CIright 
-  DF$BT_dCIleft_2 <- DF_CI_divided_BFon2[[2]]$BT_CIleft 
-  DF$BT_dCIright_2 <- DF_CI_divided_BFon2[[2]]$BT_CIright
+  DF_BFor2 <- merge(DF_CI_divided_BFor2[[1]][, c("ID", "BT_CIleft", "BT_CIright")], DF_CI_divided_BFor2[[2]][, c("ID", "BT_CIleft", "BT_CIright")], by = "ID")
+  names(DF_BFor2)[-1] <- c("BT_dCIleft_1", "BT_dCIright_1", "BT_dCIleft_2", "BT_dCIright_2")
+  DF_BFor2_CC <- merge(DF_CI_divided_BFor2[[1]][, c("ID", "BT_CIleft_CC", "BT_CIright_CC")], DF_CI_divided_BFor2[[2]][, c("ID", "BT_CIleft_CC", "BT_CIright_CC")], by = "ID")
+  names(DF_BFor2_CC)[-1] <- c("BT_dCIleft_CC_1", "BT_dCIright_CC_1", "BT_dCIleft_CC_2", "BT_dCIright_CC_2")
   
-  DF$BT <- !(DF_CI_divided_BFon2[[1]]$BT_CIleft < DF_CI_divided_BFon2[[2]]$BT_CIleft & 
-               DF_CI_divided_BFon2[[1]]$BT_CIright >= DF_CI_divided_BFon2[[2]]$BT_CIleft |
-             DF_CI_divided_BFon2[[1]]$BT_CIleft >= DF_CI_divided_BFon2[[2]]$BT_CIleft & 
-               DF_CI_divided_BFon2[[1]]$BT_CIleft <= DF_CI_divided_BFon2[[2]]$BT_CIright)
+  print(DF)
   
-  DF$BT_dCIleft_CC_1 <- DF_CI_divided_BFon2[[1]]$BT_CIleft_CC
-  DF$BT_dCIright_CC_1 <- DF_CI_divided_BFon2[[1]]$BT_CIright_CC
-  DF$BT_dCIleft_CC_2 <- DF_CI_divided_BFon2[[2]]$BT_CIleft_CC
-  DF$BT_dCIright_CC_2 <- DF_CI_divided_BFon2[[2]]$BT_CIright_CC
-    
-  DF$BT_CC <- !(DF_CI_divided_BFon2[[1]]$BT_CIleft_CC < DF_CI_divided_BFon2[[2]]$BT_CIleft_CC & 
-                  DF_CI_divided_BFon2[[1]]$BT_CIright_CC >= DF_CI_divided_BFon2[[2]]$BT_CIleft_CC |
-                DF_CI_divided_BFon2[[1]]$BT_CIleft_CC >= DF_CI_divided_BFon2[[2]]$BT_CIleft_CC & 
-                  DF_CI_divided_BFon2[[1]]$BT_CIleft_CC <= DF_CI_divided_BFon2[[2]]$BT_CIright_CC)
+  DF <- merge(DF, DF_BFor2, by = "ID")
+  DF$BT <- (DF$BT_dCIright_2 < DF$BT_dCIleft_1 | DF$BT_dCIright_1 < DF$BT_dCIleft_2)
+  
+  DF <- merge(DF, DF_BFor2_CC, by = "ID")
+  DF$BT_CC <- (DF$BT_dCIright_CC_2 < DF$BT_dCIleft_CC_1 | DF$BT_dCIright_CC_1 < DF$BT_dCIleft_CC_2)
+  
+  print(DF)
   
   if (!is.na(minDifference))
   {
