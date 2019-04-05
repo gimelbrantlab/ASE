@@ -8,6 +8,10 @@
 options(stringsAsFactors = FALSE)
 # _______________________________________________________________________________________
 
+# ---------------------------------------------------------------------------------------
+#                 FUNCTIONS: BETA-BINOMIAL FITTING
+# ---------------------------------------------------------------------------------------
+
 # wi -- weight of betabin(alphai); wi>0; w1+w2=1
 # alphai -- a=b coefficient in beta
 # c -- coverage
@@ -282,6 +286,10 @@ ComputeCorrConstantsForAllPairsReps <- function(inDF, vectReps, binNObs=40,
 }
 
 
+# ---------------------------------------------------------------------------------------
+#                 FUNCTIONS: PERFORM DIFF CI(AI) ANALYSIS -- CONDITION & POINT
+# ---------------------------------------------------------------------------------------
+
 PerformBinTestAIAnalysisForConditionNPoint_knownCC <- function(inDF, vectReps, vectRepsCombsCC,
                                                                pt = 0.5, binNObs=40, Q=0.95,  
                                                                thr=NA, thrUP=NA, thrType="each", minDifference=NA){
@@ -289,6 +297,7 @@ PerformBinTestAIAnalysisForConditionNPoint_knownCC <- function(inDF, vectReps, v
   #'
   #' @param inDF A table with ref & alt counts per gene/SNP for each replicate plus the first column with gene/SNP names
   #' @param vectReps A vector (>=2) of replicate numbers that should be considered as tech reps
+  #' @param vectRepsCombsCC A vector of pairwise-computed correction constants for given replicates
   #' @param pt A point to compare with
   #' @param binNObs Threshold on number of observations per bin
   #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
@@ -380,4 +389,180 @@ PerformBinTestAIAnalysisForConditionNPoint <- function(inDF, vectReps, pt = 0.5,
               FitDATA = fitDATA,
               Output = RES))
 }
+
+
+# ---------------------------------------------------------------------------------------
+#                 FUNCTIONS: PERFORM DIFF CI(AI) ANALYSIS -- 2 CONDITIONS 
+# ---------------------------------------------------------------------------------------
+
+ComputeAICIs <- function(inDF, vectReps, vectRepsCombsCC, 
+                         Q=0.95, BF=T,  
+                         thr=NA, thrUP=NA, thrType="each"){
+  #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for condition + point estimate to compare
+  #'
+  #' @param inDF A table with ref & alt counts per gene/SNP for each replicate plus the first column with gene/SNP names
+  #' @param vectReps A vector (>=2) of replicate numbers that should be considered as tech reps
+  #' @param vectRepsCombsCC A vector of pairwise-computed correction constants for given replicates
+  #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
+  #' @param BT Bonferroni correction, set False if Q is alredy corrected
+  #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
+  #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
+  #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
+  #' @return A table of gene names, AIs + CIs, classification into genes demonstrating differential from point estimate AI and those that don't
+  #' @examples
+  #'
+  
+  CC <- mean(vectRepsCombsCC)
+  
+  AI <- CountsToAI(inDF, reps=vectReps, meth="mergedToProportion", thr=thr, thrUP=thrUP, thrType=thrType)$AI
+  tmpDF  <- ThresholdingCounts(inDF, reps=vectReps, thr=thr, thrUP=thrUP, thrType=thrType)
+  sumCOV <- rowSums(tmpDF[, -1])
+  if(ncol(tmpDF) == 3){
+    matCOV <- tmpDF[, 2]
+  } else {
+    matCOV <- rowSums(tmpDF[, seq(2,ncol(tmpDF),2)])
+  }
+  
+  DF <- data.frame(ID=inDF[,1], sumCOV=sumCOV, matCOV=matCOV, AI=AI)
+  
+  # Bonferroni correction:
+  Qbf <- 1 - (1-Q)/nrow(na.omit(DF))
+  
+  # Bin test:
+  tmpDFbt <- t(sapply(1:nrow(DF), function(i){
+    if(is.na(matCOV[i]) | is.na(sumCOV[i]) | sumCOV[i]==0) { return(c(NA,NA)) }
+    BT <- binom.test(matCOV[i], sumCOV[i], alternative="two.sided", conf.level = Qbf)
+    c(BT$conf.int[1], BT$conf.int[2])
+  }))
+  
+  DF$BT_CIleft = tmpDFbt[, 1]
+  DF$BT_CIright = tmpDFbt[, 2]
+  
+  DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - DF$BT_CIleft) * CC,
+                            function(lb){ max(0, lb) })
+  DF$BT_CIright_CC <- sapply(DF$AI + (DF$BT_CIright - DF$AI) * CC,
+                             function(ub){ min(1, ub) })
+  
+  return(DF)
+}  
+
+
+PerformBinTestAIAnalysisForTwoConditions_knownCC <- function(inDF, vect1CondReps, vect2CondReps, 
+                                                             vect1CondRepsCombsCC, vect2CondRepsCombsCC,
+                                                             Q=0.95,  
+                                                             thr=NA, thrUP=NA, thrType="each", minDifference=NA){
+  #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for condition + point estimate to compare
+  #'
+  #' @param inDF A table with ref & alt counts per gene/SNP for each replicate plus the first column with gene/SNP names
+  #' @param vect1CondReps A vector (>=2) of replicate numbers that should be considered as first condition's tech reps
+  #' @param vect2CondReps A vector (>=2) of replicate numbers that should be considered as second condition's tech reps
+  #' @param vect1CondRepsCombsCC A vector of pairwise-computed correction constants for first condition's tech reps
+  #' @param vect2CondRepsCombsCC A vector of pairwise-computed correction constants for second condition's tech reps
+  #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
+  #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
+  #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
+  #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
+  #' @param minDifference if specified, one additional column DAE is added to the output (T/F depending if the gene changed AI expression more than minDifference in addition to having non-overlapping CIs)
+  #' @return A table of gene names, AIs + CIs, classification into genes demonstrating differential from point estimate AI and those that don't
+  #' @examples
+  #'
+  
+  vectReps <- list(vect1CondReps, vect2CondReps)
+  vectRepsCombsCC <- list(vect1CondRepsCombsCC, 
+                          vect2CondRepsCombsCC)
+
+  DF_CI_divided <- lapply(1:2, function(i){
+    ComputeAICIs(inDF, vectReps=vectReps[[i]], vectRepsCombsCC=vectRepsCombsCC[[i]], 
+                 Q=Q, BF=T, thr=thr, thrUP=thrUP, thrType=thrType)
+  })
+  
+  DF <- merge(DF_CI_divided[[1]], DF_CI_divided[[2]], by = "ID")
+  names(DF) <- c("ID", 
+                 paste0(names(DF_CI_divided[[1]])[-1], '_1'),
+                 paste0(names(DF_CI_divided[[2]])[-1], '_2'))
+  
+  ################# 
+  # p_bar = (DF$matCOV_1 + DF$matCOV_2)/(DF$sumCOV_1 + DF$sumCOV_2)
+  # DF$Z <- (DF$AI_1 - DF$AI_2) / sqrt(p_bar * (1 - p_bar) * (1/DF$sumCOV_1 + 1/DF$sumCOV_2))
+
+    
+  # Find intersecting intervals > call them FALSE (non-rejected H_0)
+  Qbft <- 1 - (1-Q)/nrow(na.omit(DF[, c("sumCOV_1", "matCOV_1", "sumCOV_2", "matCOV_2")]))
+  DF_CI_divided_BFon2 <- lapply(1:2, function(i){
+    ComputeAICIs(inDF, vectReps=vectReps[[i]], vectRepsCombsCC=vectRepsCombsCC[[i]], 
+                 Q=Qbft, BF=F, 
+                 thr=thr, thrUP=thrUP, thrType=thrType)
+  })
+  DF$BT_dCIleft_1 <- DF_CI_divided_BFon2[[1]]$BT_CIleft 
+  DF$BT_dCIright_1 <- DF_CI_divided_BFon2[[1]]$BT_CIright 
+  DF$BT_dCIleft_2 <- DF_CI_divided_BFon2[[2]]$BT_CIleft 
+  DF$BT_dCIright_2 <- DF_CI_divided_BFon2[[2]]$BT_CIright
+  
+  DF$BT <- !(DF_CI_divided_BFon2[[1]]$BT_CIleft < DF_CI_divided_BFon2[[2]]$BT_CIleft & 
+               DF_CI_divided_BFon2[[1]]$BT_CIright >= DF_CI_divided_BFon2[[2]]$BT_CIleft |
+             DF_CI_divided_BFon2[[1]]$BT_CIleft >= DF_CI_divided_BFon2[[2]]$BT_CIleft & 
+               DF_CI_divided_BFon2[[1]]$BT_CIleft <= DF_CI_divided_BFon2[[2]]$BT_CIright)
+  
+  DF$BT_dCIleft_CC_1 <- DF_CI_divided_BFon2[[1]]$BT_CIleft_CC
+  DF$BT_dCIright_CC_1 <- DF_CI_divided_BFon2[[1]]$BT_CIright_CC
+  DF$BT_dCIleft_CC_2 <- DF_CI_divided_BFon2[[2]]$BT_CIleft_CC
+  DF$BT_dCIright_CC_2 <- DF_CI_divided_BFon2[[2]]$BT_CIright_CC
+    
+  DF$BT_CC <- !(DF_CI_divided_BFon2[[1]]$BT_CIleft_CC < DF_CI_divided_BFon2[[2]]$BT_CIleft_CC & 
+                  DF_CI_divided_BFon2[[1]]$BT_CIright_CC >= DF_CI_divided_BFon2[[2]]$BT_CIleft_CC |
+                DF_CI_divided_BFon2[[1]]$BT_CIleft_CC >= DF_CI_divided_BFon2[[2]]$BT_CIleft_CC & 
+                  DF_CI_divided_BFon2[[1]]$BT_CIleft_CC <= DF_CI_divided_BFon2[[2]]$BT_CIright_CC)
+  
+  if (!is.na(minDifference))
+  {
+    DF$BT_CC_thrDiff <- (DF$BT_CC & (abs(DF$AI_1 - DF$AI_2) >= minDifference))
+  }
+  
+  return(DF)
+}
+
+
+PerformBinTestAIAnalysisForTwoConditions <- function(inDF, vect1CondReps, vect2CondReps, binNObs=40, Q=0.95, EPS=1.3, 
+                                                     thr=NA, thrUP=NA, thrType="each", minDifference=NA){
+  #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for condition + point estimate to compare
+  #'
+  #' @param inDF A table with ref & alt counts per gene/SNP for each replicate plus the first column with gene/SNP names
+  #' @param vect1CondReps A vector (>=2) of replicate numbers that should be considered as first condition's tech reps
+  #' @param vect2CondReps A vector (>=2) of replicate numbers that should be considered as second condition's tech reps
+  #' @param binNObs Threshold on number of observations per bin
+  #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
+  #' @param EPS An optional parameter to set a log window for coverage binning
+  #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
+  #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
+  #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
+  #' @param minDifference if specified, one additional column DAE is added to the output (T/F depending if the gene changed AI expression more than minDifference in addition to having non-overlapping CIs)
+  #' @return A table of gene names, AIs + CIs, classification into genes demonstrating differential from point estimate AI and those that don't
+  #' @examples
+  #'
+  
+  fitDATA1Cond <- ComputeCorrConstantsForAllPairsReps(inDF, vectReps=vect1CondReps, binNObs=binNObs, 
+                                                 EPS=EPS, thr=thr, thrUP=thrUP, thrType=thrType)
+  fitDATA2Cond <- ComputeCorrConstantsForAllPairsReps(inDF, vectReps=vect2CondReps, binNObs=binNObs, 
+                                                      EPS=EPS, thr=thr, thrUP=thrUP, thrType=thrType)
+  
+  vect1CondRepsCombsCC <- sapply(fitDATA1Cond, function(fd){
+    fd$fittedCC
+  })
+  vect2CondRepsCombsCC <- sapply(fitDATA2Cond, function(fd){
+    fd$fittedCC
+  })
+  print(paste(vect1CondRepsCombsCC, vect2CondRepsCombsCC))
+  
+  RES <- PerformBinTestAIAnalysisForTwoConditions_knownCC(inDF, vect1CondReps=vect1CondReps, vect2CondReps=vect2CondReps, 
+                                                          vect1CondRepsCombsCC=vect1CondRepsCombsCC, 
+                                                          vect2CondRepsCombsCC=vect2CondRepsCombsCC,
+                                                          Q=Q, 
+                                                          thr=thr, thrUP=thrUP, thrType=thrType, 
+                                                          minDifference=minDifference)
+  
+  return(list(CC = list(vect1CondRepsCombsCC, vect2CondRepsCombsCC),
+              FitDATA = list(fitDATA1Cond, fitDATA2Cond),
+              Output = RES))
+}
+
 
