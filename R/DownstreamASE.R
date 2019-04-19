@@ -2,40 +2,64 @@
 #                 FUNCTIONS: PROCESS TABLES WITH COUNTs/AIs, FIND MAE GENES
 # ---------------------------------------------------------------------------------------
 
-DiffAIplusFig <- function(inDF, vect1CondReps_expA, vect1CondReps_expB,
-                          vect1CondReps_expA_name, vect1CondReps_expB_name,
-                          thr_coverage=NA, minDifference=0.1, lm=T) {
+DiffAIplusFig <- function(inDF, CondReps_expA, CondReps_expB,
+                          CondReps_expA_name, CondReps_expB_name,
+                          expA_CC=NA, expB_CC=NA,
+                          thr_coverage=NA, minDifference=0.1, lm=T, save=F) {
   #'
   #' @param inDF A table with ref & alt counts per gene/SNP for each replicate plus the first column with gene/SNP names
-  #' @param vect1CondReps_expA A vector (>=2) of replicate numbers that should be considered as first condition's tech reps
-  #' @param vect1CondReps_expB A vector (>=2) of replicate numbers that should be considered as second condition's tech reps
-  #' @param vect1CondReps_expA_name Name of the first condition
-  #' @param vect1CondReps_expB_name Name of the second condition
+  #' @param CondReps_expA A vector (>=2) of replicate numbers that should be considered as first condition's tech reps
+  #' @param CondReps_expB A vector (>=2) of replicate numbers that should be considered as second condition's tech reps
+  #' @param CondReps_expA_name Name of the first condition
+  #' @param CondReps_expB_name Name of the second condition
   #' @param thr_coverage optional parameter, specifies coverage threshold
   #' @param minDifference minimal difference between AIs in 2 conditions to call them differentially allelically expressed
+  #' @param save If true, save the results to table
   #' @return inDF table with 2 additional columns classifying genes into differentially allelically expressed (DAE) and not + figure
   #' @examples
   #'
-  df_tmp <- PerformDiffAIAnalysisFor2Conditions(inDF,
-                                                vect1CondReps = vect1CondReps_expA,
-                                                vect2CondReps = vect1CondReps_expB,
+  if ((!is.na(expA_CC))&(!is.na(expB_CC))) {
+    df_tmp <- PerformBinTestAIAnalysisForTwoConditions_knownCC(inDF,
+                                                vect1CondReps = CondReps_expA,
+                                                vect2CondReps = CondReps_expB,
+                                                vect1CondRepsCombsCC = expA_CC,
+                                                vect2CondRepsCombsCC = expB_CC,
                                                 Q=0.95,
                                                 thr=thr_coverage,
-                                                EPS=1.3,
-                                                fullOUT=F,
                                                 minDifference=minDifference)
-
-  fig_compare_tmp <- ggplot(df_tmp, aes(x = meanAI_1, y = meanAI_2, col = DAE)) +
+  }
+  else {
+    df_tmp <- PerformBinTestAIAnalysisForTwoConditions(inDF,
+                                                               vect1CondReps = CondReps_expA,
+                                                               vect2CondReps = CondReps_expB,
+                                                               Q=0.95,
+                                                               thr=thr_coverage,
+                                                               minDifference=minDifference)
+  }
+  fig_compare_tmp <- ggplot(df_tmp, aes(x = AI_1, y = AI_2, col = BT_CC_thrDiff)) +
     geom_point(size=0.5) +
     theme_bw() +
-    xlab(paste0("AI, ",vect1CondReps_expA_name)) +
-    ylab(paste0("AI, ",vect1CondReps_expB_name)) +
+    xlab(paste0("AI, ",CondReps_expA_name)) +
+    ylab(paste0("AI, ",CondReps_expB_name)) +
     scale_color_manual(name="Differential AI", labels=c("FALSE", "TRUE"), values=c("gray", "red")) +
     coord_fixed() +
     theme(legend.position = "None")
   if (lm)
     fig_compare_tmp <- fig_compare_tmp + geom_smooth(method="lm")
-
+  if (save) {
+    AI_table_with_CIs <- df_tmp[,c(1,4,21,22,11,23,24,25,26)]
+    colnames(AI_table_with_CIs) <- c("ensembl_gene_id",
+                                     paste0("AI_",CondReps_expA_name),
+                                     paste0("AI_CI_left_",CondReps_expA_name),
+                                     paste0("AI_CI_right_",CondReps_expA_name),
+                                     paste0("AI_",CondReps_expB_name),
+                                     paste0("AI_CI_left_",CondReps_expB_name),
+                                     paste0("AI_CI_right_",CondReps_expB_name),
+                                     "CI_diff",
+                                     "CI_plus_minDiff")
+    write.table(AI_table_with_CIs,
+                file=paste0("~/Dropbox (Partners HealthCare)/MAE screen/Drugs/Manuscript/Tables_SV/add_clones_5aza_treated/AI_", CondReps_expB_name,"_vs_",CondReps_expA_name,"_min_diff_",minDifference,"_cov_threshold_",thr_coverage,"_newCC.txt"), quote = F, row.names = F)
+  }
   return(list(df_tmp, fig_compare_tmp))
 }
 
