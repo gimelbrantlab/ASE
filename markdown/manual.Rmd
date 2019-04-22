@@ -9,9 +9,8 @@ We start by loading the libraries and functions we will need:
 ```{r include = FALSE}
 library("tidyverse")
 library("knitr")
-source("ASE_functions.R")
-source("PerformAIAnalysis.R")
-source("PerformAIAnalysis_CC.R")
+source("~/Dropbox (Partners HealthCare)/replicates_ASE/code/ASE/R/ASE_functions.R")
+source("~/Dropbox (Partners HealthCare)/replicates_ASE/code/ASE/R/PerformAIAnalysis_CC.R")
 ```
 
 ##5aza data
