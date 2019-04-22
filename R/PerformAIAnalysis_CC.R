@@ -335,12 +335,12 @@ PerformBinTestAIAnalysisForConditionNPoint_knownCC <- function(inDF, vectReps, v
   }))
   
   DF$BT_pval = tmpDFbt[, 1]
-  DF$BT_CIleft = DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(2)
-  DF$BT_CIright = DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(2)
+  DF$BT_CIleft = DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(length(vectReps))
+  DF$BT_CIright = DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(length(vectReps))
   
-  DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(2) * CC,
+  DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(length(vectReps)) * CC,
                             function(lb){ max(0, lb) })
-  DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(2) * CC,
+  DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(length(vectReps)) * CC,
                              function(ub){ min(1, ub) })
   
   DF$BT <- (DF$BT_pval < 0.05/nrow(na.omit(DF)))
@@ -441,12 +441,12 @@ PerformBinTestAIAnalysisForConditionNPointVect_knownCC <- function(inDF, vectRep
   }))
   
   DF$BT_pval = tmpDFbt[, 1]
-  DF$BT_CIleft = DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(2)
-  DF$BT_CIright = DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(2)
+  DF$BT_CIleft = DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(length(vectReps))
+  DF$BT_CIright = DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(length(vectReps))
   
-  DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(2) * CC,
+  DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(length(vectReps)) * CC,
                             function(lb){ max(0, lb) })
-  DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(2) * CC,
+  DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(length(vectReps)) * CC,
                              function(ub){ min(1, ub) })
   
   #DF$BT <- (DF$BT_pval < (1-Q)/nrow(na.omit(DF)))
@@ -549,12 +549,12 @@ ComputeAICIs <- function(inDF, vectReps, vectRepsCombsCC,
   }))
   
   
-  DF$BT_CIleft = DF$AI - (DF$AI - tmpDFbt[, 1]) / sqrt(2)
-  DF$BT_CIright = DF$AI + (tmpDFbt[, 2] - DF$AI) / sqrt(2)
+  DF$BT_CIleft = DF$AI - (DF$AI - tmpDFbt[, 1]) / sqrt(length(vectReps))
+  DF$BT_CIright = DF$AI + (tmpDFbt[, 2] - DF$AI) / sqrt(length(vectReps))
   
-  DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 1]) / sqrt(2) * CC,
+  DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 1]) / sqrt(length(vectReps)) * CC,
                             function(lb){ max(0, lb) })
-  DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 2] - DF$AI) / sqrt(2) * CC,
+  DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 2] - DF$AI) / sqrt(length(vectReps)) * CC,
                              function(ub){ min(1, ub) })
   
   return(DF)
