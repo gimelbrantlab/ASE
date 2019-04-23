@@ -241,6 +241,8 @@ ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40,
     }))
   }))
 
+  print(df_observed_expected_quantile_proportions)
+  
   ##-------------------------------------------------------------------------------------------------------------------------------------
   ## 4. Fit the ratio observed/predicted:
   ##-------------------------------------------------------------------------------------------------------------------------------------
@@ -334,16 +336,26 @@ PerformBinTestAIAnalysisForConditionNPoint_knownCC <- function(inDF, vectReps, v
     c(BT$p.value, BT$conf.int[1], BT$conf.int[2])
   }))
   
-  DF$BT_pval = tmpDFbt[, 1]
-  DF$BT_CIleft = DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(length(vectReps))
-  DF$BT_CIright = DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(length(vectReps))
+  # DF$BT_pval = tmpDFbt[, 1]
+  # DF$BT_CIleft = DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(length(vectReps))
+  # DF$BT_CIright = DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(length(vectReps))
+  # 
+  # DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(length(vectReps)) * CC,
+  #                           function(lb){ max(0, lb) })
+  # DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(length(vectReps)) * CC,
+  #                            function(ub){ min(1, ub) })
   
-  DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(length(vectReps)) * CC,
+  DF$BT_pval = tmpDFbt[, 1]
+  DF$BT_CIleft = tmpDFbt[, 2]
+  DF$BT_CIright = tmpDFbt[, 3]
+  
+  DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 2]) * CC,
                             function(lb){ max(0, lb) })
-  DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(length(vectReps)) * CC,
+  DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 3] - DF$AI) * CC,
                              function(ub){ min(1, ub) })
   
-  DF$BT <- (DF$BT_pval < 0.05/nrow(na.omit(DF)))
+  # DF$BT <- (DF$BT_pval < (1-Q)/nrow(na.omit(DF)))
+  DF$BT <- !(DF$BT_CIleft <= pt & DF$BT_CIright >= pt)
   # Find intersecting intervals > call them FALSE (non-rejected H_0)
   DF$BT_CC <- !(DF$BT_CIleft_CC <= pt & DF$BT_CIright_CC >= pt)
   
@@ -440,15 +452,24 @@ PerformBinTestAIAnalysisForConditionNPointVect_knownCC <- function(inDF, vectRep
     c(BT$p.value, BT$conf.int[1], BT$conf.int[2])
   }))
   
+  # DF$BT_pval = tmpDFbt[, 1]
+  # DF$BT_CIleft = DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(length(vectReps))
+  # DF$BT_CIright = DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(length(vectReps))
+  # 
+  # DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(length(vectReps)) * CC,
+  #                           function(lb){ max(0, lb) })
+  # DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(length(vectReps)) * CC,
+  #                            function(ub){ min(1, ub) })
+
   DF$BT_pval = tmpDFbt[, 1]
-  DF$BT_CIleft = DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(length(vectReps))
-  DF$BT_CIright = DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(length(vectReps))
+  DF$BT_CIleft = tmpDFbt[, 2]
+  DF$BT_CIright = tmpDFbt[, 3]
   
-  DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(length(vectReps)) * CC,
+  DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 2]) * CC,
                             function(lb){ max(0, lb) })
-  DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(length(vectReps)) * CC,
+  DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 3] - DF$AI) * CC,
                              function(ub){ min(1, ub) })
-  
+    
   #DF$BT <- (DF$BT_pval < (1-Q)/nrow(na.omit(DF)))
   DF$BT <- sapply(1:nrow(DF), function(i){!(DF$BT_CIleft[i] <= ptVect[i] & DF$BT_CIright[i] >= ptVect[i])})
   # Find intersecting intervals > call them FALSE (non-rejected H_0)
@@ -548,15 +569,21 @@ ComputeAICIs <- function(inDF, vectReps, vectRepsCombsCC,
     c(BT$conf.int[1], BT$conf.int[2])
   }))
   
+  # DF$BT_CIleft = DF$AI - (DF$AI - tmpDFbt[, 1]) / sqrt(length(vectReps))
+  # DF$BT_CIright = DF$AI + (tmpDFbt[, 2] - DF$AI) / sqrt(length(vectReps))
+  # 
+  # DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 1]) / sqrt(length(vectReps)) * CC,
+  #                           function(lb){ max(0, lb) })
+  # DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 2] - DF$AI) / sqrt(length(vectReps)) * CC,
+  #                            function(ub){ min(1, ub) })
   
-  DF$BT_CIleft = DF$AI - (DF$AI - tmpDFbt[, 1]) / sqrt(length(vectReps))
-  DF$BT_CIright = DF$AI + (tmpDFbt[, 2] - DF$AI) / sqrt(length(vectReps))
+  DF$BT_CIleft = tmpDFbt[, 1]
+  DF$BT_CIright = tmpDFbt[, 2]
   
-  DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 1]) / sqrt(length(vectReps)) * CC,
+  DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 1]) * CC,
                             function(lb){ max(0, lb) })
-  DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 2] - DF$AI) / sqrt(length(vectReps)) * CC,
+  DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 2] - DF$AI) * CC,
                              function(ub){ min(1, ub) })
-  
   return(DF)
 }  
 
