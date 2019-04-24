@@ -247,6 +247,8 @@ ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40,
   ## 4. Fit the ratio observed/predicted:
   ##-------------------------------------------------------------------------------------------------------------------------------------
 
+  df_observed_expected_quantile_proportions$CC[!is.finite(df_observed_expected_quantile_proportions$CC)] = NA
+  
   fittedCC = lm(data = df_observed_expected_quantile_proportions,
                 CC ~ 1,
                 na.action=na.exclude)$coefficients[1]
