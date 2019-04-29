@@ -153,7 +153,7 @@ ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40,
   df_unit_info$binNUM = sapply(df_unit_info$binCOV, function(x){
     df_covbinsnum[df_covbinsnum$binCOV==x, ]$binNUM
   })
-
+  
   ##     1.2. Calculate parameters:
   ##
 
@@ -163,23 +163,23 @@ ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40,
   }
   
   covbinsGthr = df_covbinsnum$binCOV[df_covbinsnum$binNUM > binNObs & 
-                                     df_covbinsnum$binCOV >= max(50, thr*2)]
-
+                                     df_covbinsnum$binCOV >= max(50, thr)]
+  
   print(paste(length(covbinsGthr), "COVERAGE BINS"))
 
   df_betabin_params = do.call(rbind, lapply(1:length(covbinsGthr), function(i){
     coverage = covbinsGthr[i]
     df = df_unit_info[df_unit_info$binCOV == coverage, ]
-    observations = round(df$AI * coverage)
+    observations = round(df$AI_merged * coverage*2)
 
-    fitres = MixBetaBinomialFit(initials, coverage, observations)
+    fitres = MixBetaBinomialFit(initials, coverage*2, observations)
     dfres = data.frame(No = i,
                        coverage = coverage,
                        x_weight_predicted = fitres[1],
                        x_alpha_predicted = fitres[2],
                        y_alpha_predicted = fitres[3],
                        algm_steps = fitres[4])
-    print(paste(i, "|", "COV:", covbinsGthr[i], ",", "#STEPS:", dfres$algm_steps, sep="    "))
+    print(paste(i, "|", "meanCOV:", covbinsGthr[i], ",", "#STEPS:", dfres$algm_steps, sep="    "))
     return(dfres)
   }))
 
@@ -190,10 +190,10 @@ ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40,
   ##
 
   lst_ai_betafit = lapply(1:nrow(df_betabin_params), function(i){
-    A = rbeta(2000*df_betabin_params$x_weight_predicted[i],
+    A = rbeta(5000*df_betabin_params$x_weight_predicted[i],
               df_betabin_params$x_alpha_predicted[i],
               df_betabin_params$x_alpha_predicted[i])
-    B = rbeta(2000*(1 - df_betabin_params$x_weight_predicted[i]),
+    B = rbeta(5000*(1 - df_betabin_params$x_weight_predicted[i]),
               df_betabin_params$y_alpha_predicted[i],
               df_betabin_params$y_alpha_predicted[i])
     c(A,B)
@@ -241,7 +241,7 @@ ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40,
     }))
   }))
 
-  print(df_observed_expected_quantile_proportions)
+  #print(df_observed_expected_quantile_proportions)
   
   ##-------------------------------------------------------------------------------------------------------------------------------------
   ## 4. Fit the ratio observed/predicted:
@@ -641,7 +641,7 @@ PerformBinTestAIAnalysisForTwoConditions_knownCC <- function(inDF, vect1CondReps
   DF_BFor2_CC <- merge(DF_CI_divided_BFor2[[1]][, c("ID", "BT_CIleft_CC", "BT_CIright_CC")], DF_CI_divided_BFor2[[2]][, c("ID", "BT_CIleft_CC", "BT_CIright_CC")], by = "ID")
   names(DF_BFor2_CC)[-1] <- c("BT_dCIleft_CC_1", "BT_dCIright_CC_1", "BT_dCIleft_CC_2", "BT_dCIright_CC_2")
   
-  print(DF)
+  #print(DF)
   
   DF <- merge(DF, DF_BFor2, by = "ID")
   DF$BT <- (DF$BT_dCIright_2 < DF$BT_dCIleft_1 | DF$BT_dCIright_1 < DF$BT_dCIleft_2)
@@ -649,7 +649,7 @@ PerformBinTestAIAnalysisForTwoConditions_knownCC <- function(inDF, vect1CondReps
   DF <- merge(DF, DF_BFor2_CC, by = "ID")
   DF$BT_CC <- (DF$BT_dCIright_CC_2 < DF$BT_dCIleft_CC_1 | DF$BT_dCIright_CC_1 < DF$BT_dCIleft_CC_2)
   
-  print(DF)
+  #print(DF)
   
   if (!is.na(minDifference))
   {
