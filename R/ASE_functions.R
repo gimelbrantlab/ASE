@@ -252,11 +252,12 @@ NumToDoulbledigitChar <- function(x){
   return(doubledigitsChars)
 }
 
-BuildDesign <- function(experimentNames, techReps){
+BuildDesign <- function(experimentNames, techReps, corrConst=NA){
   #' Creates a design matrix for the experiment
   #'
   #' @param experimentNames Vector with names of the experiments
   #' @param techReps Vector with number of technical replicates in each experiment
+  #' @param corrConst Optional, Vector with correction constants for each experiment
   #' @return Dataframe with experiments numbered and numbers of columns
   #' @examples
   #'
@@ -266,6 +267,9 @@ BuildDesign <- function(experimentNames, techReps){
   colnames(colExp) <- "replicateNums"
   designMatrix <- cbind(experimentNames, techReps, rowsSp, colExp)
   colnames(designMatrix) <- c("experimentNames", "techReps", "replicateCols", "replicateNums")
+  if (!sum(is.na(corrConst))) {
+    designMatrix <- cbind(designMatrix, corrConst)
+  }
   return(designMatrix)
 }
 
@@ -481,14 +485,14 @@ PerformDAIQuantilesAnalysis <- function(inDF, vectReps, condName="Condition",
   #' @return A table of quantiles in coverage bins
   #' @examples
   #'
-  
+
   # Take subtable:
   dfCondition <- inDF[, sort(c(1, vectReps*2, vectReps*2+1))]
-  
+
   # Create pairvise AI differences for all techreps pairs:
   deltaAIPairwiseDF <- CreateMergedDeltaAIPairwiseDF(df=dfCondition, what=condName, thr=thr, thrUP=thrUP, thrType=thrType)
   deltaAIPairwiseDF$group <- paste(condName, deltaAIPairwiseDF$ij)
-  
+
   # Count quantiles for Mean Coverage bins:
   observedQuantilesDF <- do.call(rbind,
                                  lapply(unique(deltaAIPairwiseDF$group),
@@ -504,7 +508,7 @@ PerformDAIQuantilesAnalysis <- function(inDF, vectReps, condName="Condition",
   observedQuantilesDF$condition <- condName
   observedQuantilesDF$ij <- sapply(as.character(observedQuantilesDF$group),
                                    function(x){paste(unlist(strsplit(x, ' '))[2:4], collapse=' ')})
-  
+
   return(observedQuantilesDF)
 }
 
