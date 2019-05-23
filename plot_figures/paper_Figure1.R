@@ -70,7 +70,8 @@ figure_1C = ggplot(DF_NEB_BT[DF_NEB_BT$meanCOV.x < 9999, ], aes(meanCOV.x, AI.x)
   #ggtitle("Replicate 1") +
   labs(x = "Total Allelic Counts", y = "Gene AI - Replicate 1", color = "Binomial Test") +
   scale_x_continuous(trans='log10') +
-  theme(legend.position="None",  text = element_text(size=18))
+  theme(legend.position="None",  text = element_text(size=18),
+        strip.background = element_rect(fill="#E0E0E0"))
 
 figure_1D = ggplot(DF_NEB_BT[DF_NEB_BT$meanCOV.y < 9999, ], aes(meanCOV.y, AI.y)) +
   geom_point(aes(color=BT.y), size=0.8) +
@@ -80,7 +81,8 @@ figure_1D = ggplot(DF_NEB_BT[DF_NEB_BT$meanCOV.y < 9999, ], aes(meanCOV.y, AI.y)
   #ggtitle("Replicate 2 relative to replicate 1") +
   labs(x = "Total Allelic Counts", y = "Gene AI - Replicate 2", color = "Binomial Test") +
   scale_x_continuous(trans='log10') +
-  theme(legend.position="None", text = element_text(size=18))
+  theme(legend.position="None", text = element_text(size=18),
+        strip.background = element_rect(fill="#E0E0E0"))
 
 
 # Repeat analysis for SMART-seq (right panel)
@@ -94,7 +96,8 @@ figure_1E <- ggplot(DF_SMART_10_BT[DF_SMART_10_BT$meanCOV.y < 9999 & DF_SMART_10
   theme_bw() +
   labs(x = "Total Allelic Counts", y = "Gene AI  - Replicate 2", color = "Binomial Test") +
   scale_x_continuous(trans='log10') +
-  theme(legend.position="None", text = element_text(size=18))
+  theme(legend.position="None", text = element_text(size=18),
+        strip.background = element_rect(fill="#E0E0E0"))
 
 DF_SMART_0.1_BT <- GetDataForExperiment_BT(df = data_30mln_noX_sample2, CC_df = CC_sample2_30mln, exp_name = "SMARTseq 0.1ng", exp_n = 3)
 
@@ -105,7 +108,8 @@ figure_1F <- ggplot(DF_SMART_0.1_BT[DF_SMART_0.1_BT$meanCOV.y < 9999 & DF_SMART_
   theme_bw() +
   labs(x = "Total Allelic Counts", y = "Gene AI  - Replicate 2", color = "Binomial Test") +
   scale_x_continuous(trans='log10') +
-  theme(legend.position="None", text = element_text(size=18))
+  theme(legend.position="None", text = element_text(size=18),
+        strip.background = element_rect(fill="#E0E0E0"))
 
 # Left panel
 
@@ -118,9 +122,9 @@ figure_1A = ggplot(DF_NEB_BT, aes(AI.x, AI.y)) +
                        labels = c(10, 500, 5000)) +
   theme_bw() +
   coord_fixed() +
-  labs(x = "Gene AI - Replicate 1", y = "Gene AI - Replicate 2", color = "Total Allele Counts") +
+  labs(x = "Gene AI - Replicate 1", y = "Gene AI - Replicate 2", color = "Allelic Counts") +
   theme(legend.key = element_blank(),legend.background=element_blank(),
-        legend.position=c(0.3,0.8), text = element_text(size=18))
+        legend.position=c(0.2,0.8), text = element_text(size=18))
 
 figure_1B = ggplot(DF_NEB_BT, aes(meanCOV.x, meanCOV.y)) +
   geom_point(color="black", size=0.8) +
@@ -133,25 +137,31 @@ figure_1B = ggplot(DF_NEB_BT, aes(meanCOV.x, meanCOV.y)) +
 PLT_fig1 = plot_grid(
   plot_grid(
     figure_1A,
-    figure_1B,
+    NULL,
     ncol=1,
-    labels = c("A","B")
+    labels = c("A","C")
+  ),
+  plot_grid(
+    figure_1B,
+    NULL,
+    ncol=1,
+    labels = c("B","")
   ),
   plot_grid(
     figure_1C,
     figure_1D,
     ncol=1,
-    labels = c("C","D")
+    labels = c("D","E")
   ),
   plot_grid(
     figure_1E,
     figure_1F,
     ncol=1,
-    labels = c("E","F")
+    labels = c("F","G")
   ),
-  ncol=3, scale = c(0.9, 0.9, 0.9), rel_widths = c(1,1,0.55)
+  ncol=4, scale = c(0.9, 0.9, 0.9, 0.9), rel_widths = c(1,1,1,0.55)
 )
 
-cowplot::save_plot(PLT_fig1, file="~/Dropbox (Partners HealthCare)/replicates_ASE/manuscript/Figures/fig.1_v1.2.pdf", base_height = 12, base_width = 18)
+cowplot::save_plot(PLT_fig1, file="~/Dropbox (Partners HealthCare)/replicates_ASE/manuscript/Figures/fig.1_v2.pdf", base_height = 12, base_width = 24)
 
 
