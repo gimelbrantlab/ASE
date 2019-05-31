@@ -58,7 +58,7 @@ DiffAIplusFig <- function(inDF, CondReps_expA, CondReps_expB,
                                      "CI_diff",
                                      "CI_plus_minDiff")
     write.table(AI_table_with_CIs,
-                file=paste0("~/Dropbox (Partners HealthCare)/MAE screen/Drugs/Manuscript/Tables_SV/add_clones_5aza_treated/AI_", CondReps_expB_name,"_vs_",CondReps_expA_name,"_min_diff_",minDifference,"_cov_threshold_",thr_coverage,"_newCC.txt"), quote = F, row.names = F)
+                file=paste0("~/Dropbox (Partners HealthCare)/MAE screen/Drugs/Manuscript/Tables_SV/add_clones_5aza_treated/AI_", CondReps_expB_name,"_vs_",CondReps_expA_name,"_min_diff_",minDifference,"_cov_threshold_",thr_coverage,"_upd_May.txt"), quote = F, row.names = F)
   }
   return(list(df_tmp, fig_compare_tmp))
 }
