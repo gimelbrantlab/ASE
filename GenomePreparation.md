@@ -64,7 +64,6 @@ Pseudoreference fasta creation:
 
 
 |  | Inbred lines | Inbred lines | Individual | Individual | 
-| --- | --- | --- | --- | --- |
 |  | Joint lines vcf | Separate line(s) vcf | Joint individuals vcf | Separate individual vcf |
 | --- | --- | --- | --- | --- |
 | FASTA Reference genome | --ref | --ref | --ref | --ref |
