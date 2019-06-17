@@ -39,46 +39,46 @@ wget ftp://ftp-mouse.sanger.ac.uk/current_snps/mgp.v5.merged.snps_all.dbSNP142.v
 
 # Input preprocessing:
 
-1. Reference fasta should be indexed.
+1. Reference fasta should be indexed (idx).
 
 2. vcf-files should be bgzip-ed and indexed with tabix.
 
-So the full list of files is: 
+For alignment:
+
+3. Reference fasta should be indexed with samtools.
+
 
 # Reference preparation:
 
 ```
-prepare_reference.sh --ref GRCm38_68.fa --gtf Mus_musculus.GRCm38.68.gtf.gz \
-  --name_mat 129S1_SvImJ --name_pat CAST_EiJ --vcf_mat 129S1_SvImJ.mgp.v5.snps.dbSNP142.vcf.gz --vcf_pat CAST_EiJ.mgp.v5.snps.dbSNP142.vcf.gz \
-  --o_dir *output_directory_path/*
-prepare_reference.sh --ref GRCm38_68.fa --gtf Mus_musculus.GRCm38.68.gtf.gz \
-  --name_mat 129S1_SvImJ --name_pat CAST_EiJ --vcf mgp.v5.merged.snps_all.dbSNP142.vcf.gz \
-  --o_dir *output_directory_path/*
+python3 /home/am717/ASE/python/prepare_reference_tmp.py --PSEUDOREF True --HETVCF True \
+  --pseudoref_dir /dir/for/pseudo/ref/out/ \
+  --vcf_dir /dir/for/vcf/outputs/ \
+  --ref GRCm38_68.fa \
+  --name_mat 129S1_SvImJ --name_pat CAST_EiJ \
+  --vcf_joint mgp.v5.merged.snps_all.dbSNP142.vcf.gz \
+  --gtf /n/scratch2/sv111/ASE/Mus_musculus.GRCm38.68.gtf
 ```
 
-> *Note: If directories are not writable, will create all supporting files at `output_directory_path/refereces/`.
-If something is not provided, it will be also created at `output_directory_path/refereces/` (i.e. will eat some extra place!).*
+Pseudoreference fasta creation:
 
-* Creating pseudogenomes from reference genomes and vcf file(s)
+|  | Inbred lines | Inbred lines | Individual | Individual | 
+|  | Joint lines vcf | Separate line(s) vcf | Joint individuals vcf | Separate individual vcf |
+| --- | --- | --- | --- | --- |
+| FASTA Reference genome |  |  |  |  |
+| VCF Variant file(s)    |  |  |  |  |
+| Name(s)                |  |  |  |  |
+| FASTA Output directory |  |  |  |  |
+| VCF Output directory   |  |  |  |  |
 
-* F1-cross vcf files
+Heterozygous(parental) VCF creation:
 
-                                 
-                      joint.vcf =======================> separate.vcf (x2)
-                         ||      (GATK: SelectVariants)      //   ||
-                         ||                ==================     ||
-                  (GATK: ||              // (bcftools: merge)     || (GATK:
-          SelectVariant) ||    ==========                         || SelectVariant)
-                         \/  \/                                   \/
-                       pair.vcf                         separate.snp.vcf (x2)
-                  (GATK: ||
-          SelectVariant) ||
-                         \/
-                     pair.snp.vcf
-                         ||
-         (pair_to_f1.py) ||
-                         \/
-                     F1.snp.vcf
-                                                                                          
+1. Inbred lines:
 
-* Gene-Transcript-Exon Annotations
+2. Individuals:
+
+
+
+
+> *Note: Any extra file will eat some extra space!.*
+
