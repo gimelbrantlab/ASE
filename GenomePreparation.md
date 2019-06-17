@@ -64,14 +64,15 @@ Pseudoreference fasta creation:
 
 
 |  | Inbred lines | Inbred lines | Individual | Individual | 
-|  | Joint lines vcf | Separate line(s) vcf | Joint individuals vcf | Separate individual vcf |
 | --- | --- | --- | --- | --- |
+|  | Joint lines vcf | Separate line(s) vcf | Joint individuals vcf | Separate individual vcf |
 | FASTA Reference genome | --ref | --ref | --ref | --ref |
-| VCF Variant file(s)    |  |  |  |  |
+| VCF Variant file(s)[1]    | --vcf_joint | --vcf_mat, --vcf_pat | --vcf_joind | --vcf_ind |
 | Name(s)                |  |  |  |  |
 | FASTA Output directory | --pseudo_dir | --pseudo_dir | --pseudo_dir | --pseudo_dir |
 | VCF Output directory   | --vcf_dir | --vcf_dir | --vcf_dir | --vcf_dir |
 
+[1] If one or the alleles in case of inbred lines is reference, then everything should be provided as mat or pat only, consistently.
 
 Heterozygous(parental) VCF creation:
 
