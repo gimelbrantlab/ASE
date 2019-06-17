@@ -62,14 +62,17 @@ python3 /home/am717/ASE/python/prepare_reference_tmp.py --PSEUDOREF True --HETVC
 
 Pseudoreference fasta creation:
 
+
 |  | Inbred lines | Inbred lines | Individual | Individual | 
+| --- | --- | --- | --- | --- |
 |  | Joint lines vcf | Separate line(s) vcf | Joint individuals vcf | Separate individual vcf |
 | --- | --- | --- | --- | --- |
-| FASTA Reference genome |  |  |  |  |
+| FASTA Reference genome | --ref | --ref | --ref | --ref |
 | VCF Variant file(s)    |  |  |  |  |
 | Name(s)                |  |  |  |  |
-| FASTA Output directory |  |  |  |  |
-| VCF Output directory   |  |  |  |  |
+| FASTA Output directory | --pseudo_dir | --pseudo_dir | --pseudo_dir | --pseudo_dir |
+| VCF Output directory   | --vcf_dir | --vcf_dir | --vcf_dir | --vcf_dir |
+
 
 Heterozygous(parental) VCF creation:
 
