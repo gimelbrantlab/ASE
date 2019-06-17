@@ -68,7 +68,7 @@ Pseudoreference fasta creation:
 |  | Joint lines vcf | Separate line(s) vcf | Joint individuals vcf | Separate individual vcf |
 | FASTA Reference genome | --ref | --ref | --ref | --ref |
 | VCF Variant file(s)[1]    | --vcf_joint | --vcf_mat, --vcf_pat | --vcf_joind | --vcf_ind |
-| Name(s)                |  |  |  |  |
+| Name(s)                | --name_mat, --name_pat | --name_mat, --name_pat | --name_ind | --name_ind |
 | FASTA Output directory | --pseudo_dir | --pseudo_dir | --pseudo_dir | --pseudo_dir |
 | VCF Output directory   | --vcf_dir | --vcf_dir | --vcf_dir | --vcf_dir |
 
