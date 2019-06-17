@@ -80,13 +80,17 @@ python3 /home/am717/ASE/python/prepare_reference_tmp.py --PSEUDOREF True --HETVC
 [1] If one or the alleles in case of inbred lines is reference, then everything should be provided as mat or pat only, consistently.
 
 * Output:
-... * Pseudoreference genome fastas with own directories.
-... * Support vcf or bed files (if needed).
+..* Pseudoreference genome fastas with own directories.
+..* Support vcf or bed files (if needed).
 
 
 ## Heterozygous(parental) VCF creation:
 
 > NOTE(!) current version on github have no bed option (soon) 
+
+* Pre-steps:
+
+- `bed`: If bed file with listed regions is planned to be used.
 
 * Input:
 
@@ -103,8 +107,8 @@ python3 /home/am717/ASE/python/prepare_reference_tmp.py --PSEUDOREF True --HETVC
 [2] if gtf provided, automatically considered regions=exons and groups=genes; bed file should have 4 columns and prepared in advance: contig, start position, end position, group ID.
 
 * Output:
-... * VCF with heterozygous positions, one allele as refeernce and the second as alternative.
-... * Support vcf files (if needed).
+..* VCF with heterozygous positions, one allele as reference and the second as alternative.
+..* Support vcf files (if needed).
 
 > *Note: Any extra file will eat some extra space!*
 
