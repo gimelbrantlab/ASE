@@ -75,9 +75,7 @@ Pseudoreference fasta creation:
 [1] If one or the alleles in case of inbred lines is reference, then everything should be provided as mat or pat only, consistently.
 
 * Output:
-
 ⋅⋅* Pseudoreference genome fastas with own directories.
-
 ⋅⋅* Support vcf or bed files (if needed).
 
 
@@ -100,9 +98,7 @@ Heterozygous(parental) VCF creation:
 [2] if gtf provided, automatically considered regions=exons and groups=genes; bed file should have 4 columns and prepared in advance: contig, start position, end position, group ID.
 
 * Output:
-
 ..* VCF with heterozygous positions, one allele as refeernce and the second as alternative.
-
 ..* Support vcf files (if needed).
 
 
