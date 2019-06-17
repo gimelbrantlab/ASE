@@ -76,8 +76,8 @@ Pseudoreference fasta creation:
 
 * Output:
 
-..* Pseudoreference genome fastas with own directories.
-..* Support vcf or bed files (if needed).
+⋅⋅* Pseudoreference genome fastas with own directories.
+⋅⋅* Support vcf or bed files (if needed).
 
 
 Heterozygous(parental) VCF creation:
