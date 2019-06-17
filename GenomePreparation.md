@@ -50,6 +50,8 @@ For alignment:
 
 # Reference preparation:
 
+One script to rule them all:
+
 ```
 python3 /home/am717/ASE/python/prepare_reference_tmp.py --PSEUDOREF True --HETVCF True \
   --pseudoref_dir /dir/for/pseudo/ref/out/ \
@@ -60,7 +62,7 @@ python3 /home/am717/ASE/python/prepare_reference_tmp.py --PSEUDOREF True --HETVC
   --gtf /n/scratch2/sv111/ASE/Mus_musculus.GRCm38.68.gtf
 ```
 
-Pseudoreference fasta creation:
+##Pseudoreference fasta creation:
 * Input:
 
 |  | Inbred lines | Inbred lines | Individual | Individual | 
@@ -79,7 +81,7 @@ Pseudoreference fasta creation:
 ⋅⋅* Support vcf or bed files (if needed).
 
 
-Heterozygous(parental) VCF creation:
+##Heterozygous(parental) VCF creation:
 
 > NOTE(!) current version on github have no bed option (soon) 
 
