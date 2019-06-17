@@ -61,7 +61,7 @@ python3 /home/am717/ASE/python/prepare_reference_tmp.py --PSEUDOREF True --HETVC
 ```
 
 Pseudoreference fasta creation:
-
+* Input:
 
 |  | Inbred lines | Inbred lines | Individual | Individual | 
 | --- | --- | --- | --- | --- |
@@ -74,11 +74,34 @@ Pseudoreference fasta creation:
 
 [1] If one or the alleles in case of inbred lines is reference, then everything should be provided as mat or pat only, consistently.
 
+* Output:
+
+..* Pseudoreference genome fastas with own directories.
+..* Support vcf or bed files (if needed).
+
+
 Heterozygous(parental) VCF creation:
 
-1. Inbred lines:
+> NOTE(!) current version on github have no bed option (soon) 
 
-2. Individuals:
+* Input:
+
+|  | Inbred lines | Inbred lines | Individual | Individual | 
+| --- | --- | --- | --- | --- |
+|  | Joint lines vcf | Separate line(s) vcf | Joint individuals vcf | Separate individual vcf |
+| FASTA Reference genome | --ref | --ref | --ref | --ref |
+| GTF|BED Selected regions annotation [2] | --gtf or --bed | --gtf or --bed | --gtf or --bed | --gtf or --bed |
+| VCF Variant file(s)[1]    | --vcf_joint | --vcf_mat, --vcf_pat | --vcf_joind | --vcf_ind |
+| Name(s)                | --name_mat, --name_pat | --name_mat, --name_pat | --name_ind | --name_ind |
+| VCF Output directory   | --vcf_dir | --vcf_dir | --vcf_dir | --vcf_dir |
+
+[1] If one or the alleles in case of inbred lines is reference, then everything should be provided as mat or pat only, consistently.
+[2] if gtf provided, automatically considered regions=exons and groups=genes; bed file should have 4 columns and prepared in advance: contig, start position, end position, group ID.
+
+* Output:
+
+..* VCF with heterozygous positions, one allele as refeernce and the second as alternative.
+..* Support vcf files (if needed).
 
 
 
