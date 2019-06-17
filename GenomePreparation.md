@@ -101,8 +101,20 @@ Heterozygous(parental) VCF creation:
 ..* VCF with heterozygous positions, one allele as refeernce and the second as alternative.
 ..* Support vcf files (if needed).
 
+> *Note: Any extra file will eat some extra space!*
 
+# RNA-seq preparation:
 
+## Alignment (STAR) on parental genomes:
 
-> *Note: Any extra file will eat some extra space!.*
+## Allele distributing (merge):
+
+## Reads sampling for mutual analysis:
+
+## SNP allele coverage counting:
+
+## Creating SNP / Grouped SNPs tables:
+
+## Correction constant, CI(AI) and differential analysis:
+
 
