@@ -17,6 +17,9 @@ NEB_data_30mln = GetGatkPipelineTabs(paste0("../../../data/kidney/submln/", "MLN
 SMART10ng_data_30mln = GetGatkPipelineTabs(paste0("../../../data/kidney/submln/", "MLN30_SG", 7:12, "_N955_", "SMARTseq_10_ng", "_R1_merged_v2.mln30_trial5_processed_gene_extended2.txt"), c(5,5,5,5,5,5), multiple = T)
 SMART100pg_data_30mln = GetGatkPipelineTabs(paste0("../../../data/kidney/submln/", "MLN30_SG", 1:6, "_N955_", "SMARTseq_100_pg", "_R1_merged_v2.mln30_trial5_processed_gene_extended2.txt"), c(5,5,5,5,5,5), multiple = T)
 
+Gendrel = GetGatkPipelineTabs("../../../data/Gendrel/Gendrel_52604442.1_processed_gene_extended2.txt", c(4), multiple = T)
+
+
 data_30mln = list(NEB_data_30mln, SMART10ng_data_30mln, SMART100pg_data_30mln)
 rm(NEB_data_30mln)
 rm(SMART10ng_data_30mln)
@@ -31,6 +34,7 @@ data_30mln_noX = lapply(data_30mln, function(x){
   x[x$ensembl_gene_id %in% chrgenes[chrgenes$chr!="chrX" & chrgenes$chr!="chrY", "ensembl_gene_id"], ]
 })
 
+Gendrel <- Gendrel[Gendrel$ensembl_gene_id %in% chrgenes[chrgenes$chr!="chrX" & chrgenes$chr!="chrY", "ensembl_gene_id"], ]
 
 # Load pre-calculated CCs
 CC = lapply(c("../../../data/kidney/submln/NEB_CorrConsts_30mln_1.05.RData",
@@ -54,11 +58,16 @@ data_30mln_noX_sample2 = lapply(data_30mln_noX, function(x){
   x[, sort(c(1, sample2reps30mln*2, sample2reps30mln*2+1))]
 })
 
+CC_Gendrel <- c(mean(1.554912,1.580067), mean(1.581116,1.547620))
+
 # Get data frame with AIs and coverages for 2 selected replicates + tests outputs (T/F)
 
 # Get data for NEB
 
 DF_NEB_BT <- GetDataForExperiment_BT(df = data_30mln_noX_sample2, CC_df = CC_sample2_30mln, exp_name = "NEB", exp_n = 1)
+
+DF_Gend_BT <- GetDataForExperiment_BT(df = Gendrel, CC_df = CC_Gendrel, exp_name = "Gendrel", exp_n = 2)
+
 
 # Plot figures with classification (middle panel)
 
