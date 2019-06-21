@@ -46,7 +46,7 @@ wget ftp://ftp-mouse.sanger.ac.uk/current_snps/mgp.v5.merged.snps_all.dbSNP142.v
 
 For alignment:
 
-3. Reference fasta should be indexed with samtools.
+3. Reference fasta should be indexed with STAR.
 
 For regions selecting:
 
