@@ -155,6 +155,14 @@ Make shure that your file is sorted by read names:
 samtools sort -n -O sam -o $samfile -@ 4 $samfile0
 ```
 Then sample (and repeat as many times as you nead, then just process separatelly):
+
+for single end:
+```
+grep "^@" $samfile > $sampledsam
+grep -v "^@" $samfile | shuf -n $(( $minsize )) >> $sampledsam
+```
+
+for paired end:
 ```
 grep "^@" $samfile > $sampledsam
 grep -v "^@" $samfile | sed '$!N;s/\n/ IHOPETHATNEVERWOULDAPPERINSAMFILE /' | shuf -n $(( $minsize/2 )) | \
