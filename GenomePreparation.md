@@ -52,7 +52,7 @@ For regions selecting:
 
 4. `gtf` -> `bed` If bed file with listed regions is planned to be used.
 
-5. `vcf` -> `snp_table.txt`.
+5. `vcf` -> `snp_table.txt`, first 5 columns.
 
 
 
@@ -64,9 +64,9 @@ One script to rule them all:
 
 ```
 python3 /home/am717/ASE/python/prepare_reference_tmp.py --PSEUDOREF True --HETVCF True \
-  --pseudoref_dir /dir/for/pseudo/ref/out/ \
-  --vcf_dir /dir/for/vcf/outputs/ \
-  --ref GRCm38_68.fa \
+  --pseudoref_dir /full/path/to/dir/for/pseudo/ref/out/ \
+  --vcf_dir /full/path/todir/for/vcf/outputs/ \
+  --ref /full/path/to/GRCm38_68.fa \
   --name_mat 129S1_SvImJ --name_pat CAST_EiJ \
   --vcf_joint mgp.v5.merged.snps_all.dbSNP142.vcf.gz \
   --gtf /n/scratch2/sv111/ASE/Mus_musculus.GRCm38.68.gtf
