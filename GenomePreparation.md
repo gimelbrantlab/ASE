@@ -2,11 +2,11 @@
 
 1. RNA-seq data for F1-cross, fastq file (single end or paired end)
 
-> For example, `rep_i.fastq` for each of i={1..N} replicates. 
+> For example, single-end `rep_i.fastq` for each of i={1..N} replicates. 
 
 2. Reference genome
 
-> For example, `GRCm38_68.fa`.
+> For example, `/full/path/to/GRCm38_68.fa`.
 ```
 wget ftp://ftp-mouse.sanger.ac.uk/ref/GRCm38_68.fa
 ```
