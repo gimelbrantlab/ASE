@@ -58,7 +58,7 @@ For regions selecting:
 
 
 # Reference preparation:
-> `--PSEUDOREF True`
+
 
 One script to rule them all:
 
@@ -73,7 +73,7 @@ python3 /home/am717/ASE/python/prepare_reference_tmp.py --PSEUDOREF True --HETVC
 ```
 
 ## Pseudoreference fasta creation:
-> `--HETVCF True`
+> `--PSEUDOREF True`
 
 * Input:
 
@@ -94,6 +94,7 @@ python3 /home/am717/ASE/python/prepare_reference_tmp.py --PSEUDOREF True --HETVC
 
 
 ## Heterozygous(parental) VCF creation:
+> `--HETVCF True`
 
 > NOTE(!) current version on github have no bed option (soon) 
 
