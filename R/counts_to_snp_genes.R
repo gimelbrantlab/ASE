@@ -86,17 +86,17 @@ print(unique(merged_counts$contig))
 # Create bed file for bedtools:
 #
 merged_counts$unique_id <- paste0(merged_counts$contig, "_", merged_counts$position)
-# (because vcf is 1-based and bed is 0-based)
+# (because vcf is 1-based and bed is 0-based):
 merged_counts$start     <- merged_counts$position - 1
 merged_counts$end       <- merged_counts$position 
 #
 merged_counts_bed <- merged_counts[,c('contig', 'start', 'end', 'unique_id')]
-bed_snp <- file.path(opt$odir, paste0(opt$pr_name, "_merged_extended2.v3.bed"))
+bed_snp <- file.path(opt$odir, paste0(opt$pr_name, "_merged.v3.1.bed"))
 write.table(merged_counts_bed, file=bed_snp, quote = F, row.names = F, col.names = F, sep="\t")
 #
 # Run bedtools to merge exon data and SNPs:
 #
-bed_exons_snp <- file.path(opt$odir, paste0(opt$pr_name, "_merged_to_exons.v3.bed"))
+bed_exons_snp <- file.path(opt$odir, paste0(opt$pr_name, "_merged_to_exons.v3.1.bed"))
 cmd <- paste("bedtools intersect", "-a", bed_snp, "-b", opt$regions_bed, "-wa", "-wb", ">", bed_exons_snp, sep=" ")
 print(paste("CMD::", cmd))
 system(cmd)
@@ -114,15 +114,17 @@ merged_counts_group <- cbind(merged_counts_group[, !(names(merged_counts_group) 
                                                                                        "position", "refAllele", "altAllele"))],
                              merged_counts_group[, c("contig", "position", "refAllele", "altAllele")])
 merged_counts_group <- merged_counts_group[!duplicated(merged_counts_group), ]
+mcg_multaffiliation <- merged_counts_group[duplicated(merged_counts_group$ID), ]$ID
+merged_counts_group <- merged_counts_group[!(merged_counts_group$ID %in% mcg_multaffiliation), ]
 #
 # Write SNP allele counts file:
 #
-file_out_s <- file.path(opt$odir, paste0(opt$pr_name, "_processed_snp.v3.txt"))
-write.table(merged_counts_group, file=file_out_s, quote = F, row.names = F, col.names = F, sep="\t")
+file_out_s <- file.path(opt$odir, paste0(opt$pr_name, "_processed_snp.v3.1.txt"))
+write.table(merged_counts_group, file=file_out_s, quote = F, row.names = F, sep="\t")
 #
 # Write gene allele counts file:
 #
-file_out_g <- file.path(opt$odir, paste0(opt$pr_name, "_processed_gene.v3.txt"))
+file_out_g <- file.path(opt$odir, paste0(opt$pr_name, "_processed_gene.v3.1.txt"))
 #
 merged_counts_group <- merged_counts_group[order(merged_counts_group$contig, merged_counts_group$position), ]
 #
