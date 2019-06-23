@@ -475,15 +475,15 @@ def main():
     # CASES:
     # SEPARATE ALLELE VCFs:
     if (args.vcf_mat is not None or args.vcf_pat is not None):
-        if ((args.vcf_mat is not None and args.vcf_mat is not None) and (args.vcf_pat is not None and args.vcf_pat is not None)):
+        if ((args.vcf_mat is not None and args.name_mat is not None) and (args.vcf_pat is not None and args.name_pat is not None)):
             input_case = "two_alleles"
             name_mat   = args.name_mat
             name_pat   = args.name_pat
-        elif (args.vcf_mat is not None and args.vcf_mat is not None):
+        elif (args.vcf_mat is not None and args.name_mat is not None):
             input_case = "one_allele"
             vcf_alt    = args.vcf_mat
             name_alt   = args.name_mat
-        elif (args.vcf_pat is not None and args.vcf_pat is not None):
+        elif (args.vcf_pat is not None and args.name_pat is not None):
             input_case = "one_allele"
             vcf_alt    = args.vcf_pat
             name_alt   = args.name_pat
@@ -492,14 +492,14 @@ def main():
             raise argparse.ArgumentTypeError(msg)
     # JOINT VCF FILE WITH ALLELES as columns:
     elif (args.vcf_joint is not None):
-        if (args.vcf_mat is not None and args.vcf_pat is not None):
+        if (args.name_mat is not None and args.name_pat is not None):
             input_case = "joint_two_alleles"
             name_mat   = args.name_mat
             name_pat   = args.name_pat
-        elif (args.vcf_mat is not None):
+        elif (args.name_mat is not None):
             input_case = "joint_one_allele"
             name_alt   = args.name_mat
-        elif (args.vcf_pat is not None):
+        elif (args.name_pat is not None):
             input_case = "joint_one_allele"
             name_alt   = args.name_pat
         else:
