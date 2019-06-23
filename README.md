@@ -4,7 +4,7 @@ This pipeline is created to analyze allelic imbalance for F1 crosses of inbred m
 
 ## Files preparation and ASE counter run
 
-You will need to run _prepare_reference.py_ once for every F1 genome, then run the set of functions for all RNA-seq experiments to get allelic imbalance for individual SNPs.  (for more information, please see [instructions](https://github.com/gimelbrantlab/ASE/blob/master/GenomePreparation.md)). Next, run getASE.sh 
+You will need to run _prepare_reference.py_ once for every F1 genome, then run the set of functions for all RNA-seq experiments to get allelic imbalance for individual SNPs.  (for more information, please see [instructions](https://github.com/gimelbrantlab/ASE/blob/master/GenomePreparation.md)). 
 
 ## Allelic Imbalance estimation and differential allelic expression
 
