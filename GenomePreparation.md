@@ -205,7 +205,7 @@ for sam in /full/path/to/SRR1106781_merged.Nsorted.sam /full/path/to/SRR1106786_
 do
   grep "^@" $sam > $sam".sample"$minsize"reads.sam"
   grep -v "^@" $sam | sed '$!N;s/\n/ IHOPETHATNEVERWOULDAPPERINSAMFILE /' | shuf -n $(( $minsize/2 )) | \
-       sed 's/ IHOPETHATNEVERWOULDAPPERINSAMFILE /\n/' >> $sam".sample"$minsize"reads.sam"
+       sed 's/ IHOPETHATNEVERWOULDAPPERINSAMFILE /\n/' >> $sam".sample"$(($minsize/2))"Preads.sam"
 done
 
 ```
@@ -217,22 +217,22 @@ Output: one sampled sam file per replicate.
 
 Convert sam to sorted bam (`samtools sort`):
 ```
-samtools sort -o /full/path/to/SRR1106781_merged_sampleMINSIZEreads.sorted.bam /full/path/to/SRR1106781_merged.Nsorted.sam.sampleMINSIZEreads.sam
-samtools sort -o /full/path/to/SRR1106786_merged_sampleMINSIZEreads.sorted.bam /full/path/to/SRR1106786_merged.Nsorted.sam.sampleMINSIZEreads.sam
+samtools sort -o /full/path/to/SRR1106781_merged_sample26302221Preads.sorted.bam /full/path/to/SRR1106781_merged.Nsorted.sam.sample26302221Preads.sam
+samtools sort -o /full/path/to/SRR1106786_merged_sample26302221Preads.sorted.bam /full/path/to/SRR1106786_merged.Nsorted.sam.sample26302221Preads.sam
 ```
 
 Obtain table with SNP allele counts:
 ```
 python /home/am717/scripts/allelecounter.py --vcf /full/path/to/Het_Allelic_129S1_SvImJ_CAST_EiJ.exons.vcf.gz \
-       --bam /full/path/to/SRR1106781_merged_sampleMINSIZEreads.sorted.bam \
+       --bam /full/path/to/SRR1106781_merged_sample26302221Preads.sorted.bam \
        --ref $pseudoDir/129S1_SvImJ/129S1_SvImJ_pseudo.fa \
        --sample F1 --min_cov 0 --min_baseq 2 --min_mapq 10 \
-       --o /full/path/to/SRR1106781_merged_sampleMINSIZEreads.stat_0.txt
+       --o /full/path/to/SRR1106781_merged_sample26302221Preads.stat_0.txt
 python /home/am717/scripts/allelecounter.py --vcf /full/path/to/Het_Allelic_129S1_SvImJ_CAST_EiJ.exons.vcf.gz \
-       --bam /full/path/to/SRR1106786_merged_sampleMINSIZEreads.sorted.bam\
+       --bam /full/path/to/SRR1106786_merged_sample26302221Preads.sorted.bam\
        --ref $pseudoDir/129S1_SvImJ/129S1_SvImJ_pseudo.fa \
        --sample F1 --min_cov 0 --min_baseq 2 --min_mapq 10 \
-       --o /full/path/to/SRR1106786_merged_sampleMINSIZEreads.stat_0.txt
+       --o /full/path/to/SRR1106786_merged_sample26302221Preads.stat_0.txt
 ```
 
 Output: one table per replicate.
@@ -253,7 +253,7 @@ grep -v "^#" /full/path/to/Het_Allelic_129S1_SvImJ_CAST_EiJ.exons.vcf | sort -V 
 ```
 Rscript --vanilla /home/am717/scripts/counts_to_snp_genes.R \ 
         -d /full/path/to/dir/with/stat/files/ \
-        -n SRR1106781_merged_sampleMINSIZEreads,SRR1106786_merged_sampleMINSIZEreads \
+        -n SRR1106781_merged_sample26302221Preads,SRR1106786_merged_sample26302221Preads \
         -r Gendrel_81_85 \
         -o /full/path/to/dir/with/stat/files/ \
         -v /full/path/to/Het_Allelic_129S1_SvImJ_CAST_EiJ.snp_table.txt \
