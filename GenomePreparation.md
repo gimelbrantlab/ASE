@@ -3,6 +3,9 @@
 1. RNA-seq data for F1-cross, fastq file (single end or paired end)
 
 > For example, single-end `rep_i.fastq` for each of i={1..N} replicates. 
+```
+TODO(SV): downloading Gendrel data
+```
 
 2. Reference genome
 
@@ -13,10 +16,9 @@ wget ftp://ftp-mouse.sanger.ac.uk/ref/GRCm38_68.fa
 
 3. gtf annotation for the reference genome
 
-> For example, `Mus_musculus.GRCm38.68.gtf.gz` for corresponding reference genome version.
+> For example, `/full/path/to/Mus_musculus.GRCm38.68.gtf.gz` for corresponding reference genome version.
 ```
 wget ftp://ftp.ensembl.org/pub/release-68/gtf/mus_musculus/Mus_musculus.GRCm38.68.gtf.gz
-gunzip Mus_musculus.GRCm38.68.gtf.gz
 ```
 
 4. Two vcf files for maternal and paternal imbred line (should be "compatible" with reference genome)
