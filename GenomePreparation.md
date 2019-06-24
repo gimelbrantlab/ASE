@@ -48,11 +48,10 @@ wget ftp://ftp-mouse.sanger.ac.uk/current_snps/mgp.v5.merged.snps_all.dbSNP142.v
 
 # Reference preparation:
 
-
 One script to rule them all:
 
 ```
-python3 /home/am717/ASE/python/prepare_reference_tmp.py --PSEUDOREF True --HETVCF True \
+python3 /full/path/to/ASE/python/prepare_reference_tmp.py --PSEUDOREF True --HETVCF True \
   --pseudoref_dir /full/path/to/dir/for/pseudo/ref/out/ \
   --vcf_dir /full/path/todir/for/vcf/outputs/ \
   --ref /full/path/to/GRCm38_68.fa \
@@ -113,20 +112,47 @@ python3 /home/am717/ASE/python/prepare_reference_tmp.py --help
 
 ## Alignment (STAR) on parental genomes:
 
-Make shure that your fasta files are ready for the STAR alignment step, each of them should be [indexed with STAR](http://labshare.cshl.edu/shares/gingeraslab/www-data/dobin/STAR/STAR.posix/doc/STARmanual.pdf) (`STAR --runMode genomeGenerate`).
+* Make shure that your fasta files are ready for the STAR alignment step, each of them should be [indexed with STAR](http://labshare.cshl.edu/shares/gingeraslab/www-data/dobin/STAR/STAR.posix/doc/STARmanual.pdf) (`STAR --runMode genomeGenerate`).
+```
+pseudoRefDirs=/full/path/to/dir/for/pseudo/ref/out/
+STAR --runMode genomeGenerate --genomeDir $pseudoRefDirs/129S1_SvImJ/ --genomeFastaFiles $pseudoDir/129S1_SvImJ/129S1_SvImJ_pseudo.fa
+STAR --runMode genomeGenerate --genomeDir $pseudoRefDirs/CAST_EiJ/ --genomeFastaFiles $pseudoDir/CAST_EiJ/CAST_EiJ_pseudo.fa
+```
+* Make shure that you have unziped (`gunzip`) sample fasta/fastq files.
 
+Run alignment:
 ```
-STAR --runMode genomeGenerate 
-```
+pseudoRefDirs=/full/path/to/dir/for/pseudo/ref/out/
 
-```
-STAR --readFilesIn $item1 $item2 \
-     --outFileNamePrefix $D$item"_on129S1." \
+STAR --readFilesIn /full/path/to/SRR1106781_1.fastq.gz /full/path/to/SRR1106781_2.fastq.gz \
+     --outFileNamePrefix /full/path/to/alignment/output/SRR1106781.on129S1. \
      --runThreadN 4 --outSAMtype SAM \
      --outSAMattrRGline ID:mat \
-     --genomeDir /n/scratch2/sv111/ASE/129S1SvImJ_pseudo/ \
-     --outFilterMultimapNmax 1 --sjdbGTFfile /n/scratch2/sv111/ASE/Mus_musculus.GRCm38.68.gtf
+     --genomeDir $pseudoRefDirs/129S1SvImJ/ \
+     --outFilterMultimapNmax 1 --sjdbGTFfile /full/path/to/Mus_musculus.GRCm38.68.gtf
+STAR --readFilesIn /full/path/to/SRR1106781_1.fastq.gz /full/path/to/SRR1106781_2.fastq.gz \
+     --outFileNamePrefix /full/path/to/alignment/output/SRR1106781.onCAST. \
+     --runThreadN 4 --outSAMtype SAM \
+     --outSAMattrRGline ID:pat \
+     --genomeDir $pseudoRefDirs/CAST_EiJ/ \
+     --outFilterMultimapNmax 1 --sjdbGTFfile /full/path/to/Mus_musculus.GRCm38.68.gtf
+     
+STAR --readFilesIn /full/path/to/SRR1106786_1.fastq.gz /full/path/to/SRR1106786_2.fastq.gz \
+     --outFileNamePrefix /full/path/to/alignment/output/SRR1106786.on129S1. \
+     --runThreadN 4 --outSAMtype SAM \
+     --outSAMattrRGline ID:mat \
+     --genomeDir $pseudoRefDirs/129S1SvImJ/ \
+     --outFilterMultimapNmax 1 --sjdbGTFfile /full/path/to/Mus_musculus.GRCm38.68.gtf
+STAR --readFilesIn /full/path/to/SRR1106786_1.fastq.gz /full/path/to/SRR1106786_2.fastq.gz \
+     --outFileNamePrefix /full/path/to/alignment/output/SRR1106786.onCAST. \
+     --runThreadN 4 --outSAMtype SAM \
+     --outSAMattrRGline ID:pat \
+     --genomeDir $pseudoRefDirs/CAST_EiJ/ \
+     --outFilterMultimapNmax 1 --sjdbGTFfile /full/path/to/Mus_musculus.GRCm38.68.gtf
 ```
+
+* Output:
+  * Aligned reads sam-files for each replicate and parental genome.
 
 ## Allele distributing (merge):
 
