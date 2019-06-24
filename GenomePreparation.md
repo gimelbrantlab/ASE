@@ -125,47 +125,55 @@ Run alignment:
 pseudoRefDirs=/full/path/to/dir/for/pseudo/ref/out/
 
 STAR --readFilesIn /full/path/to/SRR1106781_1.fastq.gz /full/path/to/SRR1106781_2.fastq.gz \
-     --outFileNamePrefix /full/path/to/alignment/output/SRR1106781.on129S1. \
+     --outFileNamePrefix /full/path/to/alignment/output/SRR1106781_on129S1. \
      --runThreadN 4 --outSAMtype SAM \
      --outSAMattrRGline ID:mat \
-     --genomeDir $pseudoRefDirs/129S1SvImJ/ \
+     --genomeDir $pseudoRefDirs/129S1_SvImJ/ \
      --outFilterMultimapNmax 1 --sjdbGTFfile /full/path/to/Mus_musculus.GRCm38.68.gtf
 STAR --readFilesIn /full/path/to/SRR1106781_1.fastq.gz /full/path/to/SRR1106781_2.fastq.gz \
-     --outFileNamePrefix /full/path/to/alignment/output/SRR1106781.onCAST. \
+     --outFileNamePrefix /full/path/to/alignment/output/SRR1106781_onCAST. \
      --runThreadN 4 --outSAMtype SAM \
      --outSAMattrRGline ID:pat \
      --genomeDir $pseudoRefDirs/CAST_EiJ/ \
      --outFilterMultimapNmax 1 --sjdbGTFfile /full/path/to/Mus_musculus.GRCm38.68.gtf
      
 STAR --readFilesIn /full/path/to/SRR1106786_1.fastq.gz /full/path/to/SRR1106786_2.fastq.gz \
-     --outFileNamePrefix /full/path/to/alignment/output/SRR1106786.on129S1. \
+     --outFileNamePrefix /full/path/to/alignment/output/SRR1106786_on129S1. \
      --runThreadN 4 --outSAMtype SAM \
      --outSAMattrRGline ID:mat \
-     --genomeDir $pseudoRefDirs/129S1SvImJ/ \
+     --genomeDir $pseudoRefDirs/129S1_SvImJ/ \
      --outFilterMultimapNmax 1 --sjdbGTFfile /full/path/to/Mus_musculus.GRCm38.68.gtf
 STAR --readFilesIn /full/path/to/SRR1106786_1.fastq.gz /full/path/to/SRR1106786_2.fastq.gz \
-     --outFileNamePrefix /full/path/to/alignment/output/SRR1106786.onCAST. \
+     --outFileNamePrefix /full/path/to/alignment/output/SRR1106786_onCAST. \
      --runThreadN 4 --outSAMtype SAM \
      --outSAMattrRGline ID:pat \
      --genomeDir $pseudoRefDirs/CAST_EiJ/ \
      --outFilterMultimapNmax 1 --sjdbGTFfile /full/path/to/Mus_musculus.GRCm38.68.gtf
 ```
 
-* Output:
-  * Aligned reads sam-files for each replicate and parental genome.
+* Output: aligned reads sam-files for each replicate and parental genome.
 
 ## Allele distributing (merge):
 
-Make shure that your file is sorted by read names:
+Make shure that your file is sorted by read names (`samtools sort -n `):
 ```
-samtools sort -n -O sam -o $D$item"_on129S1.sam" -@ 4 $D$item"_on129S1.Aligned.out.sam"
+[TODO: concrete]
+samtools sort -n -O sam -o /full/path/to/SRR1106781_on129S1.Nsorted.sam -@ 4 /full/path/to/SRR1106781_on129S1.Aligned.out.sam
+amtools sort -n -O sam -o /full/path/to/SRR1106781_onCAST.Nsorted.sam -@ 4 /full/path/to/SRR1106781_on129S1.Aligned.out.sam
+amtools sort -n -O sam -o /full/path/to/SRR1106786_on129S1.Nsorted.sam -@ 4 /full/path/to/SRR1106786_on129S1.Aligned.out.sam
+amtools sort -n -O sam -o /full/path/to/SRR1106786_onCAST.Nsorted.sam -@ 4 /full/path/to/SRR1106786_onCAST.Aligned.out.sam
 ```
 Then merge:
 ```
-python /home/am717/scripts/alleleseq_merge_stream_v2.py \ 
-       --pat_sam $D$item"_onCAST.sam" \
-       --mat_sam $D$item"_on129S1.sam" \
-       --o $D$item"_merged.sam" \
+python /full/path/to/ASE/python/alleleseq_merge_stream_v2.py \ 
+       --mat_sam /full/path/to/SRR1106781_on129S1.Nsorted.sam \
+       --pat_sam /full/path/to/SRR1106781_onCAST.Nsorted.sam \
+       --o /full/path/to/SRR1106781_merged.sam \
+       --paired 1
+python /full/path/to/ASE/python/alleleseq_merge_stream_v2.py \ 
+       --mat_sam /full/path/to/SRR1106786_on129S1.Nsorted.sam \
+       --pat_sam /full/path/to/SRR1106786_onCAST.Nsorted.sam \
+       --o /full/path/to/SRR1106786_merged.sam \
        --paired 1
 ```
 Output: one sam file with mat and pat readgroups per replicate.
@@ -174,65 +182,87 @@ Output: one sam file with mat and pat readgroups per replicate.
 
 All the sam files in the analysis should be sampled to the same lib size (for example, min(sizes)), see paper for reasoning.
 
-Make shure that your file is sorted by read names:
+Make shure that your file is sorted by read names (`samtools sort -n `):
 ```
-samtools sort -n -O sam -o $samfile -@ 4 $samfile0
+samtools sort -n -O sam -o /full/path/to/SRR1106781_merged.Nsorted.sam -@ 4 /full/path/to/SRR1106781_merged.sam
+samtools sort -n -O sam -o /full/path/to/SRR1106786_merged.Nsorted.sam -@ 4 /full/path/to/SRR1106786_merged.sam
 ```
-Then sample (and repeat as many times as you nead, then just process separatelly):
+Then sample (and repeat as many times as you nead, then just process separatelly), for paired end (the case of the example):
+* first calculate sizes (`samtools view -c`):
+```
+for sam in /full/path/to/SRR1106781_merged.Nsorted.sam /full/path/to/SRR1106786_merged.Nsorted.sam
+do
+  echo $sam'\t'`samtools view -c $sam` >> /path/to/samsizes.tsv
+done
+```
+* take minimum: 
+```
+minsize=$(cut -f2 /path/to/samsizes.tsv | sort -V | head -1)
+```
+* and sample all files to that number of reads, in paired-end case, for example:
+```
+for sam in /full/path/to/SRR1106781_merged.Nsorted.sam /full/path/to/SRR1106786_merged.Nsorted.sam
+do
+  grep "^@" $sam > $sam".sample"$minsize"reads.sam"
+  grep -v "^@" $sam | sed '$!N;s/\n/ IHOPETHATNEVERWOULDAPPERINSAMFILE /' | shuf -n $(( $minsize/2 )) | \
+       sed 's/ IHOPETHATNEVERWOULDAPPERINSAMFILE /\n/' >> $sam".sample"$minsize"reads.sam"
+done
 
-for single end:
 ```
-grep "^@" $samfile > $sampledsam
-grep -v "^@" $samfile | shuf -n $(( $minsize )) >> $sampledsam
-```
+(for single end, even simplier: pipe of `grep -v "^@"` and `shuf -n $minsize`)
 
-for paired end:
-```
-grep "^@" $samfile > $sampledsam
-grep -v "^@" $samfile | sed '$!N;s/\n/ IHOPETHATNEVERWOULDAPPERINSAMFILE /' | shuf -n $(( $minsize/2 )) | \
-      sed 's/ IHOPETHATNEVERWOULDAPPERINSAMFILE /\n/' >> $sampledsam
-```
-
-Output: one sampled sam file (x trials) per replicate.
+Output: one sampled sam file per replicate.
 
 ## SNP allele coverage counting:
 
-Convert sam to bam:
+Convert sam to sorted bam (`samtools sort`):
 ```
-samtools sort -o $sampledbam $sampledsam
-```
-Obtain table with SNP allele counts:
-```
-python /home/am717/scripts/allelecounter.py --vcf $VCF \
-       --sample F1 --bam $sampledbam \
-       --ref $ref129S1 --min_cov 0 --min_baseq 2 --min_mapq 10 \
-       --o $D"input_data/"$sample".sample"$minsize"."$i".stat_0.txt"
+samtools sort -o /full/path/to/SRR1106781_merged.Nsorted.sam.sampleMINSIZEreads.bam /full/path/to/SRR1106781_merged.Nsorted.sam.sampleMINSIZEreads.sam
+samtools sort -o /full/path/to/SRR1106786_merged.Nsorted.sam.sampleMINSIZEreads.bam /full/path/to/SRR1106786_merged.Nsorted.sam.sampleMINSIZEreads.sam
 ```
 
-Output: one table (x trials) per replicate.
+Obtain table with SNP allele counts:
+```
+python /home/am717/scripts/allelecounter.py --vcf /full/path/to/Het_Allelic_129S1_SvImJ_CAST_EiJ.exons.vcf.gz \
+       --bam /full/path/to/SRR1106781_merged.Nsorted.sam.sampleMINSIZEreads.bam \
+       --ref $pseudoDir/129S1_SvImJ/129S1_SvImJ_pseudo.fa \
+       --sample F1 --min_cov 0 --min_baseq 2 --min_mapq 10 \
+       --o /full/path/to/SRR1106781_merged_sampleMINSIZEreads.stat_0.txt
+python /home/am717/scripts/allelecounter.py --vcf /full/path/to/Het_Allelic_129S1_SvImJ_CAST_EiJ.exons.vcf.gz \
+       --bam /full/path/to/SRR1106786_merged.Nsorted.sam.sampleMINSIZEreads.bam \
+       --ref $pseudoDir/129S1_SvImJ/129S1_SvImJ_pseudo.fa \
+       --sample F1 --min_cov 0 --min_baseq 2 --min_mapq 10 \
+       --o /full/path/to/SRR1106786_merged_sampleMINSIZEreads.stat_0.txt
+```
+
+Output: one table per replicate.
 
 ## Creating SNP / Grouped SNPs tables:
 
+Make sure that you have: 
+* bed file (with four columns: contig, start and end positions, group ID; no column names) with selected regions, for example, exon regions grouped by genes:
+```
+awk '$3=="exon" && ($1 ~ /^[1-9]/ || $1 == "X" || $1 == "Y")' /full/path/to/Mus_musculus.GRCm38.68.gtf | cut -f1,4,5,9 | awk -F $'\t' 'BEGIN {OFS = FS} {split($4, a, "gene_id \""); split(a[2], b, "\""); print $1, $2-1, $3, b[1]}' > /full/path/to/output/Mus_musculus.GRCm38.68.EXONS.bed
+```
+* snp table, which can be obtained from vcf with heterozigous positions created above, as 5 first columns, for example:
+```
+grep "^#CHROM" /full/path/to/Het_Allelic_129S1_SvImJ_CAST_EiJ.exons.vcf | cut -f1-5 > /full/path/to/Het_Allelic_129S1_SvImJ_CAST_EiJ.snp_table.txt
+grep -v "^#" /full/path/to/Het_Allelic_129S1_SvImJ_CAST_EiJ.exons.vcf | sort -V | cut -f1-5 > /full/path/to/Het_Allelic_129S1_SvImJ_CAST_EiJ.snp_table.txt
+```
+
 ```
 Rscript --vanilla /home/am717/scripts/counts_to_snp_genes.R \ 
-        -d $D/input_data \
-        -n $prefixes \
-        -r $pr_name \
-        -o $D \
-        -v $snpf1infoexons \
-        -b $exonsbed 
-        
+        -d /full/path/to/dir/with/stat/files/ \
+        -n SRR1106781_merged_sampleMINSIZEreads,SRR1106786_merged_sampleMINSIZEreads \
+        -r Gendrel_81_85 \
+        -o /full/path/to/dir/with/stat/files/ \
+        -v /full/path/to/Het_Allelic_129S1_SvImJ_CAST_EiJ.snp_table.txt \
+        -b /full/path/to/output/Mus_musculus.GRCm38.68.EXONS.bed 
 ```
 
-Output: SNP table and Grouped SNP table (for example, genes) (x trials) per set of replicates.
+Output: SNP table and Grouped SNP table (for example, genes) per set of replicates.
 
 
-## Correction constant:
+## Correction constant, CI(AI), and differential analysis :
+(see manual)
 
-```
-Rscript /home/am717/scripts/cc_anytab.R -d $D -t $tab -e Geuvadis_$pr_name -n 7
-```
-
-Output: RData with Correction Constants.
-
-## CI(AI) and differential analysis:
