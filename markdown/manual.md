@@ -33,7 +33,7 @@ designMatrix <- BuildDesign(experimentNames, techReps)
 Now we can look at the data. Here is the *geneCountTab* dataframe with counts for all genes, all replicates and conditions:
 
 ``` r
-inTabs <- "../../../data/5aza/pr_20180714_ISEKI_processed_gene_extended2.txt"
+inTabs <- "../../../data/5aza/pr_20180714_ISEKI_processed_gene_v3.txt"
 geneCountTab <- GetGatkPipelineTabs(inTabs, designMatrix$techReps, multiple = F)
 head(geneCountTab)
 ```
