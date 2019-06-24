@@ -443,7 +443,8 @@ def main():
     parser.add_argument("--pseudoref_dir", required=False, metavar="[/path/to/dir]", help="Path to directory with subdirectories --name_mat and --name_pat, that contain pseudogenome fasta files.")
     parser.add_argument("--vcf_dir", required=False, metavar="[/path/to/dir]", help="Path to directory with vcf files; required if --HETVCF True, or allelevcfs not provided")
     parser.add_argument("--ref", required=True, metavar="[/path/to/file]", help="Path to reference fasta file.")
-    parser.add_argument("--gtf", required=False, metavar="[/path/to/file]", help="Path to reference gtf file.")
+    parser.add_argument("--gtf", required=False, metavar="[/path/to/file]", help="Path to reference gtf file, if provided will create *.exon.vcf.")
+    parser.add_argument("--bed", required=False, metavar="[/path/to/file]", help="Path to bed file with regions for selection (3 first columns (no colnames!): chrom, chromStart, chromEnd), if provided will create *.selected_regions.vcf")
     parser.add_argument("--name_ind", required=False, help="Name of individuum (required with --vcf_joind and --vcf_ind: name should coincide with name in vcf; please avoid giving 'ref' ar 'alt' names, they have special meanings)")
     parser.add_argument("--name_mat", required=False, help="Name of maternal line/sample (required with --vcf_joint if aat is needed, and --vcf_mat: names should coincide with names in vcf; please avoid giving 'ref' ar 'alt' names, they have special meanings)")
     parser.add_argument("--name_pat", required=False, help="Name of paternal line/sample (required with --vcf_joint if pat is needed, and --vcf_pat: names should coincide with names in vcf; please avoid giving 'ref' ar 'alt' names, they have special meanings)")
@@ -677,27 +678,38 @@ def main():
 
         gzip_tabix_VCF(vcf_het)
 
-        # EXON F1 VCF:
-        #subprocess.check_output("gatk IndexFeatureFile -F " + vcf_het + ".gz", shell=True)
-        vcf_het_exon = vcf_het.replace(".vcf", ".exons.vcf")
-        #GATK_SelectVariants(r=args.ref, v=vcf_het, g=args.gtf, o=vcf_het_exon)
+        # HET VCF restrictions on the regions:
+        if (args.bed is not None or (args.gtf is not None):
+            if (args.bed is not None):
+                vcf_het_region = vcf_het.replace(".vcf", ".selected_regions.vcf")
+                
+                region_bed = tempfile.NamedTemporaryFile(delete=False, suffix=".bed")
 
+                cmd_bed_head = "sed '1ichrom\tchromStart\tchromEnd' " + args.bed + " > " + region_bed 
+                print(cmd_bed_head)
+                subprocess.check_output(cmd_bed_head, shell=True)
 
-	# TODO: replace with just bed as input if it is not exons! (Out of this file)
-        exon_bed = os.path.join(os.path.dirname(vcf_het_exon), os.path.basename(args.gtf) + "exons.bed")
-        cmd_exon_bed = " ".join(["grep -w 'exon'", args.gtf, "| grep '^[0-9XY]' | awk 'BEGIN{FS=OFS=", '"\t"', "}; {print $1,$4-1,$5}' >", exon_bed])
-        print(cmd_exon_bed)
-        subprocess.check_output(cmd_exon_bed, shell=True)
-        cmd_bed_head = "sed -i '1ichrom\tchromStart\tchromEnd' " + exon_bed
-        print(cmd_bed_head)
-        subprocess.check_output(cmd_bed_head, shell=True)
+            elif (args.gtf is not None):
+                vcf_het_region = vcf_het.replace(".vcf", ".exons.vcf")
+
+                exon_bed = os.path.join(os.path.dirname(vcf_het_exon), os.path.basename(args.gtf) + "exons.bed")
+                cmd_exon_bed = " ".join(["grep -w 'exon'", args.gtf, "| grep '^[0-9XY]' | awk 'BEGIN{FS=OFS=", '"\t"', "}; {print $1,$4-1,$5}' >", exon_bed])
+                print(cmd_exon_bed)
+                subprocess.check_output(cmd_exon_bed, shell=True)
+                cmd_bed_head = "sed -i '1ichrom\tchromStart\tchromEnd' " + exon_bed
+                print(cmd_bed_head)
+                subprocess.check_output(cmd_bed_head, shell=True)
+   
+                region_bed = exon_bed
  
-        cmd_getexon_vcf = ' '.join(["vcftools", "--vcf", vcf_het, "--bed", exon_bed, "--recode", "--recode-INFO-all", "--stdout", '>', vcf_het_exon])
-        print(cmd_getexon_vcf)
-        subprocess.check_output(cmd_getexon_vcf, shell=True)
+            cmd_getregion_vcf = ' '.join(["vcftools", "--vcf", vcf_het, "--bed", region_bed, "--recode", "--recode-INFO-all", "--stdout", '>', vcf_het_region])
+            print(cmd_getregion_vcf)
+            subprocess.check_output(cmd_getregion_vcf, shell=True)
  
-        gzip_tabix_VCF(vcf_het_exon)
+            gzip_tabix_VCF(vcf_het_region)
 
+            if (args.bed is not None):
+                os.remove(region_bed)
 
 
 
