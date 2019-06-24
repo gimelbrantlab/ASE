@@ -96,27 +96,24 @@ python3 /home/am717/ASE/python/prepare_reference_tmp.py --PSEUDOREF True --HETVC
 ## Heterozygous(parental) VCF creation:
 > `--HETVCF True`
 
-> NOTE(!) current version on github have no bed option (soon) 
-
 * Input:
 
 |  | Inbred lines | Inbred lines | Individual | Individual | 
 | --- | --- | --- | --- | --- |
 |  | Joint lines vcf | Separate line(s) vcf | Joint individuals vcf | Separate individual vcf |
 | FASTA Reference genome | --ref | --ref | --ref | --ref |
-| GTF|BED Selected regions annotation [2] | --gtf or --bed | --gtf or --bed | --gtf or --bed | --gtf or --bed |
+| nothing or GTF or BED Selected regions annotation [2] | --gtf or --bed | --gtf or --bed | --gtf or --bed | --gtf or --bed |
 | VCF Variant file(s)[1]    | --vcf_joint | --vcf_mat, --vcf_pat | --vcf_joind | --vcf_ind |
 | Name(s)                | --name_mat, --name_pat | --name_mat, --name_pat | --name_ind | --name_ind |
 | VCF Output directory   | --vcf_dir | --vcf_dir | --vcf_dir | --vcf_dir |
 
 [1] If one or the alleles in case of inbred lines is reference, then everything should be provided as mat or pat only, consistently.
-[2] if gtf provided, automatically considered regions=exons and groups=genes; bed file should have 4 columns and prepared in advance: contig, start position, end position, group ID.
+[2] Bed will be considered as main; if gtf provided, automatically considered regions=exons and groups=genes; bed file should have 4 columns and prepared in advance: contig, start position, end position, group ID (no colnames).
 
 * Output:
   * VCF with heterozygous positions, one allele as reference and the second as alternative.
   * Support vcf files (if needed).
 
-> *Note: Any extra file will eat some extra space!*
 
 # RNA-seq preparation:
 
