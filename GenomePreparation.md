@@ -155,7 +155,7 @@ STAR --readFilesIn /full/path/to/SRR1106786_1.fastq.gz /full/path/to/SRR1106786_
 
 ## Allele distributing (merge):
 
-Make shure that your file is sorted by read names (`samtools sort -n `):
+Sorted files by read names (`samtools sort -n `):
 ```
 [TODO: concrete]
 samtools sort -n -O sam -o /full/path/to/SRR1106781_on129S1.Nsorted.sam -@ 4 /full/path/to/SRR1106781_on129S1.Aligned.out.sam
@@ -182,7 +182,7 @@ Output: one sam file with mat and pat readgroups per replicate.
 
 All the sam files in the analysis should be sampled to the same lib size (for example, min(sizes)), see paper for reasoning.
 
-Make shure that your file is sorted by read names (`samtools sort -n `):
+Sort merged files by read names (`samtools sort -n `):
 ```
 samtools sort -n -O sam -o /full/path/to/SRR1106781_merged.Nsorted.sam -@ 4 /full/path/to/SRR1106781_merged.sam
 samtools sort -n -O sam -o /full/path/to/SRR1106786_merged.Nsorted.sam -@ 4 /full/path/to/SRR1106786_merged.sam
@@ -217,19 +217,19 @@ Output: one sampled sam file per replicate.
 
 Convert sam to sorted bam (`samtools sort`):
 ```
-samtools sort -o /full/path/to/SRR1106781_merged.Nsorted.sam.sampleMINSIZEreads.bam /full/path/to/SRR1106781_merged.Nsorted.sam.sampleMINSIZEreads.sam
-samtools sort -o /full/path/to/SRR1106786_merged.Nsorted.sam.sampleMINSIZEreads.bam /full/path/to/SRR1106786_merged.Nsorted.sam.sampleMINSIZEreads.sam
+samtools sort -o /full/path/to/SRR1106781_merged_sampleMINSIZEreads.sorted.bam /full/path/to/SRR1106781_merged.Nsorted.sam.sampleMINSIZEreads.sam
+samtools sort -o /full/path/to/SRR1106786_merged_sampleMINSIZEreads.sorted.bam /full/path/to/SRR1106786_merged.Nsorted.sam.sampleMINSIZEreads.sam
 ```
 
 Obtain table with SNP allele counts:
 ```
 python /home/am717/scripts/allelecounter.py --vcf /full/path/to/Het_Allelic_129S1_SvImJ_CAST_EiJ.exons.vcf.gz \
-       --bam /full/path/to/SRR1106781_merged.Nsorted.sam.sampleMINSIZEreads.bam \
+       --bam /full/path/to/SRR1106781_merged_sampleMINSIZEreads.sorted.bam \
        --ref $pseudoDir/129S1_SvImJ/129S1_SvImJ_pseudo.fa \
        --sample F1 --min_cov 0 --min_baseq 2 --min_mapq 10 \
        --o /full/path/to/SRR1106781_merged_sampleMINSIZEreads.stat_0.txt
 python /home/am717/scripts/allelecounter.py --vcf /full/path/to/Het_Allelic_129S1_SvImJ_CAST_EiJ.exons.vcf.gz \
-       --bam /full/path/to/SRR1106786_merged.Nsorted.sam.sampleMINSIZEreads.bam \
+       --bam /full/path/to/SRR1106786_merged_sampleMINSIZEreads.sorted.bam\
        --ref $pseudoDir/129S1_SvImJ/129S1_SvImJ_pseudo.fa \
        --sample F1 --min_cov 0 --min_baseq 2 --min_mapq 10 \
        --o /full/path/to/SRR1106786_merged_sampleMINSIZEreads.stat_0.txt
