@@ -2,6 +2,8 @@
 
 This pipeline is created to analyze allelic imbalance for F1 crosses of inbred mouse lines. It constructs individual paternal and maternal genomes, then maps the reads from RNA-seq experiments to these genomes and counts the number of reads which map to either the reference or alternate allele at each heterozygous SNP. Next it estimates allelic imbalance for individual genes summarizing information from SNPs and constructs confidence intervals if technical replicates are available.
 
+![scheme](https://github.com/gimelbrantlab/ASE/blob/master/markdown/pipeline_scheme.png)
+
 ## Files preparation and ASE counter run
 
 You will need to run _prepare_reference.py_ once for every F1 genome, then run the set of functions for all RNA-seq experiments to get allelic imbalance for individual SNPs (for more information, please see [instructions](https://github.com/gimelbrantlab/ASE/blob/master/GenomePreparation.md)). 
