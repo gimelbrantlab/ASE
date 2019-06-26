@@ -247,7 +247,7 @@ awk '$3=="exon" && ($1 ~ /^[1-9]/ || $1 == "X" || $1 == "Y")' /full/path/to/Mus_
 * snp table, which can be obtained from vcf with heterozigous positions created above, as 5 first columns, for example:
 ```
 grep "^#CHROM" /full/path/to/Het_Allelic_129S1_SvImJ_CAST_EiJ.exons.vcf | cut -f1-5 > /full/path/to/Het_Allelic_129S1_SvImJ_CAST_EiJ.snp_table.txt
-grep -v "^#" /full/path/to/Het_Allelic_129S1_SvImJ_CAST_EiJ.exons.vcf | sort -V | cut -f1-5 > /full/path/to/Het_Allelic_129S1_SvImJ_CAST_EiJ.snp_table.txt
+grep -v "^#" /full/path/to/Het_Allelic_129S1_SvImJ_CAST_EiJ.exons.vcf | sort -V | cut -f1-5 >> /full/path/to/Het_Allelic_129S1_SvImJ_CAST_EiJ.snp_table.txt
 ```
 
 ```
