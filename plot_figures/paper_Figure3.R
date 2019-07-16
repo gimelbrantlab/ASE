@@ -246,25 +246,27 @@ SMART10_eul_list <- list(eul_SM10_2_3, eul_SM10_24_35_bt, eul_SM10_24_35_btcc)
 NEB_plots <- lapply(
   seq(1,3),
   function(i) plot(NEB_eul_list[[i]],
-                   quantities = list(fontsize=14), fills = F, labels = F,
+                   quantities = list(fontsize=10), fills = F, labels = F,
                    edges = list(col="royalblue1", lty="solid", lwd=2))
 )
 
 SMART10_plots <- lapply(
   seq(1,3),
   function(i) plot(SMART10_eul_list[[i]],
-                   quantities = list(fontsize=14), fills = F, labels = F,
+                   quantities = list(fontsize=10), fills = F, labels = F,
                    edges = list(col="maroon2", lty="solid", lwd=2))
 )
 
 SMART100_plots <- lapply(
   seq(1,3),
   function(i) plot(SMART100_eul_list[[i]],
-                   quantities = list(fontsize=14), fills = F, labels = F,
+                   quantities = list(fontsize=10), fills = F, labels = F,
                    edges = list(col="olivedrab3", lty="solid", lwd=2))
 )
 
 PLT_fig3_C <- plot_grid(plotlist = c(NEB_plots, SMART10_plots, SMART100_plots), ncol=3)
+                        #labels = c("A", "B", "C"),
+                        #label_x = .5, hjust = 0)
 
 
 # Plotting
@@ -272,6 +274,7 @@ PLT_fig3_C <- plot_grid(plotlist = c(NEB_plots, SMART10_plots, SMART100_plots), 
 figure_3B <- ggplot(DF_forplot$BTBFCC[DF_forplot$BTBFCC$meanCOV.y<9999,], aes(meanCOV.y, AI.y)) +
   geom_point(aes(color=BT.y), size=0.8) +
   scale_color_manual(values=c("salmon","royalblue1")) +
+  scale_y_continuous(breaks = pretty(DF_forplot$BTBFCC[DF_forplot$BTBFCC$meanCOV.y<9999,]$AI.y, n = 3)) +
   facet_grid(libprep ~ BT.x) +
   theme_bw() +
   labs(x = "Total Allele Counts", y = "Gene AI - Replicate 2", color = "Binomial Test") +
@@ -284,7 +287,7 @@ figure_3D <- ggplot(CC_DF, aes(y=variable, x=value, col=variable)) +
   geom_jitter() +
   scale_color_manual(values=c("royalblue1","maroon2","olivedrab3")) +
   theme_bw() +
-  theme(legend.position = "None") +
+  theme(legend.position = "None", text = element_text(size=18)) +
   scale_y_discrete(limits = rev(levels(CC_DF$variable))) +
   ylab("Library preparation method") +
   xlab("QCC")
@@ -292,14 +295,13 @@ figure_3D <- ggplot(CC_DF, aes(y=variable, x=value, col=variable)) +
 figure_3E <- ggplot(df, aes(x=libprep, y=P, col=libprep)) +
   geom_boxplot() +
   facet_grid(what ~ .) +
-  xlab("") +
-  ylab("Concordance % \nbetween two replicates") +
+  xlab("Library preparation method") +
+  ylab("Concordance % between two replicates") +
   theme_bw() +
-  theme(legend.position="bottom", text = element_text(size=18)) +
-  guides(col=guide_legend(title="", nrow = 1)) +
+  theme(legend.position="right", text = element_text(size=18)) +
+  guides(col=guide_legend(title="")) +
   scale_color_manual(labels=methods,
                      values=c("royalblue1","maroon2","olivedrab3")) +
-  #scale_color_manual(values=c("#999999", "#66FFB2"), labels=c("no correction", "QCC correction")) +
   scale_x_discrete(labels=c("", "", ""), limits = rev(levels(df$libprep))) +
   coord_flip()
 
@@ -315,10 +317,10 @@ figure_3E <- ggplot(df, aes(x=libprep, y=P, col=libprep)) +
 #   scale_x_discrete(labels=c("no correction", "QCC correction"))
 
 PLT_fig3 = plot_grid(
-  plot_grid(NULL, figure_3B, figure_3C, labels = c("A", "B", "C"), rel_widths = c(0.3, 0.8, 0.8), nrow = 1),
+  plot_grid(NULL, figure_3B, figure_3C, labels = c("A", "B", "C"), rel_widths = c(0.4, 0.3, 0.8), nrow = 1, scale = c(0.9, 0.9, 0.7)),
   plot_grid(figure_3D, figure_3E, labels = c("D", "E"), rel_widths = c(0.8, 0.8)),
   nrow = 2,
-  scale = c(0.9, 0.9, 0.7, 0.9, 0.9)
+  scale = c(0.9, 0.9, 0.9, 0.9, 0.9)
 )
 
 cowplot::save_plot(PLT_fig3, file="~/Dropbox (Partners HealthCare)/replicates_ASE/manuscript/Figures/fig.3_v2.pdf", base_height = 10, base_width = 16)
