@@ -12,7 +12,7 @@ source("../R/PerformAIAnalysis_CC.R")
 source("../R/DownstreamASE.R")
 source("../plot_figures/utilPlots.R")
 
-methods = c("Experiment 1", "Experiment 2", "Experiment 3")
+methods = c("NEBNext (100ng)", "SMARTseq (10ng)", "SMARTseq (0.1ng)")
 
 
 # Load data
@@ -49,8 +49,12 @@ set.seed(1)
 sampleMreps = sapply(1:(max(Ntrials, 10)), function(i){(sample(1:6, 2)-1)*5 + sample(5, 2, replace=T)})
 list_of_datas = data_30mln_noX
 list_of_consts = list(mean(CC[[1]]), mean(CC[[2]]), mean(CC[[3]]))
-list_of_libprepnames = list("1: NEBNext (100ng)", "2: SMARTseq (10ng)", "3: SMARTseq (0.1ng)")
+list_of_libprepnames = list("NEBNext (100ng)", "SMARTseq (10ng)", "SMARTseq (0.1ng)")
 reppair = sampleMreps[, 1]
+
+CC_df <- data.frame(t(rbind(CC[[1]], CC[[2]], CC[[3]])))
+colnames(CC_df) <- c("NEBNext (100ng)", "SMARTseq (10ng)", "SMARTseq (0.1ng)")
+CC_DF <- reshape2::melt(CC_df)
 
 
 DF_forplot = CreateForplotDF_btNbtcc(lapply(1:3, function(i){
@@ -108,6 +112,10 @@ df = rbind(
   do.call(rbind, lapply(1:3, function(i){data.frame(P=as.vector(pdis_CC[[i]]), libprep=methods[i], what="corrected")}))
 )
 
+df$libprep <- as.factor(df$libprep)
+df$libprep <- factor(df$libprep, levels=c("NEBNext (100ng)","SMARTseq (10ng)","SMARTseq (0.1ng)"))
+
+
 # Figure 3C
 
 res62_df <-
@@ -150,9 +158,118 @@ res62_df_SMART100$experiment <- "SMART100"
 res62_df_all <- data.frame(rbind(res62_df_NEB, res62_df_SMART10, res62_df_SMART100))
 res62_df_all <- res62_df_all[,c(7,5,6)] %>% gather(key="method", value = "FP_rate", -experiment)
 
+
+
+###########
+
+# Circles
+
+# Functions
+
+CalculateTestWithHalf1 <- function(df, cc, exp_name, thr=10){
+  res = Reduce(function(x, y) merge(x, y, by="ID"),
+               lapply(1:(ncol(df)%/%(2)), function(j){
+                 PerformBinTestAIAnalysisForConditionNPoint_knownCC(df, j, cc, thr=thr)[, c("ID", "BT", "BT_CC")]
+               })
+  )
+  names(res) = c("ID",
+                 paste0(c("BT.", "BT_CC."),
+                        rep(1:(ncol(df)%/%(2)), each=2)
+                 )
+  )
+  return(res)
+}
+
+# Data prep
+
+#NEB
+
+## single rep
+df_NEB_2_3 = CalculateTestWithHalf1(data_noX[[1]][, c(1, 2*5*2, 2*5*2+1, 3*5*2, 3*5*2+1)],
+                                    CC[[1]][6], list_of_libprepnames[[1]], thr=10)
+## merge two reps
+df_NEB_24 = CalculateTestWithHalf1(MergeSumCounts(data_noX[[1]][, c(1, 2*5*2, 2*5*2+1, 4*5*2, 4*5*2+1)]),
+                                   CC[[1]][7], list_of_libprepnames[[1]], thr=10)
+df_NEB_35 = CalculateTestWithHalf1(MergeSumCounts(data_noX[[1]][, c(1, 3*5*2, 3*5*2+1, 5*5*2, 5*5*2+1)]),
+                                   CC[[1]][11], list_of_libprepnames[[1]], thr=10)
+df_NEB_24_35 = merge(df_NEB_24, df_NEB_35, by="ID")
+
+
+#SMART100
+
+## single rep
+df_SM100_2_3 = CalculateTestWithHalf1(data_noX[[3]][, c(1, 2*5*2, 2*5*2+1, 3*5*2, 3*5*2+1)],
+                                      CC[[3]][6], list_of_libprepnames[[3]], thr=10)
+## merge two reps
+df_SM100_24 = CalculateTestWithHalf1(MergeSumCounts(data_noX[[3]][, c(1, 2*5*2, 2*5*2+1, 4*5*2, 4*5*2+1)]),
+                                     CC[[3]][7], list_of_libprepnames[[3]], thr=10)
+df_SM100_35 = CalculateTestWithHalf1(MergeSumCounts(data_noX[[3]][, c(1, 3*5*2, 3*5*2+1, 5*5*2, 5*5*2+1)]),
+                                     CC[[3]][11], list_of_libprepnames[[3]], thr=10)
+df_SM100_24_35 = merge(df_SM100_24, df_SM100_35, by="ID")
+
+
+#SMART10
+
+## single rep
+df_SM10_2_3 = CalculateTestWithHalf1(data_noX[[2]][, c(1, 2*5*2, 2*5*2+1, 3*5*2, 3*5*2+1)],
+                                     CC[[2]][6], list_of_libprepnames[[2]], thr=10)
+## merge two reps
+df_SM10_24 = CalculateTestWithHalf1(MergeSumCounts(data_noX[[2]][, c(1, 2*5*2, 2*5*2+1, 4*5*2, 4*5*2+1)]),
+                                    CC[[2]][7], list_of_libprepnames[[2]], thr=10)
+df_SM10_35 = CalculateTestWithHalf1(MergeSumCounts(data_noX[[2]][, c(1, 3*5*2, 3*5*2+1, 5*5*2, 5*5*2+1)]),
+                                    CC[[2]][11], list_of_libprepnames[[2]], thr=10)
+df_SM10_24_35 = merge(df_SM10_24, df_SM10_35, by="ID")
+
+# Euler
+
+eul_NEB_2_3 = euler(na.omit(df_NEB_2_3[, c("BT.1","BT.2")]), shape='ellipse')
+eul_NEB_24_35_bt = euler(na.omit(df_NEB_24_35[, c("BT.1.x","BT.1.y")]), shape='ellipse')
+eul_NEB_24_35_btcc = euler(na.omit(df_NEB_24_35[, c("BT_CC.1.x","BT_CC.1.y")]), shape='ellipse')
+
+NEB_eul_list <- list(eul_NEB_2_3, eul_NEB_24_35_bt, eul_NEB_24_35_btcc)
+
+eul_SM100_2_3 = euler(na.omit(df_SM100_2_3[, c("BT.1","BT.2")]), shape='ellipse')
+eul_SM100_24_35_bt = euler(na.omit(df_SM100_24_35[, c("BT.1.x","BT.1.y")]), shape='ellipse')
+eul_SM100_24_35_btcc = euler(na.omit(df_SM100_24_35[, c("BT_CC.1.x","BT_CC.1.y")]), shape='ellipse')
+
+SMART100_eul_list <- list(eul_SM100_2_3, eul_SM100_24_35_bt, eul_SM100_24_35_btcc)
+
+eul_SM10_2_3 = euler(na.omit(df_SM10_2_3[, c("BT.1","BT.2")]), shape='ellipse')
+eul_SM10_24_35_bt = euler(na.omit(df_SM10_24_35[, c("BT.1.x","BT.1.y")]), shape='ellipse')
+eul_SM10_24_35_btcc = euler(na.omit(df_SM10_24_35[, c("BT_CC.1.x","BT_CC.1.y")]), shape='ellipse')
+
+SMART10_eul_list <- list(eul_SM10_2_3, eul_SM10_24_35_bt, eul_SM10_24_35_btcc)
+
+
 # Plotting
 
-figure_3A <- ggplot(DF_forplot$BTBFCC[DF_forplot$BTBFCC$meanCOV.y<9999,], aes(meanCOV.y, AI.y)) +
+NEB_plots <- lapply(
+  seq(1,3),
+  function(i) plot(NEB_eul_list[[i]],
+                   quantities = list(fontsize=14), fills = F, labels = F,
+                   edges = list(col="royalblue1", lty="solid", lwd=2))
+)
+
+SMART10_plots <- lapply(
+  seq(1,3),
+  function(i) plot(SMART10_eul_list[[i]],
+                   quantities = list(fontsize=14), fills = F, labels = F,
+                   edges = list(col="maroon2", lty="solid", lwd=2))
+)
+
+SMART100_plots <- lapply(
+  seq(1,3),
+  function(i) plot(SMART100_eul_list[[i]],
+                   quantities = list(fontsize=14), fills = F, labels = F,
+                   edges = list(col="olivedrab3", lty="solid", lwd=2))
+)
+
+PLT_fig3_C <- plot_grid(plotlist = c(NEB_plots, SMART10_plots, SMART100_plots), ncol=3)
+
+
+# Plotting
+
+figure_3B <- ggplot(DF_forplot$BTBFCC[DF_forplot$BTBFCC$meanCOV.y<9999,], aes(meanCOV.y, AI.y)) +
   geom_point(aes(color=BT.y), size=0.8) +
   scale_color_manual(values=c("salmon","royalblue1")) +
   facet_grid(libprep ~ BT.x) +
@@ -161,34 +278,47 @@ figure_3A <- ggplot(DF_forplot$BTBFCC[DF_forplot$BTBFCC$meanCOV.y<9999,], aes(me
   scale_x_continuous(trans='log2') +
   theme(legend.position="None", text = element_text(size=18))
 
-figure_3B <- ggplot(df, aes(x=libprep, y=P, col=libprep)) +
+figure_3C <- PLT_fig3_C # see inSanityCheck.R to get this figure
+
+figure_3D <- ggplot(CC_DF, aes(y=variable, x=value, col=variable)) +
+  geom_jitter() +
+  scale_color_manual(values=c("royalblue1","maroon2","olivedrab3")) +
+  theme_bw() +
+  theme(legend.position = "None") +
+  scale_y_discrete(limits = rev(levels(CC_DF$variable))) +
+  ylab("Library preparation method") +
+  xlab("QCC")
+
+figure_3E <- ggplot(df, aes(x=libprep, y=P, col=libprep)) +
   geom_boxplot() +
-  facet_grid(~what) +
+  facet_grid(what ~ .) +
   xlab("") +
-  ylab("Disagreement % \nbetween two replicates") +
+  ylab("Concordance % \nbetween two replicates") +
   theme_bw() +
   theme(legend.position="bottom", text = element_text(size=18)) +
   guides(col=guide_legend(title="", nrow = 1)) +
   scale_color_manual(labels=methods,
-                     values=wes_palette(n=3, name="FantasticFox1")) +
+                     values=c("royalblue1","maroon2","olivedrab3")) +
   #scale_color_manual(values=c("#999999", "#66FFB2"), labels=c("no correction", "QCC correction")) +
-  scale_x_discrete(labels=c("", "", ""))
+  scale_x_discrete(labels=c("", "", ""), limits = rev(levels(df$libprep))) +
+  coord_flip()
 
-figure_3D <- ggplot(res62_df_all, aes(x=method, y=FP_rate, col=experiment)) +
-  geom_boxplot() +
-  xlab("") +
-  ylab("False positive rate") +
-  theme_bw() +
-  theme(legend.position="None", text = element_text(size=18)) +
-  scale_color_manual(labels=methods,
-                     values=wes_palette(n=3, name="FantasticFox1")) +
-  scale_x_discrete(labels=c("no correction", "QCC correction"))
+
+# figure_3D <- ggplot(res62_df_all, aes(x=method, y=FP_rate, col=experiment)) +
+#   geom_boxplot() +
+#   xlab("") +
+#   ylab("False positive rate") +
+#   theme_bw() +
+#   theme(legend.position="None", text = element_text(size=18)) +
+#   scale_color_manual(labels=methods,
+#                      values=wes_palette(n=3, name="FantasticFox1")) +
+#   scale_x_discrete(labels=c("no correction", "QCC correction"))
 
 PLT_fig3 = plot_grid(
-  plot_grid(figure_3A, figure_3B, labels = c("A", "B"), rel_widths = c(0.8, 0.8)),
-  plot_grid(NULL, figure_3D, labels = c("C", "D"), rel_widths = c(0.8, 0.8)),
+  plot_grid(NULL, figure_3B, figure_3C, labels = c("A", "B", "C"), rel_widths = c(0.3, 0.8, 0.8), nrow = 1),
+  plot_grid(figure_3D, figure_3E, labels = c("D", "E"), rel_widths = c(0.8, 0.8)),
   nrow = 2,
-  scale = c(0.9, 0.9, 0.9, 0.9)
+  scale = c(0.9, 0.9, 0.7, 0.9, 0.9)
 )
 
-cowplot::save_plot(PLT_fig3, file="~/Dropbox (Partners HealthCare)/replicates_ASE/manuscript/Figures/fig.3_v0.pdf", base_height = 12, base_width = 14)
+cowplot::save_plot(PLT_fig3, file="~/Dropbox (Partners HealthCare)/replicates_ASE/manuscript/Figures/fig.3_v2.pdf", base_height = 10, base_width = 16)

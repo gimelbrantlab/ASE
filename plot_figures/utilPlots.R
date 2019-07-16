@@ -69,12 +69,13 @@ CreateForplotDF_btNbtcc_colorescapers <- function(DF_forplot){
       data.frame(percentage = round(c(sum(df$BT.x & !df$BT.y)/sum(df$BT.x),
                                       sum(!df$BT.x & df$BT.y)/sum(!df$BT.x),
                                       sum(df$BT.y & !df$BT.x)/sum(df$BT.y),
-                                      sum(!df$BT.y & df$BT.x)/sum(!df$BT.y)
+                                      sum(!df$BT.y & df$BT.x)/sum(!df$BT.y),
+                                      sum(df$BT.x & df$BT.y)/sum(df$BT.x | df$BT.y)
       )*100, 1),
-      numberOfGenes = c(sum(df$BT.x), sum(!df$BT.x), sum(df$BT.y), sum(!df$BT.y)),
-      who = c("y_color_not_like_x_division", "y_color_not_like_x_division", "x_color_not_like_y_division", "x_color_not_like_y_division"),
-      BT.x = c(T, F, F, T),
-      BT.y = c(F, T, T, F),
+      numberOfGenes = c(sum(df$BT.x), sum(!df$BT.x), sum(df$BT.y), sum(!df$BT.y), NA),
+      who = c("y_color_not_like_x_division", "y_color_not_like_x_division", "x_color_not_like_y_division", "x_color_not_like_y_division", "concordance_rate"),
+      BT.x = c(T, F, F, T, NA),
+      BT.y = c(F, T, T, F, NA),
       libprep = l
       )
     }))
@@ -147,8 +148,9 @@ GetPercDiffForExperiment_BT <- function(df, CC_df, exp_name) {
   percent_of_diff_color_df_BT$BT.x = as.factor(percent_of_diff_color_df_BT$BT.x)
   levels(percent_of_diff_color_df_BT$BT.x) = c("Balanced genes \n H0=0.5 Not Rejected", "Genes with AI \n H0=0.5 Rejected")
 
-  p = percent_of_diff_color_df_BT[percent_of_diff_color_df_BT$who == "y_color_not_like_x_division" & percent_of_diff_color_df_BT$BT.x == "Genes with AI \n H0=0.5 Rejected" |
-                                    percent_of_diff_color_df_BT$who == "x_color_not_like_y_division" & percent_of_diff_color_df_BT$BT.x == "Balanced genes \n H0=0.5 Not Rejected", ]$percentage
+  #p = percent_of_diff_color_df_BT[percent_of_diff_color_df_BT$who == "y_color_not_like_x_division" & percent_of_diff_color_df_BT$BT.x == "Genes with AI \n H0=0.5 Rejected" |
+  #                                  percent_of_diff_color_df_BT$who == "x_color_not_like_y_division" & percent_of_diff_color_df_BT$BT.x == "Balanced genes \n H0=0.5 Not Rejected", ]$percentage
+  p = percent_of_diff_color_df_BT[percent_of_diff_color_df_BT$who == "concordance_rate", ]$percentage
   return(p)
 }
 
@@ -172,8 +174,9 @@ GetPercDiffForExperiment_BT_CC <- function(df, CC_df, exp_name) {
   percent_of_diff_color_df_BTCC$BT.x = as.factor(percent_of_diff_color_df_BTCC$BT.x)
   levels(percent_of_diff_color_df_BTCC$BT.x) = c("Balanced genes \n H0=0.5 Not Rejected", "Genes with AI \n H0=0.5 Rejected")
 
-  p = percent_of_diff_color_df_BTCC[percent_of_diff_color_df_BTCC$who == "y_color_not_like_x_division" & percent_of_diff_color_df_BTCC$BT.x == "Genes with AI \n H0=0.5 Rejected" |
-                                      percent_of_diff_color_df_BTCC$who == "x_color_not_like_y_division" & percent_of_diff_color_df_BTCC$BT.x == "Balanced genes \n H0=0.5 Not Rejected", ]$percentage
+  #p = percent_of_diff_color_df_BTCC[percent_of_diff_color_df_BTCC$who == "y_color_not_like_x_division" & percent_of_diff_color_df_BTCC$BT.x == "Genes with AI \n H0=0.5 Rejected" |
+  #                                    percent_of_diff_color_df_BTCC$who == "x_color_not_like_y_division" & percent_of_diff_color_df_BTCC$BT.x == "Balanced genes \n H0=0.5 Not Rejected", ]$percentage
+  p = percent_of_diff_color_df_BTCC[percent_of_diff_color_df_BTCC$who == "concordance_rate", ]$percentage
   return(p)
 }
 
