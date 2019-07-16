@@ -185,12 +185,12 @@ CalculateTestWithHalf1 <- function(df, cc, exp_name, thr=10){
 #NEB
 
 ## single rep
-df_NEB_2_3 = CalculateTestWithHalf1(data_noX[[1]][, c(1, 2*5*2, 2*5*2+1, 3*5*2, 3*5*2+1)],
+df_NEB_2_3 = CalculateTestWithHalf1(data_30mln_noX[[1]][, c(1, 2*5*2, 2*5*2+1, 3*5*2, 3*5*2+1)],
                                     CC[[1]][6], list_of_libprepnames[[1]], thr=10)
 ## merge two reps
-df_NEB_24 = CalculateTestWithHalf1(MergeSumCounts(data_noX[[1]][, c(1, 2*5*2, 2*5*2+1, 4*5*2, 4*5*2+1)]),
+df_NEB_24 = CalculateTestWithHalf1(MergeSumCounts(data_30mln_noX[[1]][, c(1, 2*5*2, 2*5*2+1, 4*5*2, 4*5*2+1)]),
                                    CC[[1]][7], list_of_libprepnames[[1]], thr=10)
-df_NEB_35 = CalculateTestWithHalf1(MergeSumCounts(data_noX[[1]][, c(1, 3*5*2, 3*5*2+1, 5*5*2, 5*5*2+1)]),
+df_NEB_35 = CalculateTestWithHalf1(MergeSumCounts(data_30mln_noX[[1]][, c(1, 3*5*2, 3*5*2+1, 5*5*2, 5*5*2+1)]),
                                    CC[[1]][11], list_of_libprepnames[[1]], thr=10)
 df_NEB_24_35 = merge(df_NEB_24, df_NEB_35, by="ID")
 
@@ -198,12 +198,12 @@ df_NEB_24_35 = merge(df_NEB_24, df_NEB_35, by="ID")
 #SMART100
 
 ## single rep
-df_SM100_2_3 = CalculateTestWithHalf1(data_noX[[3]][, c(1, 2*5*2, 2*5*2+1, 3*5*2, 3*5*2+1)],
+df_SM100_2_3 = CalculateTestWithHalf1(data_30mln_noX[[3]][, c(1, 2*5*2, 2*5*2+1, 3*5*2, 3*5*2+1)],
                                       CC[[3]][6], list_of_libprepnames[[3]], thr=10)
 ## merge two reps
-df_SM100_24 = CalculateTestWithHalf1(MergeSumCounts(data_noX[[3]][, c(1, 2*5*2, 2*5*2+1, 4*5*2, 4*5*2+1)]),
+df_SM100_24 = CalculateTestWithHalf1(MergeSumCounts(data_30mln_noX[[3]][, c(1, 2*5*2, 2*5*2+1, 4*5*2, 4*5*2+1)]),
                                      CC[[3]][7], list_of_libprepnames[[3]], thr=10)
-df_SM100_35 = CalculateTestWithHalf1(MergeSumCounts(data_noX[[3]][, c(1, 3*5*2, 3*5*2+1, 5*5*2, 5*5*2+1)]),
+df_SM100_35 = CalculateTestWithHalf1(MergeSumCounts(data_30mln_noX[[3]][, c(1, 3*5*2, 3*5*2+1, 5*5*2, 5*5*2+1)]),
                                      CC[[3]][11], list_of_libprepnames[[3]], thr=10)
 df_SM100_24_35 = merge(df_SM100_24, df_SM100_35, by="ID")
 
@@ -211,12 +211,12 @@ df_SM100_24_35 = merge(df_SM100_24, df_SM100_35, by="ID")
 #SMART10
 
 ## single rep
-df_SM10_2_3 = CalculateTestWithHalf1(data_noX[[2]][, c(1, 2*5*2, 2*5*2+1, 3*5*2, 3*5*2+1)],
+df_SM10_2_3 = CalculateTestWithHalf1(data_30mln_noX[[2]][, c(1, 2*5*2, 2*5*2+1, 3*5*2, 3*5*2+1)],
                                      CC[[2]][6], list_of_libprepnames[[2]], thr=10)
 ## merge two reps
-df_SM10_24 = CalculateTestWithHalf1(MergeSumCounts(data_noX[[2]][, c(1, 2*5*2, 2*5*2+1, 4*5*2, 4*5*2+1)]),
+df_SM10_24 = CalculateTestWithHalf1(MergeSumCounts(data_30mln_noX[[2]][, c(1, 2*5*2, 2*5*2+1, 4*5*2, 4*5*2+1)]),
                                     CC[[2]][7], list_of_libprepnames[[2]], thr=10)
-df_SM10_35 = CalculateTestWithHalf1(MergeSumCounts(data_noX[[2]][, c(1, 3*5*2, 3*5*2+1, 5*5*2, 5*5*2+1)]),
+df_SM10_35 = CalculateTestWithHalf1(MergeSumCounts(data_30mln_noX[[2]][, c(1, 3*5*2, 3*5*2+1, 5*5*2, 5*5*2+1)]),
                                     CC[[2]][11], list_of_libprepnames[[2]], thr=10)
 df_SM10_24_35 = merge(df_SM10_24, df_SM10_35, by="ID")
 
