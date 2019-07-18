@@ -203,9 +203,9 @@ minsize=$(cut -f2 /path/to/samsizes.tsv | sort -V | head -1)
 ```
 for sam in /full/path/to/SRR1106781_merged.Nsorted.sam /full/path/to/SRR1106786_merged.Nsorted.sam
 do
-  grep "^@" $sam > $sam".sample"$minsize"reads.sam"
+  grep "^@" $sam > $sam".sample"$(( minsize/2 ))"reads.sam"
   grep -v "^@" $sam | sed '$!N;s/\n/ IHOPETHATNEVERWOULDAPPERINSAMFILE /' | shuf -n $(( $minsize/2 )) | \
-       sed 's/ IHOPETHATNEVERWOULDAPPERINSAMFILE /\n/' >> $sam".sample"$(($minsize/2))"Preads.sam"
+       sed 's/ IHOPETHATNEVERWOULDAPPERINSAMFILE /\n/' >> $sam".sample"$(( $minsize/2 ))"Preads.sam"
 done
 
 ```
