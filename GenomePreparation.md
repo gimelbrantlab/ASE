@@ -192,7 +192,7 @@ Then sample (and repeat as many times as you nead, then just process separatelly
 ```
 for sam in /full/path/to/SRR1106781_merged.Nsorted.sam /full/path/to/SRR1106786_merged.Nsorted.sam
 do
-  echo $sam'\t'`samtools view -c $sam` >> /path/to/samsizes.tsv
+  echo -e $sam'\t'`samtools view -c $sam` >> /path/to/samsizes.tsv
 done
 ```
 * take minimum: 
