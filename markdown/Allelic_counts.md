@@ -2,11 +2,13 @@
 
 ![scheme](https://github.com/gimelbrantlab/ASE/blob/master/markdown/pipeline_alignment.png)
 
-### Step 1: Download a test RNA-seq data or use your own data.
+### Step 1: Getting RNA-seq data (download a test RNA-seq data or use your own data)
 
-We will be using RNA-seq data from [Gendrel et al. 2016](https://www.ncbi.nlm.nih.gov/pubmed/27101886). They had two technical replicates for each of 2 NPC clones: 
+For the purposes of this workflow, we will demonstrate how to run analysis for one of two technical replicates. Feel free to write a script to run these step in parallel for all replicates / libraries that you have.
 
-`SRR1106781_1.fastq.gz` and `SRR1106781_2.fastq.gz` for clone 1 and `SRR1106786_1.fastq.gz` and `SRR1106786_2.fastq.gz` for clone 2.
+We will be using RNA-seq data from [Gendrel et al. 2016](https://www.ncbi.nlm.nih.gov/pubmed/27101886). They had two technical replicates for one of NPC clones (paired end data): 
+
+`SRR1106781_1.fastq.gz` and `SRR1106781_2.fastq.gz` for replicate 1 and `SRR1106786_1.fastq.gz` and `SRR1106786_2.fastq.gz` for replicate 2.
 
 Download the data:
 
@@ -17,9 +19,11 @@ wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR110/001/SRR1106781/SRR1106781_2.fastq
 wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR110/006/SRR1106786/SRR1106786_1.fastq.gz
 wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR110/006/SRR1106786/SRR1106786_2.fastq.gz
 ```
-### Step 2: Run alignment:
+### Step 2: Aligning reads to maternal and paternal genomes
 
 You need to align your reads to so-called preudogenomes, i.e. reference genome with SNP from corresponding maternal and paternal genomes. So if you don't have pseudogenomes ready yet, please refer to [instructions](https://github.com/gimelbrantlab/ASE/blob/master/GenomePreparation.md)) to generate them.
+
+
 
 ```
 pseudoRefDirs=/full/path/to/dir/for/pseudo/ref/out/
@@ -51,14 +55,14 @@ STAR --readFilesIn /full/path/to/SRR1106786_1.fastq.gz /full/path/to/SRR1106786_
      --outFilterMultimapNmax 1 --sjdbGTFfile /full/path/to/Mus_musculus.GRCm38.68.gtf
 ```
 
-* Output: aligned reads sam-files for each replicate and parental genome.
+* Output: . sam files with reads alignments.
 
-### Step 3: Merge two files with reads aligned to maternal and to paternal genomes
+### Step 3: Merging two files with reads aligned to maternal and to paternal genomes into one file
 
-Sorted files by read names (`samtools sort -n `):
+First, sort the files by read names (`samtools sort -n `):
 ```
 samtools sort -n -O sam -o /full/path/to/SRR1106781_on129S1.Nsorted.sam -@ 4 /full/path/to/SRR1106781_on129S1.Aligned.out.sam
-amtools sort -n -O sam -o /full/path/to/SRR1106781_onCAST.Nsorted.sam -@ 4 /full/path/to/SRR1106781_on129S1.Aligned.out.sam
+amtools sort -n -O sam -o /full/path/to/SRR1106781_onCAST.Nsorted.sam -@ 4 /full/path/to/SRR1106781_onCAST.Aligned.out.sam
 amtools sort -n -O sam -o /full/path/to/SRR1106786_on129S1.Nsorted.sam -@ 4 /full/path/to/SRR1106786_on129S1.Aligned.out.sam
 amtools sort -n -O sam -o /full/path/to/SRR1106786_onCAST.Nsorted.sam -@ 4 /full/path/to/SRR1106786_onCAST.Aligned.out.sam
 ```
@@ -79,14 +83,15 @@ Output: one sam file with mat and pat readgroups per replicate.
 
 ### Step 4: Reads sampling
 
-All the sam files in the analysis should be sampled to the same lib size (for example, min(sizes)), see paper for reasoning.
+All sam files in the analysis should be sampled to the same lib size (for example, min(sizes)), please see our paper for reasoning.
 
 Sort merged files by read names (`samtools sort -n `):
 ```
 samtools sort -n -O sam -o /full/path/to/SRR1106781_merged.Nsorted.sam -@ 4 /full/path/to/SRR1106781_merged.sam
 samtools sort -n -O sam -o /full/path/to/SRR1106786_merged.Nsorted.sam -@ 4 /full/path/to/SRR1106786_merged.sam
 ```
-Then sample (and repeat as many times as you nead, then just process separatelly), for paired end (the case of the example):
+Then sample (and repeat as many times as you nead, then just process separatelly), for paired end:
+
 * first calculate sizes (`samtools view -c`):
 ```
 for sam in /full/path/to/SRR1106781_merged.Nsorted.sam /full/path/to/SRR1106786_merged.Nsorted.sam
@@ -116,7 +121,7 @@ done
 
 Output: one sampled sam file per replicate.
 
-### Step 5: Extract SNP coverage information from the alignements
+### Step 5: Extracting SNP coverage information from the alignements
 
 Convert sam to sorted bam (`samtools sort`):
 ```
@@ -140,7 +145,9 @@ python /home/am717/scripts/allelecounter.py --vcf /full/path/to/Het_Allelic_129S
 
 Output: one table per replicate.
 
-### Step 6: Get allelic counts per SNP and per gene
+### Step 6: Getting allelic counts per SNP and per gene
+
+![scheme](https://github.com/gimelbrantlab/ASE/blob/master/markdown/pipeline_alignment2.png)
 
 ```
 Rscript --vanilla /home/am717/scripts/counts_to_snp_genes.R \ 
