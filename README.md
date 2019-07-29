@@ -4,13 +4,15 @@ This pipeline is created to analyze allelic imbalance for F1 crosses of inbred m
 
 ![scheme](https://github.com/gimelbrantlab/ASE/blob/master/markdown/pipeline_scheme.png)
 
-## Files preparation and ASE counter run
+## Files preparation 
+You will need to run _prepare_reference.py_ once for every F1 genome and also download a bunch of reference files (for instructions, please see [GenomePreparation.md](https://github.com/gimelbrantlab/ASE/blob/master/GenomePreparation.md)). 
 
-You will need to run _prepare_reference.py_ once for every F1 genome, then run the set of functions for all RNA-seq experiments to get allelic imbalance for individual SNPs (for more information, please see [instructions](https://github.com/gimelbrantlab/ASE/blob/master/GenomePreparation.md)). 
+## Allelic counts
+For each RNA-seq experiment, you need to get allelic counts for individual SNPs or genes. Please refer to [Allelic_counts.md](https://github.com/gimelbrantlab/ASE/blob/master/markdown/Allelic_counts.md)) for more information.
 
 ## Allelic Imbalance estimation and differential allelic expression
 
-As a result of completing the previous step, you should have a file "*_processed_gene_v3.txt" containing information about number of maternal and paternal counts per gene. Next step is to estimate allelic imbalances for each gene and condition, calculate confidence intervals using technical replicates and then finally detect gene demonstrating differential allelic imbalance. To do this, please refer to the [manual](https://github.com/gimelbrantlab/ASE/blob/master/markdown/manual.md).
+As a result of completing the previous step, you should have a file "*_processed_gene_v3.txt" containing information about number of maternal and paternal counts per gene. Next step is to estimate allelic imbalances for each gene and condition, calculate confidence intervals using technical replicates and then finally detect genes demonstrating differential allelic imbalance. To do this, please refer to the [manual](https://github.com/gimelbrantlab/ASE/blob/master/markdown/manual.md).
 
 ## Credits
 TODO: Write credits
