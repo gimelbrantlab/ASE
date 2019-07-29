@@ -1,5 +1,7 @@
 ## How to get Allelic counts per SNP or per gene starting with Fastq files
 
+![scheme](https://github.com/gimelbrantlab/ASE/blob/master/markdown/pipeline_alignment.pdf)
+
 ### Step 1: Download a test RNA-seq data or use your own data.
 
 We will be using RNA-seq data from [Gendrel et al. 2016](https://www.ncbi.nlm.nih.gov/pubmed/27101886). They had two technical replicates for each of 2 NPC clones: 
