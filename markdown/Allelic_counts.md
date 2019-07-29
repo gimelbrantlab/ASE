@@ -1,6 +1,6 @@
 ## How to get Allelic counts per SNP or per gene starting with Fastq files
 
-![scheme](https://github.com/gimelbrantlab/ASE/blob/master/markdown/pipeline_alignment.pdf)
+![scheme](https://github.com/gimelbrantlab/ASE/blob/master/markdown/pipeline_alignment.png)
 
 ### Step 1: Download a test RNA-seq data or use your own data.
 
