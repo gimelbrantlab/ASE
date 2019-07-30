@@ -6,7 +6,7 @@
 
 For the purposes of this workflow, we will demonstrate how to run analysis for one of two technical replicates. Feel free to write a script to run these step in parallel for all replicates / libraries that you have.
 
-We will be using RNA-seq data from [Gendrel et al. 2016](https://www.ncbi.nlm.nih.gov/pubmed/27101886). They had two technical replicates for one of NPC clones (paired end data): 
+We will be using RNA-seq data from [Gendrel et al. 2014](https://www.ncbi.nlm.nih.gov/24576422). They had two technical replicates for one of NPC clones (paired end data): 
 
 `SRR1106781_1.fastq.gz` and `SRR1106781_2.fastq.gz` for replicate 1 and `SRR1106786_1.fastq.gz` and `SRR1106786_2.fastq.gz` for replicate 2.
 
