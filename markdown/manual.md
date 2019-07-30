@@ -171,3 +171,97 @@ print(paste0("Number of genes demonstrating differential allelic imbalance: ", t
 
     ## [1] "Number of autosomal genes demonstrating differential allelic imbalance: 606 out of 8815"
 
+### Monoallelically expressed genes
+
+If we want to test allelic imbalance versus balanced 0.5 expression, we need to perfom binomial test with QCC correction:
+
+``` r
+for (experimentN in 1:3) {
+  df <- PerformBinTestAIAnalysisForConditionNPoint_knownCC(geneCountTab,
+                                                          vectReps = unlist(designMatrix$replicateNums[experimentN]),
+                                                          vectRepsCombsCC = as.numeric(CC_backup[experimentN,!is.na(CC_backup[experimentN,])]),
+                                                          pt = 0.5,
+                                                          thr = thr_coverage)
+  df_out <- df
+  colnames(df_out)[c(1,4,8,9,11)] <- c("ensembl_gene_id", paste0("AI_",designMatrix$experimentNames[experimentN]),
+                             paste0("BT_CIleft_CC_",designMatrix$experimentNames[experimentN]),
+                             paste0("BT_CIright_CC_",designMatrix$experimentNames[experimentN]),
+                             paste0("AI_diff_",designMatrix$experimentNames[experimentN]))
+  aiTable <- merge(aiTable, df_out[,c(1,4,8,9,11)], by="ensembl_gene_id", all=T)
+}
+``` 
+
+Next we use a function `isMAE_test_CI` to classify genes into groups based on AI bias:
+
+```r
+isMAE_test_CI <- function(x) {
+  thr <- x[3]
+  if ((is.na(x[1]))|(is.na(x[2]))) {
+    return("nd")
+  }
+  else {
+    if ((x[1])&((x[2]>=thr))) {
+      return("129_monoallelic")
+    }
+    else if ((x[1])&((x[2]<=(1-thr)))) {
+      return("CAST_monoallelic")
+    }
+    else if ((x[1])&((x[2]>=0.5))) {
+      return("129_biased")
+    }
+    else if ((x[1])&((x[2]<0.5))) {
+      return("CAST_biased")
+    }
+    else {return("biallelic")}
+  }
+}
+```
+
+Applied to our data:
+
+``` r
+thr_MAE <- 0.85
+
+aiTable <- aiTable %>%
+  mutate(isMAE_s1.1 = mapply(function(x, y, z) isMAE_test_CI(c(x,y,z)), AI_diff_clone_1.1, clone_1.1, thr_MAE)) %>%
+  mutate(isMAE_s4.11 = mapply(function(x, y, z) isMAE_test_CI(c(x,y,z)), AI_diff_clone_4.11, clone_4.11, thr_MAE)) %>%
+  mutate(isMAE_H8 = mapply(function(x, y, z) isMAE_test_CI(c(x,y,z)), AI_diff_clone_H8, clone_H8, thr_MAE))
+```
+
+If we want to find MAE genes, we need to use the corresponding funtion:
+
+```r
+findMAE <- function(x) {
+  mon <- 0
+  if (length(x)==1) {
+    mon=NA
+  }
+  else {
+    not_nm_count <- length(x) - sum(x=="nd")
+    if (not_nm_count==0) mon="nd"
+    else if ((sum(x=="CAST_monoallelic")+sum(x=="CAST_biased")==not_nm_count)|(sum(x=="129_monoallelic")+sum(x=="129_biased")==not_nm_count)) mon="gen_sk"
+    else if ((sum(x=="CAST_monoallelic")>0)|(sum(x=="129_monoallelic")>0)) mon="monoallelic"
+    else if ((sum(x=="CAST_biased")>0)|(sum(x=="129_biased")>0)) mon="biased"
+    else if (sum(x=="biallelic")==not_nm_count) mon="biallelic"
+    else mon="other"
+  }
+  return(mon)
+}
+```
+
+Applied to our data:
+
+``` r
+aiTable <- aiTable %>%
+  mutate(isMAE = mapply(function(x1,x2,x3) findMAE(c(x1,x2,x3)), isMAE_s1.1, isMAE_s4.11, isMAE_H8))
+aiTable_genes <- merge(aiTable, genes, by.x="ensembl_gene_id", by.y="ensembl_gene_id", all.x=T)
+aiTable_genes <- aiTable_genes[,c(1,21,22,5:20)]
+head(na.omit(aiTable_genes[,c(1:3, 16:19)]))
+``` 
+    ##      ensembl_gene_id external_gene_name chromosome_name isMAE_s1.1 isMAE_s4.11  isMAE_H8     isMAE
+    ## 1 ENSMUSG00000000001              Gnai3               3  biallelic   biallelic biallelic biallelic
+    ## 2 ENSMUSG00000000003               Pbsn               X         nd          nd        nd        nd
+    ## 3 ENSMUSG00000000028              Cdc45              16  biallelic   biallelic biallelic biallelic
+    ## 4 ENSMUSG00000000031                H19               7         nd          nd        nd        nd
+    ## 5 ENSMUSG00000000037              Scml2               X         nd          nd        nd        nd
+    ## 6 ENSMUSG00000000049               Apoh              11         nd          nd        nd        nd
