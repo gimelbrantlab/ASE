@@ -27,20 +27,22 @@ You need to align your reads to so-called preudogenomes, i.e. reference genome w
 
 ```
 pseudoRefDirs=/full/path/to/dir/for/pseudo/ref/out/
-
+# replicate 1
+## align to 129 pseudogenome
 STAR --readFilesIn /full/path/to/SRR1106781_1.fastq.gz /full/path/to/SRR1106781_2.fastq.gz \
      --outFileNamePrefix /full/path/to/alignment/output/SRR1106781_on129S1. \
      --runThreadN 4 --outSAMtype SAM \
      --outSAMattrRGline ID:mat \
      --genomeDir $pseudoRefDirs/129S1_SvImJ/ \
      --outFilterMultimapNmax 1 --sjdbGTFfile /full/path/to/Mus_musculus.GRCm38.68.gtf
+## align to CAST pseudogenome     
 STAR --readFilesIn /full/path/to/SRR1106781_1.fastq.gz /full/path/to/SRR1106781_2.fastq.gz \
      --outFileNamePrefix /full/path/to/alignment/output/SRR1106781_onCAST. \
      --runThreadN 4 --outSAMtype SAM \
      --outSAMattrRGline ID:pat \
      --genomeDir $pseudoRefDirs/CAST_EiJ/ \
      --outFilterMultimapNmax 1 --sjdbGTFfile /full/path/to/Mus_musculus.GRCm38.68.gtf
-     
+# replicate 2  
 STAR --readFilesIn /full/path/to/SRR1106786_1.fastq.gz /full/path/to/SRR1106786_2.fastq.gz \
      --outFileNamePrefix /full/path/to/alignment/output/SRR1106786_on129S1. \
      --runThreadN 4 --outSAMtype SAM \
@@ -62,9 +64,9 @@ STAR --readFilesIn /full/path/to/SRR1106786_1.fastq.gz /full/path/to/SRR1106786_
 First, sort the files by read names (`samtools sort -n `):
 ```
 samtools sort -n -O sam -o /full/path/to/SRR1106781_on129S1.Nsorted.sam -@ 4 /full/path/to/SRR1106781_on129S1.Aligned.out.sam
-amtools sort -n -O sam -o /full/path/to/SRR1106781_onCAST.Nsorted.sam -@ 4 /full/path/to/SRR1106781_onCAST.Aligned.out.sam
-amtools sort -n -O sam -o /full/path/to/SRR1106786_on129S1.Nsorted.sam -@ 4 /full/path/to/SRR1106786_on129S1.Aligned.out.sam
-amtools sort -n -O sam -o /full/path/to/SRR1106786_onCAST.Nsorted.sam -@ 4 /full/path/to/SRR1106786_onCAST.Aligned.out.sam
+samtools sort -n -O sam -o /full/path/to/SRR1106781_onCAST.Nsorted.sam -@ 4 /full/path/to/SRR1106781_onCAST.Aligned.out.sam
+samtools sort -n -O sam -o /full/path/to/SRR1106786_on129S1.Nsorted.sam -@ 4 /full/path/to/SRR1106786_on129S1.Aligned.out.sam
+samtools sort -n -O sam -o /full/path/to/SRR1106786_onCAST.Nsorted.sam -@ 4 /full/path/to/SRR1106786_onCAST.Aligned.out.sam
 ```
 Then merge:
 ```
