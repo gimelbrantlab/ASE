@@ -3,7 +3,7 @@
 # Title       : Allelic Imbalance Pipeline
 # Description : Script that takes $name_stat_final.txt files as input,
 #               merges these files, intersects counts with exons annotaion
-#               
+#
 # Author      : Svetlana Vinogradova
 # Date        : 08/24/17
 # ***********************************************
@@ -14,8 +14,8 @@
 #
 #
 # [TODO] : path to lib directory
-library("optparse", lib.loc="/home/am717/R/x86_64-pc-linux-gnu-library/3.4")
-library("tidyverse", lib.loc="/home/am717/R/x86_64-pc-linux-gnu-library/3.4")
+library("optparse") #, lib.loc="/home/am717/R/x86_64-pc-linux-gnu-library/3.4)"
+library("tidyverse") #, lib.loc="/home/am717/R/x86_64-pc-linux-gnu-library/3.4")
 #
 #
 option_list = list(
@@ -39,7 +39,7 @@ option_list = list(
 ## grep "^#CHROM" $vcfF1 | cut -f1-5 > $snpf1infoexons
 ## grep -v "^#" $vcfF1 | sort -V | cut -f1-5 > $snpf1infoexons
 ## [1-based coordinates]
-## 2. regions_bed command example (gtf to chromasomal exons bed, with group by gene): 
+## 2. regions_bed command example (gtf to chromasomal exons bed, with group by gene):
 ## awk '$3=="exon" && ($1 ~ /^[1-9]/ || $1 == "X" || $1 == "Y")' /n/scratch2/am717/references/hs37d5/Homo_sapiens.GRCh37.63.gtf | cut -f1,4,5,9 | awk -F $'\t' 'BEGIN {OFS = FS} {split($4, a, "gene_id \""); split(a[2], b, "\""); print $1, $2-1, $3, b[1]}' > /n/scratch2/am717/references/hs37d5/Homo_sapiens.GRCh37.63.EXONS.bed
 ## [0-based coordinates]
 #
@@ -71,13 +71,13 @@ names_list <- unlist(strsplit(opt$names, ","))
 merged_counts <- snp_tab
 for (i in (1:length(names_list))) {
   name <- file.path(opt$dir, paste0(names_list[i], opt$suffix_name))
-  rep_tab <- read_delim(name, delim="\t", escape_double = FALSE, trim_ws = TRUE, 
+  rep_tab <- read_delim(name, delim="\t", escape_double = FALSE, trim_ws = TRUE,
                         col_types = cols(contig = col_character()))[ ,c("contig" ,"position", "refCount", "altCount")]
   merged_counts <- merge(merged_counts, rep_tab, by.x=c("contig", "position"), by.y=c("contig", "position"), all.x = TRUE)
   colnames(merged_counts)[1:5] <- c("contig" ,"position", "variantID", "refAllele", "altAllele")
 }
 merged_counts[is.na(merged_counts)] <- 0
-colnames(merged_counts) <- c("contig" ,"position", "variantID", "refAllele", "altAllele", 
+colnames(merged_counts) <- c("contig" ,"position", "variantID", "refAllele", "altAllele",
                              paste0(c("ref", "alt"), "_rep", rep(1:length(names_list), each=2)))
 #
 print("Contigs after merge:")
@@ -88,7 +88,7 @@ print(unique(merged_counts$contig))
 merged_counts$unique_id <- paste0(merged_counts$contig, "_", merged_counts$position)
 # (because vcf is 1-based and bed is 0-based):
 merged_counts$start     <- merged_counts$position - 1
-merged_counts$end       <- merged_counts$position 
+merged_counts$end       <- merged_counts$position
 #
 merged_counts_bed <- merged_counts[,c('contig', 'start', 'end', 'unique_id')]
 bed_snp <- file.path(opt$odir, paste0(opt$pr_name, "_merged.v3.1.bed"))
@@ -103,14 +103,14 @@ system(cmd)
 #
 # Merge adding group info (ID) :
 #
-exons_snp_tab <- read_delim(bed_exons_snp, delim="\t", escape_double = FALSE, trim_ws = TRUE, 
+exons_snp_tab <- read_delim(bed_exons_snp, delim="\t", escape_double = FALSE, trim_ws = TRUE,
                             col_names = FALSE, col_types = "ciicciic")
 snp_group_tab <- exons_snp_tab[, c("X4", "X8")]
 names(snp_group_tab) <- c("unique_id", "groupID")
 merged_counts_group <- merge(merged_counts, snp_group_tab, by="unique_id")
 names(merged_counts_group)[1] <- "ID"
 merged_counts_group$ID <- paste(merged_counts_group$ID, merged_counts_group$variantID, sep="_")
-merged_counts_group <- cbind(merged_counts_group[, !(names(merged_counts_group) %in% c("start", "end", "variantID", "contig", 
+merged_counts_group <- cbind(merged_counts_group[, !(names(merged_counts_group) %in% c("start", "end", "variantID", "contig",
                                                                                        "position", "refAllele", "altAllele"))],
                              merged_counts_group[, c("contig", "position", "refAllele", "altAllele")])
 merged_counts_group <- merged_counts_group[!duplicated(merged_counts_group), ]
@@ -134,7 +134,7 @@ gene_snp_pos <- aggregate(merged_counts_group[,c("contig", "position")], by=list
 names(gene_snp_pos) <- c("ID", "contig", "aggr_pos")
 gene_snp_pos$contig <- sapply(gene_snp_pos$contig, function(x){strsplit(x, ',')[[1]][1]})
 #
-gene_snp_sum <- aggregate(merged_counts_group[, c(2:(1+(length(names_list)*2)))], 
+gene_snp_sum <- aggregate(merged_counts_group[, c(2:(1+(length(names_list)*2)))],
                           by=list(merged_counts_group$groupID), sum)
 names(gene_snp_sum)[1] <- "ID"
 #
@@ -147,7 +147,7 @@ names(gene_snp_aggr)[2:ncol(gene_snp_aggr)] <- paste0("aggr_", names(gene_snp_ag
 merge_gene_tab <- merge(gene_snp_sum, gene_snp_num, by="ID")
 merge_gene_tab <- merge(merge_gene_tab, gene_snp_pos, by="ID")
 merge_gene_tab <- merge(merge_gene_tab, gene_snp_aggr, by="ID")
-merge_gene_tab <- merge_gene_tab[order(merge_gene_tab$contig, 
+merge_gene_tab <- merge_gene_tab[order(merge_gene_tab$contig,
                                        as.numeric(sapply(merge_gene_tab$aggr_pos, function(x){strsplit(x, ',')[[1]][1]}))), ]
 #
 write.table(merge_gene_tab, file=file_out_g, sep = "\t", quote = F, row.names = F)

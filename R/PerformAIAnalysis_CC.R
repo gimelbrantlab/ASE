@@ -153,7 +153,7 @@ ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40,
   df_unit_info$binNUM = sapply(df_unit_info$binCOV, function(x){
     df_covbinsnum[df_covbinsnum$binCOV==x, ]$binNUM
   })
-  
+
   ##     1.2. Calculate parameters:
   ##
 
@@ -161,10 +161,10 @@ ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40,
   if (is.na(thr)) {
     thr = 0
   }
-  
-  covbinsGthr = df_covbinsnum$binCOV[df_covbinsnum$binNUM > binNObs & 
+
+  covbinsGthr = df_covbinsnum$binCOV[df_covbinsnum$binNUM > binNObs &
                                      df_covbinsnum$binCOV >= max(50, thr)]
-  
+
   print(paste(length(covbinsGthr), "COVERAGE BINS"))
 
   df_betabin_params = do.call(rbind, lapply(1:length(covbinsGthr), function(i){
@@ -242,13 +242,13 @@ ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40,
   }))
 
   #print(df_observed_expected_quantile_proportions)
-  
+
   ##-------------------------------------------------------------------------------------------------------------------------------------
   ## 4. Fit the ratio observed/predicted:
   ##-------------------------------------------------------------------------------------------------------------------------------------
 
   df_observed_expected_quantile_proportions$CC[!is.finite(df_observed_expected_quantile_proportions$CC)] = NA
-  
+
   fittedCC = lm(data = df_observed_expected_quantile_proportions,
                 CC ~ 1,
                 na.action=na.exclude)$coefficients[1]
@@ -281,9 +281,9 @@ ComputeCorrConstantsForAllPairsReps <- function(inDF, vectReps, binNObs=40,
   #' @return A table of gene names, AIs + CIs for each condition, classification into genes demonstrating differential AI and those that don't
   #' @examples
   #'
-  
+
   repCombs <- combn(vectReps, 2)
-  
+
   fitDATA <- lapply(1:ncol(repCombs), function(j){
     x = repCombs[, j]
     ComputeCorrConstantFor2Reps(inDF=inDF, reps=x, binNObs=binNObs,
@@ -297,7 +297,7 @@ ComputeCorrConstantsForAllPairsReps <- function(inDF, vectReps, binNObs=40,
 # ---------------------------------------------------------------------------------------
 
 PerformBinTestAIAnalysisForConditionNPoint_knownCC <- function(inDF, vectReps, vectRepsCombsCC,
-                                                               pt = 0.5, binNObs=40, Q=0.95,  
+                                                               pt = 0.5, binNObs=40, Q=0.95,
                                                                thr=NA, thrUP=NA, thrType="each", minDifference=NA){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for condition + point estimate to compare
   #'
@@ -314,9 +314,9 @@ PerformBinTestAIAnalysisForConditionNPoint_knownCC <- function(inDF, vectReps, v
   #' @return A table of gene names, AIs + CIs, classification into genes demonstrating differential from point estimate AI and those that don't
   #' @examples
   #'
-  
+
   CC <- mean(vectRepsCombsCC)
-  
+
   AI <- CountsToAI(inDF, reps=vectReps, meth="mergedToProportion", thr=thr, thrUP=thrUP, thrType=thrType)$AI
   tmpDF  <- ThresholdingCounts(inDF, reps=vectReps, thr=thr, thrUP=thrUP, thrType=thrType)
   sumCOV <- rowSums(tmpDF[, -1])
@@ -325,52 +325,52 @@ PerformBinTestAIAnalysisForConditionNPoint_knownCC <- function(inDF, vectReps, v
   } else {
     matCOV <- rowSums(tmpDF[, seq(2,ncol(tmpDF),2)])
   }
-  
+
   DF <- data.frame(ID=inDF[,1], sumCOV=sumCOV, matCOV=matCOV, AI=AI)
-  
+
   # Bonferroni correction:
   Qbf <- 1 - (1-Q)/nrow(na.omit(DF))
-  
+
   # Bin test:
   tmpDFbt <- t(sapply(1:nrow(DF), function(i){
     if(is.na(matCOV[i]) | is.na(sumCOV[i]) | sumCOV[i]==0) { return(c(NA,NA,NA)) }
     BT <- binom.test(matCOV[i], sumCOV[i], alternative="two.sided", conf.level = Qbf, p=pt)
     c(BT$p.value, BT$conf.int[1], BT$conf.int[2])
   }))
-  
+
   # DF$BT_pval = tmpDFbt[, 1]
   # DF$BT_CIleft = DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(length(vectReps))
   # DF$BT_CIright = DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(length(vectReps))
-  # 
+  #
   # DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(length(vectReps)) * CC,
   #                           function(lb){ max(0, lb) })
   # DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(length(vectReps)) * CC,
   #                            function(ub){ min(1, ub) })
-  
+
   DF$BT_pval = tmpDFbt[, 1]
   DF$BT_CIleft = tmpDFbt[, 2]
   DF$BT_CIright = tmpDFbt[, 3]
-  
+
   DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 2]) * CC,
                             function(lb){ max(0, lb) })
   DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 3] - DF$AI) * CC,
                              function(ub){ min(1, ub) })
-  
+
   # DF$BT <- (DF$BT_pval < (1-Q)/nrow(na.omit(DF)))
   DF$BT <- !(DF$BT_CIleft <= pt & DF$BT_CIright >= pt)
   # Find intersecting intervals > call them FALSE (non-rejected H_0)
   DF$BT_CC <- !(DF$BT_CIleft_CC <= pt & DF$BT_CIright_CC >= pt)
-  
+
   if (!is.na(minDifference))
   {
     DF$BT_CC_thrDiff <- (DF$BT_CC & (abs(DF$AI - pt) >= minDifference))
   }
-  
+
   return(DF)
 }
 
 
-PerformBinTestAIAnalysisForConditionNPoint <- function(inDF, vectReps, pt = 0.5, binNObs=40, Q=0.95, EPS=1.3, 
+PerformBinTestAIAnalysisForConditionNPoint <- function(inDF, vectReps, pt = 0.5, binNObs=40, Q=0.95, EPS=1.3,
                                                        thr=NA, thrUP=NA, thrType="each", minDifference=NA){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for condition + point estimate to compare
   #'
@@ -387,20 +387,20 @@ PerformBinTestAIAnalysisForConditionNPoint <- function(inDF, vectReps, pt = 0.5,
   #' @return A table of gene names, AIs + CIs, classification into genes demonstrating differential from point estimate AI and those that don't
   #' @examples
   #'
-  
-  fitDATA <- ComputeCorrConstantsForAllPairsReps(inDF, vectReps=vectReps, binNObs=binNObs, 
+
+  fitDATA <- ComputeCorrConstantsForAllPairsReps(inDF, vectReps=vectReps, binNObs=binNObs,
                                                  EPS=EPS, thr=thr, thrUP=thrUP, thrType=thrType)
-  
+
   vectRepsCombsCC <- sapply(fitDATA, function(fd){
     fd$fittedCC
   })
-  
-  RES <- PerformBinTestAIAnalysisForConditionNPoint_knownCC(inDF, vectReps=vectReps, 
+
+  RES <- PerformBinTestAIAnalysisForConditionNPoint_knownCC(inDF, vectReps=vectReps,
                                                             vectRepsCombsCC=vectRepsCombsCC,
-                                                            pt=pt, binNObs=binNObs, Q=Q, 
-                                                            thr=thr, thrUP=thrUP, thrType=thrType, 
+                                                            pt=pt, binNObs=binNObs, Q=Q,
+                                                            thr=thr, thrUP=thrUP, thrType=thrType,
                                                             minDifference=minDifference)
-  
+
   return(list(CC = vectRepsCombsCC,
               FitDATA = fitDATA,
               Output = RES))
@@ -411,8 +411,8 @@ PerformBinTestAIAnalysisForConditionNPoint <- function(inDF, vectReps, pt = 0.5,
 #                 FUNCTIONS: PERFORM DIFF CI(AI) ANALYSIS -- CONDITION & POINTS VECTOR
 # ---------------------------------------------------------------------------------------
 
-PerformBinTestAIAnalysisForConditionNPointVect_knownCC <- function(inDF, vectReps, vectRepsCombsCC, ptVect, 
-                                                                   binNObs=40, Q=0.95,  
+PerformBinTestAIAnalysisForConditionNPointVect_knownCC <- function(inDF, vectReps, vectRepsCombsCC, ptVect,
+                                                                   binNObs=40, Q=0.95,
                                                                    thr=NA, thrUP=NA, thrType="each", minDifference=NA){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for condition + point estimate to compare
   #'
@@ -429,9 +429,9 @@ PerformBinTestAIAnalysisForConditionNPointVect_knownCC <- function(inDF, vectRep
   #' @return A table of gene names, AIs + CIs, classification into genes demonstrating differential from point estimate AI and those that don't
   #' @examples
   #'
-  
+
   CC <- mean(vectRepsCombsCC)
-  
+
   AI <- CountsToAI(inDF, reps=vectReps, meth="mergedToProportion", thr=thr, thrUP=thrUP, thrType=thrType)$AI
   tmpDF  <- ThresholdingCounts(inDF, reps=vectReps, thr=thr, thrUP=thrUP, thrType=thrType)
   sumCOV <- rowSums(tmpDF[, -1])
@@ -440,12 +440,12 @@ PerformBinTestAIAnalysisForConditionNPointVect_knownCC <- function(inDF, vectRep
   } else {
     matCOV <- rowSums(tmpDF[, seq(2,ncol(tmpDF),2)])
   }
-  
+
   DF <- data.frame(ID=inDF[,1], sumCOV=sumCOV, matCOV=matCOV, AI=AI)
-  
+
   # Bonferroni correction:
   Qbf <- 1 - (1-Q)/nrow(na.omit(DF))
-  
+
   # Bin test:
   tmpDFbt <- t(sapply(1:nrow(DF), function(i){
     if(is.na(matCOV[i]) | is.na(sumCOV[i]) | is.na(ptVect[i]) | sumCOV[i]==0) { return(c(NA,NA,NA)) }
@@ -453,11 +453,11 @@ PerformBinTestAIAnalysisForConditionNPointVect_knownCC <- function(inDF, vectRep
     BT <- binom.test(matCOV[i], sumCOV[i], alternative="two.sided", conf.level = Qbf, p=ptVect[i])
     c(BT$p.value, BT$conf.int[1], BT$conf.int[2])
   }))
-  
+
   # DF$BT_pval = tmpDFbt[, 1]
   # DF$BT_CIleft = DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(length(vectReps))
   # DF$BT_CIright = DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(length(vectReps))
-  # 
+  #
   # DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(length(vectReps)) * CC,
   #                           function(lb){ max(0, lb) })
   # DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(length(vectReps)) * CC,
@@ -466,27 +466,27 @@ PerformBinTestAIAnalysisForConditionNPointVect_knownCC <- function(inDF, vectRep
   DF$BT_pval = tmpDFbt[, 1]
   DF$BT_CIleft = tmpDFbt[, 2]
   DF$BT_CIright = tmpDFbt[, 3]
-  
+
   DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 2]) * CC,
                             function(lb){ max(0, lb) })
   DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 3] - DF$AI) * CC,
                              function(ub){ min(1, ub) })
-    
+
   #DF$BT <- (DF$BT_pval < (1-Q)/nrow(na.omit(DF)))
   DF$BT <- sapply(1:nrow(DF), function(i){!(DF$BT_CIleft[i] <= ptVect[i] & DF$BT_CIright[i] >= ptVect[i])})
   # Find intersecting intervals > call them FALSE (non-rejected H_0)
   DF$BT_CC <- sapply(1:nrow(DF), function(i){!(DF$BT_CIleft_CC[i] <= ptVect[i] & DF$BT_CIright_CC[i] >= ptVect[i])})
-  
+
   if (!is.na(minDifference))
   {
     DF$BT_CC_thrDiff <- (DF$BT_CC & (abs(DF$AI - ptVect[i]) >= minDifference))
   }
-  
+
   return(cbind(DF, ptVect))
 }
 
 
-PerformBinTestAIAnalysisForConditionNPointVect <- function(inDF, vectReps, ptVect, binNObs=40, Q=0.95, EPS=1.3, 
+PerformBinTestAIAnalysisForConditionNPointVect <- function(inDF, vectReps, ptVect, binNObs=40, Q=0.95, EPS=1.3,
                                                        thr=NA, thrUP=NA, thrType="each", minDifference=NA){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for condition + point estimate to compare
   #'
@@ -504,19 +504,19 @@ PerformBinTestAIAnalysisForConditionNPointVect <- function(inDF, vectReps, ptVec
   #' @examples
   #'
 
-  fitDATA <- ComputeCorrConstantsForAllPairsReps(inDF, vectReps=vectReps, binNObs=binNObs, 
+  fitDATA <- ComputeCorrConstantsForAllPairsReps(inDF, vectReps=vectReps, binNObs=binNObs,
                                                  EPS=EPS, thr=thr, thrUP=thrUP, thrType=thrType)
 
   vectRepsCombsCC <- sapply(fitDATA, function(fd){
     fd$fittedCC
   })
-  
-  RES <- PerformBinTestAIAnalysisForConditionNPointVect_knownCC(inDF, vectReps=vectReps, 
+
+  RES <- PerformBinTestAIAnalysisForConditionNPointVect_knownCC(inDF, vectReps=vectReps,
                                                                 vectRepsCombsCC=vectRepsCombsCC,
-                                                                ptVect=ptVect, binNObs=binNObs, Q=Q, 
-                                                                thr=thr, thrUP=thrUP, thrType=thrType, 
+                                                                ptVect=ptVect, binNObs=binNObs, Q=Q,
+                                                                thr=thr, thrUP=thrUP, thrType=thrType,
                                                                 minDifference=minDifference)
-  
+
   return(list(CC = vectRepsCombsCC,
               FitDATA = fitDATA,
               Output = RES))
@@ -524,11 +524,11 @@ PerformBinTestAIAnalysisForConditionNPointVect <- function(inDF, vectReps, ptVec
 
 
 # ---------------------------------------------------------------------------------------
-#                 FUNCTIONS: PERFORM DIFF CI(AI) ANALYSIS -- 2 CONDITIONS 
+#                 FUNCTIONS: PERFORM DIFF CI(AI) ANALYSIS -- 2 CONDITIONS
 # ---------------------------------------------------------------------------------------
 
-ComputeAICIs <- function(inDF, vectReps, vectRepsCombsCC, 
-                         Q=0.95, BF=T,  
+ComputeAICIs <- function(inDF, vectReps, vectRepsCombsCC,
+                         Q=0.95, BF=T,
                          thr=NA, thrUP=NA, thrType="each"){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for condition + point estimate to compare
   #'
@@ -543,9 +543,9 @@ ComputeAICIs <- function(inDF, vectReps, vectRepsCombsCC,
   #' @return A table of gene names, AIs + CIs, classification into genes demonstrating differential from point estimate AI and those that don't
   #' @examples
   #'
-  
+
   CC <- mean(vectRepsCombsCC)
-  
+
   AI <- CountsToAI(inDF, reps=vectReps, meth="mergedToProportion", thr=thr, thrUP=thrUP, thrType=thrType)$AI
   tmpDF  <- ThresholdingCounts(inDF, reps=vectReps, thr=thr, thrUP=thrUP, thrType=thrType)
   sumCOV <- rowSums(tmpDF[, -1])
@@ -554,45 +554,45 @@ ComputeAICIs <- function(inDF, vectReps, vectRepsCombsCC,
   } else {
     matCOV <- rowSums(tmpDF[, seq(2,ncol(tmpDF),2)])
   }
-  
+
   DF <- data.frame(ID=inDF[,1], sumCOV=sumCOV, matCOV=matCOV, AI=AI)
-  
+
   # Bonferroni correction:
   if (BF) {
     Qbf <- 1 - (1-Q)/nrow(na.omit(DF))
   } else {
     Qbf <- Q
   }
-  
+
   # Bin test:
   tmpDFbt <- t(sapply(1:nrow(DF), function(i){
     if(is.na(matCOV[i]) | is.na(sumCOV[i]) | sumCOV[i]==0) { return(c(NA,NA)) }
     BT <- binom.test(matCOV[i], sumCOV[i], alternative="two.sided", conf.level = Qbf)
     c(BT$conf.int[1], BT$conf.int[2])
   }))
-  
+
   # DF$BT_CIleft = DF$AI - (DF$AI - tmpDFbt[, 1]) / sqrt(length(vectReps))
   # DF$BT_CIright = DF$AI + (tmpDFbt[, 2] - DF$AI) / sqrt(length(vectReps))
-  # 
+  #
   # DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 1]) / sqrt(length(vectReps)) * CC,
   #                           function(lb){ max(0, lb) })
   # DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 2] - DF$AI) / sqrt(length(vectReps)) * CC,
   #                            function(ub){ min(1, ub) })
-  
+
   DF$BT_CIleft = tmpDFbt[, 1]
   DF$BT_CIright = tmpDFbt[, 2]
-  
+
   DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 1]) * CC,
                             function(lb){ max(0, lb) })
   DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 2] - DF$AI) * CC,
                              function(ub){ min(1, ub) })
   return(DF)
-}  
+}
 
 
-PerformBinTestAIAnalysisForTwoConditions_knownCC <- function(inDF, vect1CondReps, vect2CondReps, 
+PerformBinTestAIAnalysisForTwoConditions_knownCC <- function(inDF, vect1CondReps, vect2CondReps,
                                                              vect1CondRepsCombsCC, vect2CondRepsCombsCC,
-                                                             Q=0.95,  
+                                                             Q=0.95,
                                                              thr=NA, thrUP=NA, thrType="each", minDifference=NA){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for condition + point estimate to compare
   #'
@@ -609,58 +609,58 @@ PerformBinTestAIAnalysisForTwoConditions_knownCC <- function(inDF, vect1CondReps
   #' @return A table of gene names, AIs + CIs, classification into genes demonstrating differential from point estimate AI and those that don't
   #' @examples
   #'
-  
+
   vectReps <- list(vect1CondReps, vect2CondReps)
-  vectRepsCombsCC <- list(vect1CondRepsCombsCC, 
+  vectRepsCombsCC <- list(vect1CondRepsCombsCC,
                           vect2CondRepsCombsCC)
 
   DF_CI_divided <- lapply(1:2, function(i){
-    ComputeAICIs(inDF, vectReps=vectReps[[i]], vectRepsCombsCC=vectRepsCombsCC[[i]], 
+    ComputeAICIs(inDF, vectReps=vectReps[[i]], vectRepsCombsCC=vectRepsCombsCC[[i]],
                  Q=Q, BF=T, thr=thr, thrUP=thrUP, thrType=thrType)
   })
-  
+
   DF <- merge(DF_CI_divided[[1]], DF_CI_divided[[2]], by = "ID")
-  names(DF) <- c("ID", 
+  names(DF) <- c("ID",
                  paste0(names(DF_CI_divided[[1]])[-1], '_1'),
                  paste0(names(DF_CI_divided[[2]])[-1], '_2'))
-  
-  ################# 
+
+  #################
   # p_bar = (DF$matCOV_1 + DF$matCOV_2)/(DF$sumCOV_1 + DF$sumCOV_2)
   # DF$Z <- (DF$AI_1 - DF$AI_2) / sqrt(p_bar * (1 - p_bar) * (1/DF$sumCOV_1 + 1/DF$sumCOV_2))
 
-    
+
   # Find intersecting intervals > call them FALSE (non-rejected H_0)
   Qbft <- 1 - (1-Q)/nrow(na.omit(DF[, c("sumCOV_1", "matCOV_1", "sumCOV_2", "matCOV_2")]))
   DF_CI_divided_BFor2 <- lapply(1:2, function(i){
-    ComputeAICIs(inDF, vectReps=vectReps[[i]], vectRepsCombsCC=vectRepsCombsCC[[i]], 
-                 Q=Qbft, BF=F, 
+    ComputeAICIs(inDF, vectReps=vectReps[[i]], vectRepsCombsCC=vectRepsCombsCC[[i]],
+                 Q=Qbft, BF=F,
                  thr=thr, thrUP=thrUP, thrType=thrType)
   })
   DF_BFor2 <- merge(DF_CI_divided_BFor2[[1]][, c("ID", "BT_CIleft", "BT_CIright")], DF_CI_divided_BFor2[[2]][, c("ID", "BT_CIleft", "BT_CIright")], by = "ID")
   names(DF_BFor2)[-1] <- c("BT_dCIleft_1", "BT_dCIright_1", "BT_dCIleft_2", "BT_dCIright_2")
   DF_BFor2_CC <- merge(DF_CI_divided_BFor2[[1]][, c("ID", "BT_CIleft_CC", "BT_CIright_CC")], DF_CI_divided_BFor2[[2]][, c("ID", "BT_CIleft_CC", "BT_CIright_CC")], by = "ID")
   names(DF_BFor2_CC)[-1] <- c("BT_dCIleft_CC_1", "BT_dCIright_CC_1", "BT_dCIleft_CC_2", "BT_dCIright_CC_2")
-  
+
   #print(DF)
-  
+
   DF <- merge(DF, DF_BFor2, by = "ID")
   DF$BT <- (DF$BT_dCIright_2 < DF$BT_dCIleft_1 | DF$BT_dCIright_1 < DF$BT_dCIleft_2)
-  
+
   DF <- merge(DF, DF_BFor2_CC, by = "ID")
   DF$BT_CC <- (DF$BT_dCIright_CC_2 < DF$BT_dCIleft_CC_1 | DF$BT_dCIright_CC_1 < DF$BT_dCIleft_CC_2)
-  
+
   #print(DF)
-  
+
   if (!is.na(minDifference))
   {
     DF$BT_CC_thrDiff <- (DF$BT_CC & (abs(DF$AI_1 - DF$AI_2) >= minDifference))
   }
-  
+
   return(DF)
 }
 
 
-PerformBinTestAIAnalysisForTwoConditions <- function(inDF, vect1CondReps, vect2CondReps, binNObs=40, Q=0.95, EPS=1.3, 
+PerformBinTestAIAnalysisForTwoConditions <- function(inDF, vect1CondReps, vect2CondReps, binNObs=40, Q=0.95, EPS=1.3,
                                                      thr=NA, thrUP=NA, thrType="each", minDifference=NA){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for condition + point estimate to compare
   #'
@@ -677,12 +677,12 @@ PerformBinTestAIAnalysisForTwoConditions <- function(inDF, vect1CondReps, vect2C
   #' @return A table of gene names, AIs + CIs, classification into genes demonstrating differential from point estimate AI and those that don't
   #' @examples
   #'
-  
-  fitDATA1Cond <- ComputeCorrConstantsForAllPairsReps(inDF, vectReps=vect1CondReps, binNObs=binNObs, 
+
+  fitDATA1Cond <- ComputeCorrConstantsForAllPairsReps(inDF, vectReps=vect1CondReps, binNObs=binNObs,
                                                  EPS=EPS, thr=thr, thrUP=thrUP, thrType=thrType)
-  fitDATA2Cond <- ComputeCorrConstantsForAllPairsReps(inDF, vectReps=vect2CondReps, binNObs=binNObs, 
+  fitDATA2Cond <- ComputeCorrConstantsForAllPairsReps(inDF, vectReps=vect2CondReps, binNObs=binNObs,
                                                       EPS=EPS, thr=thr, thrUP=thrUP, thrType=thrType)
-  
+
   vect1CondRepsCombsCC <- sapply(fitDATA1Cond, function(fd){
     fd$fittedCC
   })
@@ -690,17 +690,27 @@ PerformBinTestAIAnalysisForTwoConditions <- function(inDF, vect1CondReps, vect2C
     fd$fittedCC
   })
   print(paste(vect1CondRepsCombsCC, vect2CondRepsCombsCC))
-  
-  RES <- PerformBinTestAIAnalysisForTwoConditions_knownCC(inDF, vect1CondReps=vect1CondReps, vect2CondReps=vect2CondReps, 
-                                                          vect1CondRepsCombsCC=vect1CondRepsCombsCC, 
+
+  RES <- PerformBinTestAIAnalysisForTwoConditions_knownCC(inDF, vect1CondReps=vect1CondReps, vect2CondReps=vect2CondReps,
+                                                          vect1CondRepsCombsCC=vect1CondRepsCombsCC,
                                                           vect2CondRepsCombsCC=vect2CondRepsCombsCC,
-                                                          Q=Q, 
-                                                          thr=thr, thrUP=thrUP, thrType=thrType, 
+                                                          Q=Q,
+                                                          thr=thr, thrUP=thrUP, thrType=thrType,
                                                           minDifference=minDifference)
-  
+
   return(list(CC = list(vect1CondRepsCombsCC, vect2CondRepsCombsCC),
               FitDATA = list(fitDATA1Cond, fitDATA2Cond),
               Output = RES))
 }
 
+nameColumns <- function(exp_n, rep_n)  {
+  #' Helper function to quickly rename columns in geneCountTab dataframe
+  #'
+  #' @param exp_n Experiment number
+  #' @param rep_n Number of replicates for the experiment
+  #' @return Vector with names
+  #' @examples colnames(geneCountTab)[2:13] <- c(nameColumns(1,2), nameColumns(2,2), nameColumns(3,2))
+  #'
 
+  paste0("exp", rep(exp_n, 2*rep_n), "_rep", rep(1:rep_n, each = 2), "_", rep(c("ref", "alt"), rep_n))
+}
