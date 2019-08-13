@@ -158,7 +158,7 @@ write.table(merge_gene_tab, file=file_out_g, sep = "\t", quote = F, row.names = 
 #
 #
 names(merge_gene_tab)[1] = "ensembl_gene_id"
-names(merge_gene_tab)[17] = "chr"
+names(merge_gene_tab)[names(merge_gene_tab)=="contig"] = "chr"
 write.table(merge_gene_tab, file=file.path(opt$odir, paste0(opt$pr_name, "_processed_gene_extended2.txt")),
             sep = "\t", quote = F, row.names = F)
 #
