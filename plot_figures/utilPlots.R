@@ -150,8 +150,10 @@ GetPercDiffForExperiment_BT <- function(df, CC_df, exp_name) {
 
   #p = percent_of_diff_color_df_BT[percent_of_diff_color_df_BT$who == "y_color_not_like_x_division" & percent_of_diff_color_df_BT$BT.x == "Genes with AI \n H0=0.5 Rejected" |
   #                                  percent_of_diff_color_df_BT$who == "x_color_not_like_y_division" & percent_of_diff_color_df_BT$BT.x == "Balanced genes \n H0=0.5 Not Rejected", ]$percentage
-  p = percent_of_diff_color_df_BT[percent_of_diff_color_df_BT$who == "concordance_rate", ]$percentage
-  return(p)
+  p_c = percent_of_diff_color_df_BT[percent_of_diff_color_df_BT$who == "concordance_rate", ]$percentage
+  p_d = percent_of_diff_color_df_BT[percent_of_diff_color_df_BT$who == "y_color_not_like_x_division" & percent_of_diff_color_df_BT$BT.x == "Genes with AI \n H0=0.5 Rejected" |
+                                  percent_of_diff_color_df_BT$who == "x_color_not_like_y_division" & percent_of_diff_color_df_BT$BT.x == "Balanced genes \n H0=0.5 Not Rejected", ]$percentage
+  return(c(p_c, p_d))
 }
 
 #' Gets percents of disagreement for a given dataset
@@ -176,8 +178,11 @@ GetPercDiffForExperiment_BT_CC <- function(df, CC_df, exp_name) {
 
   #p = percent_of_diff_color_df_BTCC[percent_of_diff_color_df_BTCC$who == "y_color_not_like_x_division" & percent_of_diff_color_df_BTCC$BT.x == "Genes with AI \n H0=0.5 Rejected" |
   #                                    percent_of_diff_color_df_BTCC$who == "x_color_not_like_y_division" & percent_of_diff_color_df_BTCC$BT.x == "Balanced genes \n H0=0.5 Not Rejected", ]$percentage
-  p = percent_of_diff_color_df_BTCC[percent_of_diff_color_df_BTCC$who == "concordance_rate", ]$percentage
-  return(p)
+  p_d = percent_of_diff_color_df_BTCC[percent_of_diff_color_df_BTCC$who == "y_color_not_like_x_division" & percent_of_diff_color_df_BTCC$BT.x == "Genes with AI \n H0=0.5 Rejected" |
+                                      percent_of_diff_color_df_BTCC$who == "x_color_not_like_y_division" & percent_of_diff_color_df_BTCC$BT.x == "Balanced genes \n H0=0.5 Not Rejected", ]$percentage
+
+  p_c = percent_of_diff_color_df_BTCC[percent_of_diff_color_df_BTCC$who == "concordance_rate", ]$percentage
+  return(c(p_c, p_d))
 }
 
 

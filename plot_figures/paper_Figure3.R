@@ -6,6 +6,7 @@ library(fitdistrplus)
 library(cowplot)
 library(ggrepel)
 library(wesanderson)
+library(eulerr)
 
 source("../R/ASE_functions.R")
 source("../R/PerformAIAnalysis_CC.R")
@@ -182,6 +183,64 @@ CalculateTestWithHalf1 <- function(df, cc, exp_name, thr=10){
   return(res)
 }
 
+# Euler Fig A
+
+CalculateTestWithHalf <- function(df, cc, exp_name, thr=10){
+  res = Reduce(function(x, y) merge(x, y, by="ID"),
+               lapply(1:(ncol(df)%/%(2*5)), function(j){
+                 sample1rep = (j-1)*5 + sample(1:5, 1)
+                 PerformBinTestAIAnalysisForConditionNPoint_knownCC(df, sample1rep, cc, thr=thr)[, c("ID", "BT", "BT_CC")]
+               })
+  )
+  names(res) = c("ID",
+                 paste0(c("BT.", "BT_CC."),
+                        rep(1:(ncol(df)%/%(2*5)), each=2)
+                 )
+  )
+  return(res)
+}
+
+
+
+list_of_consts = list(mean(CC[[1]][6:15]), mean(CC[[2]]), mean(CC[[3]]))
+list_of_libprepnames = list("NEBNext (100ng)", "SMARTseq (10ng)", "SMARTseq (0.1ng)")
+
+df_NEB = CalculateTestWithHalf(data_30mln_noX[[1]], list_of_consts[[1]], list_of_libprepnames[[1]], thr=10)
+df_SM10 = CalculateTestWithHalf(data_30mln_noX[[2]], list_of_consts[[2]], list_of_libprepnames[[2]], thr=10)
+df_SM100 = CalculateTestWithHalf(data_30mln_noX[[3]], list_of_consts[[3]], list_of_libprepnames[[3]], thr=10)
+
+df_NEB_SM10_SM100 = Reduce(function(x, y) merge(x, y, by="ID"), list(df_NEB, df_SM10, df_SM100))
+dft = df_NEB_SM10_SM100
+names(dft) = c("ID", paste0("rep", rep(1:18, each=2), '_', c("bt", "btCC")))
+rownames(dft) = dft$ID
+
+
+dft_2 = rbind(dft, dft, dft)
+dft_2[1:nrow(dft), c(12+(2:13), 24+(2:13))] = FALSE
+dft_2[(nrow(dft)+1):(2*nrow(dft)), c(2:13, 24+(2:13))] = FALSE
+dft_2[(nrow(dft)*2+1):(3*nrow(dft)), c(2:13, 12+(2:13))] = FALSE
+rownames(dft_2) = c(paste0(rownames(dft), ".1"), paste0(rownames(dft), ".2"), paste0(rownames(dft), ".3"))
+
+eulij3exp = euler(na.omit(dft_2[, c('rep2_bt', 'rep2_btCC', 'rep4_bt', 'rep4_btCC',
+                                    'rep8_bt', 'rep8_btCC', 'rep9_bt', 'rep9_btCC',
+                                    'rep14_bt', 'rep14_btCC', 'rep15_bt', 'rep15_btCC'
+)]),
+shape='ellipse')
+eulij3exp_plt = plot(eulij3exp,
+     quantities = F,
+     fills = F,
+     edges = list(col=c("royalblue1","royalblue1","royalblue1","royalblue1",
+                        "maroon2","maroon2","maroon2","maroon2",
+                        "olivedrab3","olivedrab3","olivedrab3","olivedrab3"),
+                  lty=c("dashed","solid","dashed","solid",
+                        "dashed","solid","dashed","solid",
+                        "dashed","solid","dashed","solid"),
+                  lwd=3),
+     labels = F,
+     legend = F)
+
+
+
 # Data prep
 
 #NEB
@@ -248,37 +307,42 @@ SMART10_eul_list <- list(eul_SM10_2_3, eul_SM10_24_35_bt, eul_SM10_24_35_btcc)
 NEB_plots <- lapply(
   seq(1,3),
   function(i) plot(NEB_eul_list[[i]],
-                   quantities = list(fontsize=14), fills = F, labels = F,
+                   quantities = list(fontsize=10), fills = F, labels = F,
                    edges = list(col="royalblue1", lty="solid", lwd=2))
 )
 
 SMART10_plots <- lapply(
   seq(1,3),
   function(i) plot(SMART10_eul_list[[i]],
-                   quantities = list(fontsize=14), fills = F, labels = F,
+                   quantities = list(fontsize=10), fills = F, labels = F,
                    edges = list(col="maroon2", lty="solid", lwd=2))
 )
 
 SMART100_plots <- lapply(
   seq(1,3),
   function(i) plot(SMART100_eul_list[[i]],
-                   quantities = list(fontsize=14), fills = F, labels = F,
+                   quantities = list(fontsize=10), fills = F, labels = F,
                    edges = list(col="olivedrab3", lty="solid", lwd=2))
 )
 
 PLT_fig3_C <- plot_grid(plotlist = c(NEB_plots, SMART10_plots, SMART100_plots), ncol=3)
+                        #labels = c("A", "B", "C"),
+                        #label_x = .5, hjust = 0)
 
 
 # Plotting
 
+figure_3A <- eulij3exp_plt
+
 figure_3B <- ggplot(DF_forplot$BTBFCC[DF_forplot$BTBFCC$meanCOV.y<9999,], aes(meanCOV.y, AI.y)) +
   geom_point(aes(color=BT.y), size=0.8) +
   scale_color_manual(values=c("salmon","royalblue1")) +
+  scale_y_continuous(breaks = pretty(DF_forplot$BTBFCC[DF_forplot$BTBFCC$meanCOV.y<9999,]$AI.y, n = 3)) +
   facet_grid(libprep ~ BT.x) +
   theme_bw() +
   labs(x = "Total Allele Counts", y = "Gene AI - Replicate 2", color = "Binomial Test") +
   scale_x_continuous(trans='log2') +
-  theme(legend.position="None", text = element_text(size=18))
+  theme(legend.position="None", text = element_text(size=18), strip.text.x = element_text(size = 8), strip.text.y = element_text(size = 8))
 
 figure_3C <- PLT_fig3_C # see inSanityCheck.R to get this figure
 
@@ -286,10 +350,26 @@ figure_3D <- ggplot(CC_DF, aes(y=variable, x=value, col=variable)) +
   geom_jitter() +
   scale_color_manual(values=c("royalblue1","maroon2","olivedrab3")) +
   theme_bw() +
-  theme(legend.position = "None") +
-  scale_y_discrete(limits = rev(levels(CC_DF$variable))) +
+  xlim(c(1,3)) +
+  theme(legend.position = "None", text = element_text(size=18)) +
+  scale_y_discrete(limits = rev(levels(CC_DF$variable)), labels = c("", "", "")) +
   ylab("Library preparation method") +
   xlab("QCC")
+
+figure_3E <- ggplot(df, aes(x=libprep, y=Pc, col=libprep)) +
+  geom_boxplot() +
+  facet_grid(what ~ .) +
+  xlab("Library preparation method") +
+  ylab("Concordance % \nbetween two replicates") +
+  theme_bw() +
+  theme(legend.position="right", text = element_text(size=18)) +
+  guides(col=guide_legend(title="")) +
+  scale_color_manual(labels=methods,
+                     values=c("royalblue1","maroon2","olivedrab3")) +
+  scale_x_discrete(labels=c("", "", ""), limits = rev(levels(df$libprep))) +
+  coord_flip()
+
+# concordance-discordance:
 
 figure_3E_c <- ggplot(df, aes(x=libprep, y=Pc, col=libprep)) +
   geom_boxplot() + geom_point() +
@@ -297,10 +377,10 @@ figure_3E_c <- ggplot(df, aes(x=libprep, y=Pc, col=libprep)) +
   xlab("") +
   ylab("Concordance % \nbetween two replicates") +
   theme_bw() +
-  theme(legend.position="bottom", text = element_text(size=18)) +
-  guides(col=guide_legend(title="", nrow = 1)) +
+  theme(legend.position="right", text = element_text(size=18)) +
+  guides(col=guide_legend(title="")) +
   scale_color_manual(labels=methods,
-                     values=c("royalblue1","maroon2","olivedrab3")) +
+                     values=c("royalblue1","maroon2","olivedrab3")) +                                                           
   #scale_color_manual(values=c("#999999", "#66FFB2"), labels=c("no correction", "QCC correction")) +
   scale_x_discrete(labels=c("", "", ""), limits = (levels(df$libprep))) #+
   #coord_flip()
@@ -332,10 +412,12 @@ cowplot::plot_grid(figure_3E_d, figure_3E_c)
 #   scale_x_discrete(labels=c("no correction", "QCC correction"))
 
 PLT_fig3 = plot_grid(
-  plot_grid(NULL, figure_3B, figure_3C, labels = c("A", "B", "C"), rel_widths = c(0.3, 0.8, 0.8), nrow = 1),
+  plot_grid(figure_3A, figure_3C, labels = c("A", "B"), rel_widths = c(0.4, 0.8), nrow = 1, scale = c(0.9, 0.7)),
   plot_grid(figure_3D, figure_3E, labels = c("D", "E"), rel_widths = c(0.8, 0.8)),
   nrow = 2,
-  scale = c(0.9, 0.9, 0.7, 0.9, 0.9)
+  scale = c(0.9, 0.9, 0.9, 0.9, 0.9)
 )
 
-cowplot::save_plot(PLT_fig3, file="~/Dropbox (Partners HealthCare)/replicates_ASE/manuscript/Figures/fig.3_v2.pdf", base_height = 10, base_width = 16)
+cowplot::save_plot(PLT_fig3, file="~/Dropbox (Partners HealthCare)/replicates_ASE/manuscript/Figures/fig.3_v4.pdf", base_height = 10, base_width = 16)
+
+cowplot::save_plot(figure_3B, file="~/Dropbox (Partners HealthCare)/replicates_ASE/manuscript/Figures/fig.3C_.pdf", base_height = 8, base_width = 4)

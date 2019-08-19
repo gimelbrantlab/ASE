@@ -451,7 +451,7 @@ PerformBinTestAIAnalysisForConditionNPointVect_knownCC <- function(inDF, vectRep
   tmpDFbt <- t(sapply(1:nrow(DF), function(i){
     if(is.na(matCOV[i]) | is.na(sumCOV[i]) | is.na(ptVect[i]) | sumCOV[i]==0) { return(c(NA,NA,NA)) }
     #print(paste(matCOV[i], sumCOV[i], ptVect[i]))
-    # BT <- binom.test(matCOV[i], sumCOV[i], alternative="two.sided", conf.level = Qbf, p=ptVect[i])
+    BT <- binom.test(matCOV[i], sumCOV[i], alternative="two.sided", conf.level = Qbf, p=ptVect[i])
     c(BT$p.value, BT$conf.int[1], BT$conf.int[2])
   }))
 
@@ -704,4 +704,14 @@ PerformBinTestAIAnalysisForTwoConditions <- function(inDF, vect1CondReps, vect2C
               Output = RES))
 }
 
+nameColumns <- function(exp_n, rep_n)  {
+  #' Helper function to quickly rename columns in geneCountTab dataframe
+  #'
+  #' @param exp_n Experiment number
+  #' @param rep_n Number of replicates for the experiment
+  #' @return Vector with names
+  #' @examples colnames(geneCountTab)[2:13] <- c(nameColumns(1,2), nameColumns(2,2), nameColumns(3,2))
+  #'
 
+  paste0("exp", rep(exp_n, 2*rep_n), "_rep", rep(1:rep_n, each = 2), "_", rep(c("ref", "alt"), rep_n))
+}

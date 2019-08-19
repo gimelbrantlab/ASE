@@ -1,9 +1,28 @@
+# DFs for Euler diagrams:
+
+CalculateTestWithHalf <- function(df, cc, exp_name, thr=10){
+  res = Reduce(function(x, y) merge(x, y, by="ID"),
+               lapply(1:(ncol(df)%/%(2*5)), function(j){
+                 sample1rep = (j-1)*5 + sample(1:5, 1)
+                 PerformBinTestAIAnalysisForConditionNPoint_knownCC(df, sample1rep, cc, thr=thr)[, c("ID", "BT", "BT_CC")]
+               })
+  )
+  names(res) = c("ID",
+                 paste0(c("BT.", "BT_CC."),
+                        rep(1:(ncol(df)%/%(2*5)), each=2)
+                 )
+  )
+  return(res)
+}
+
+
+
 list_of_consts = list(mean(CC[[1]][6:15]), mean(CC[[2]]), mean(CC[[3]]))
 list_of_libprepnames = list("NEBNext (100ng)", "SMARTseq (10ng)", "SMARTseq (0.1ng)")
 
-df_NEB = CalculateTestWithHalf(data_noX[[1]], list_of_consts[[1]], list_of_libprepnames[[1]], thr=10)
-df_SM10 = CalculateTestWithHalf(data_noX[[2]], list_of_consts[[2]], list_of_libprepnames[[2]], thr=10)
-df_SM100 = CalculateTestWithHalf(data_noX[[3]], list_of_consts[[3]], list_of_libprepnames[[3]], thr=10)
+df_NEB = CalculateTestWithHalf(data_30mln_noX[[1]], list_of_consts[[1]], list_of_libprepnames[[1]], thr=10)
+df_SM10 = CalculateTestWithHalf(data_30mln_noX[[2]], list_of_consts[[2]], list_of_libprepnames[[2]], thr=10)
+df_SM100 = CalculateTestWithHalf(data_30mln_noX[[3]], list_of_consts[[3]], list_of_libprepnames[[3]], thr=10)
 
 df_NEB_SM10_SM100 = Reduce(function(x, y) merge(x, y, by="ID"), list(df_NEB, df_SM10, df_SM100))
 dft = df_NEB_SM10_SM100
@@ -24,12 +43,8 @@ eulij3exp = euler(na.omit(dft_2[, c('rep2_bt', 'rep2_btCC', 'rep4_bt', 'rep4_btC
 shape='ellipse')
 #eulij3exp_plt =
 plot(eulij3exp,
-     quantities = list(fontsize=14),
-     fills = F, #list(fill=c("green","green","green","green",
-     #            "yellow","yellow","yellow","yellow",
-     #            "grey","grey","grey","grey"),
-     #    alpha=c(0.1,0.5,0.1,0.1)),
-     #fills = c(fill="white"),
+     quantities = F,
+     fills = F,
      edges = list(col=c("royalblue1","royalblue1","royalblue1","royalblue1",
                         "maroon2","maroon2","maroon2","maroon2",
                         "olivedrab3","olivedrab3","olivedrab3","olivedrab3"),
@@ -38,4 +53,4 @@ plot(eulij3exp,
                         "dashed","solid","dashed","solid"),
                   lwd=3),
      labels = F,
-     legend = list(fontsize=14))
+     legend = F)
