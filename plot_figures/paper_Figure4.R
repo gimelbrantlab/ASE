@@ -134,7 +134,7 @@ dataCexlALLlogG10 = dataCexlALL[dataCexlALL$mc>=10, ]
 dataCexlALLlogG10[, 2:4] = log(dataCexlALLlogG10[, 2:4], base=10)
 
 ###-------------------------------------------------------------------------------------------------
-###--------------------------------FIG_4C-----------------------------------------------------------
+###--------------------------------FIG_4E-----------------------------------------------------------
 ###-------------------------------------------------------------------------------------------------
 
 libnreps = c(5,6,6)
@@ -293,18 +293,18 @@ betweenexp_exp_diff_df = do.call(rbind, lapply(1:3, function(i){
   )
 }))
 
-df_fig1A <- rbind(betweenexp_exp_diff_df, interrep_exp_diff_df)
+df_fig1A <- rbind(interrep_exp_diff_df, betweenexp_exp_diff_df)
 df_fig1A$method <- factor(df_fig1A$method,
-                             levels = c("NEBNext (100ng) vs SMARTseq (10ng)",
-                                        "NEBNext (100ng) vs SMARTseq (0.1ng)",
-                                        "SMARTseq (10ng) vs SMARTseq (0.1ng)",
-                                        "NEBNext (100ng)",
+                             levels = c("NEBNext (100ng)",
                                         "SMARTseq (10ng)",
-                                        "SMARTseq (0.1ng)"))
+                                        "SMARTseq (0.1ng)",
+                                        "NEBNext (100ng) vs SMARTseq (10ng)",
+                                        "NEBNext (100ng) vs SMARTseq (0.1ng)",
+                                        "SMARTseq (10ng) vs SMARTseq (0.1ng)"))
 df_fig1A$test <- factor(df_fig1A$test, labels = c("before correction", "QCC corrected"))
 
 ###-------------------------------------------------------------------------------------------------
-###-------------------------------------FIG_4F------------------------------------------------------
+###-------------------------------------FIG_4C(b)---------------------------------------------------
 ###-------------------------------------------------------------------------------------------------
 
 CalculatePairConcordance <- function(data, cc, expname, nrep=6){
@@ -398,7 +398,7 @@ df62_S100 = do.call(rbind, lapply(res_62_CCsim_S100, function(x){x}))
 
 
 ###-------------------------------------------------------------------------------------------------
-###-------------------------------------FIG_4E------------------------------------------------------
+###-------------------------------------FIG_4C(a)---------------------------------------------------
 ###-------------------------------------------------------------------------------------------------
 
 reppairs_NEBno1 = reps_6_from30[[1]][-1]
@@ -501,7 +501,7 @@ interrep_CCsim_S100_exp_diff_df = do.call(rbind, lapply(1:length(CC_sim), functi
 
 
 ###-------------------------------------------------------------------------------------------------
-###-------------------------------------FIG_4G------------------------------------------------------
+###-------------------------------------FIG_4C(c)---------------------------------------------------
 ###-------------------------------------------------------------------------------------------------
 
 res_22_CCsim_S100 = lapply(CC_sim, function(sim_CC_i){
@@ -517,12 +517,12 @@ res_22_CCsim_S100 = lapply(CC_sim, function(sim_CC_i){
 
 df22_S100 = do.call(rbind, lapply(res_22_CCsim_S100, function(x){x}))
 
-figure_4G_SM100 = ggplot(df22_S100[df22_S100$what=="corrected",], aes(x=CC, y=Pc, group=CC)) +
+figure_4Cc_SM100 = ggplot(df22_S100[df22_S100$what=="corrected",], aes(x=CC, y=Pc, group=CC)) +
   geom_rect(xmin = min(CC[[3]]), xmax = max(CC[[3]]), ymin = -Inf, ymax = Inf,
             fill=alpha("darkolivegreen1", 0.2)) +
   geom_boxplot() +
   geom_point() +
-  xlab("Guessed QCC") +
+  xlab("TEsted QCC") +
   ylab("Concordance % \nbetween two replicates") +
   theme_bw() +
   theme(legend.position="None", text = element_text(size=18))
@@ -586,7 +586,7 @@ figure_4G_SM100 = ggplot(df22_S100[df22_S100$what=="corrected",], aes(x=CC, y=Pc
 #             fill=alpha("lightpink", 0.2), col="lightpink") +
 #   geom_point() +
 #   scale_color_manual(values=c("royalblue1","olivedrab3","maroon2"))  +
-#   xlab("Guessed QCC") +
+#   xlab("TEsted QCC") +
 #   ylab("Concordance % \nbetween two replicates") +
 #   theme_bw() +
 #   theme(legend.position="None", text = element_text(size=18))
@@ -603,7 +603,7 @@ figure_4A <- ggplot(df_fig1A, aes(method, DiffASE_N, col= method)) +
   geom_boxplot() +
   theme_bw() +
   facet_grid(~ test) +
-  scale_color_manual(values=c("black","black","black", "royalblue1","maroon2","olivedrab3")) +
+  scale_color_manual(values=c("royalblue1","maroon2","olivedrab3", "black","black","black")) +
   ylab("Number of genes called differential") +
   xlab("") +
   theme(axis.text.x=element_text(colour="white"), axis.ticks.x=element_blank(),
@@ -636,7 +636,7 @@ figure_4B <- ggplot(df_fig4B, aes(x=experiment, y=FP_rate, col=experiment)) +
 cowplot::save_plot(figure_4A, file="fig.4A_legend.pdf", base_height = 10, base_width = 16)
 
 
-figure_4C <- grid.arrange(
+figure_4E <- grid.arrange(
   ggplot() +
     geom_boxplot(data=CC_ov_sdp_df, aes(overdispersion_sqr, QCC, col=method)) +
     geom_point(data=CC_ov_sdp_df, aes(overdispersion_sqr, QCC, col=method)) +
@@ -667,50 +667,52 @@ figure_4D <- ggplot() +
 
 
 
-df_fig4F_NEB = df62
-figure_4F_NEB = ggplot(df_fig4F_NEB, aes(x=CC, y=FP_BTCC_rate, group=CC)) +
+df_fig4Cb_NEB = df62
+figure_4Cb_NEB = ggplot(df_fig4Cb_NEB, aes(x=CC, y=FP_BTCC_rate, group=CC)) +
   geom_rect(xmin = min(CC[[1]][-c(1:5)]), xmax = max(CC[[1]][-c(1:5)]), ymin = -Inf, ymax = Inf,
             fill=alpha("skyblue1", 0.2)) +
   geom_boxplot(color="grey", lwd=1.1) +
   geom_point() +
-  xlab("Guessed QCC") +
+  xlab("TEsted QCC") +
   ylab("False positive rate") +
   theme_bw() +
   theme(legend.position="None", text = element_text(size=18))
 
-df_fig4F_SM100 = df62_S100
-figure_4F_SM100 = ggplot(df_fig4F_SM100, aes(x=CC, y=FP_BTCC_rate, group=CC)) +
+df_fig4Cb_SM100 = df62_S100
+figure_4Cb_SM100 = ggplot(df_fig4Cb_SM100, aes(x=CC, y=FP_BTCC_rate, group=CC)) +
   geom_rect(xmin = min(CC[[3]]), xmax = max(CC[[3]]), ymin = -Inf, ymax = Inf,
             fill=alpha("darkolivegreen1", 0.2)) +
   geom_boxplot(color="grey", lwd=1.1) +
   geom_point() +
-  xlab("Guessed QCC") +
+  xlab("Tested QCC") +
   ylab("False positive rate") +
   theme_bw() +
+  scale_y_log10() +
   theme(legend.position="None", text = element_text(size=18))
 
-df_fig4E_NEB = interrep_CCsim_NEBno1_exp_diff_df
-figure_4E_NEB = ggplot(df_fig4E_NEB,
+df_fig4Ca_NEB = interrep_CCsim_NEBno1_exp_diff_df
+figure_4Ca_NEB = ggplot(df_fig4Ca_NEB,
                    aes(QCC, DiffASE_N, group=QCC)) +
   geom_rect(xmin = min(CC[[1]][-c(1:5)]), xmax = max(CC[[1]][-c(1:5)]), ymin = -Inf, ymax = Inf,
             fill=alpha("skyblue1", 0.2)) +
   geom_boxplot(color="grey", lwd=1.1) +
   geom_point() +
-  xlab("Guessed QCC") +
+  xlab("TEsted QCC") +
   ylab("Number of genes \ncalled differential") +
   theme_bw() +
   theme(legend.position="None", text = element_text(size=18))
 
-df_fig4E_SM100 = interrep_CCsim_S100_exp_diff_df
-figure_4E_SM100 = ggplot(df_fig4E_SM100,
+df_fig4Ca_SM100 = interrep_CCsim_S100_exp_diff_df
+figure_4Ca_SM100 = ggplot(df_fig4Ca_SM100,
                    aes(QCC, DiffASE_N, group=QCC)) +
   geom_rect(xmin = min(CC[[3]]), xmax = max(CC[[3]]), ymin = -Inf, ymax = Inf,
             fill=alpha("darkolivegreen1", 0.2)) +
   geom_boxplot(color="grey", lwd=1.1) +
   geom_point() +
-  xlab("Guessed QCC") +
+  xlab("Tested QCC") +
   ylab("Number of genes \ncalled differential") +
   theme_bw() +
+  scale_y_log10() +
   theme(legend.position="None", text = element_text(size=18))
 
 
@@ -727,76 +729,70 @@ legend_plt = plot_grid(cowplot::get_legend(figure_legends), NULL, ncol=1, rel_he
 
 
 
-PLT_fig4_ABCD = plot_grid(
-  plot_grid(figure_4A, NULL, figure_4B, labels = c("A", "", "B"), rel_widths = c(0.8, 0.05, 0.8), rel_heights = c(0.8, 0.8, 0.8), nrow=1),
+PLT_fig4_ABDE = plot_grid(
+  plot_grid(figure_4A, NULL, figure_4B, labels = c("A", "", "B"), rel_widths = c(0.85, 0.1, 0.85), rel_heights = c(0.8, 0.8, 0.8), nrow=1),
   legend_plt,
-  plot_grid(figure_4C, NULL, figure_4D, labels = c("C", "", "D"), rel_widths = c(0.9, 0.05, 0.7), rel_heights = c(0.8, 0.8, 0.8), nrow=1),
-  nrow = 3, rel_heights = c(0.9, 0.15, 0.9)
+  plot_grid(figure_4D, NULL, figure_4E, labels = c("D", "", "E"), rel_widths = c(0.85, 0.1, 0.85), rel_heights = c(0.8, 0.8, 0.8), nrow=1),
+  nrow = 3, rel_heights = c(0.9, 0.15, 0.9),
+  align = 'vh'
   #scale = c(0.9, 0.9, 0.9, 0.9)
 )
+# plot_grid(
+#   figure_4A, NULL, figure_4B, figure_4D, NULL, figure_4Ea,figure_4Eb,
+#   rel_widths = c(0.85,0.1,0.85, 0.85,0.1,0.425,0.425),
+#   rel_heights = c(0.9,0.9,0.9, 0.9,0.9,0.9,0.9),
+#   labels = c("A", "", "B", "D", "", "E", ""),
+#   nrow = 2, ncol = 3,
+#   align = 'vh'
+# )
 
-PLT_fig4_EFG_SM100 = plot_grid(
-  figure_4E_SM100, NULL, figure_4F_SM100, NULL, figure_4G_SM100, labels = c("E", "", "F", "", "G"),
+PLT_fig4_Cabc_SM100 = plot_grid(
+  figure_4Ca_SM100, NULL, figure_4Cb_SM100, NULL, figure_4Cc_SM100, labels = c("C", "", "", "", ""),
   ncol = 1, align = "v",
   rel_heights = c(0.8, 0.05, 0.8, 0.05, 0.8)
   #scale = c(0.9, 0.9, 0.9)
 )
-PLT_fig4_ABCDEFG_SM100 = plot_grid(
-  PLT_fig4_ABCD, NULL, PLT_fig4_EFG_SM100,
-  ncol=3, align = 'h',
-  rel_widths = c(1.6, 0.05, 0.5)
+PLT_fig4_ABDECabc_SM100 = plot_grid(
+  PLT_fig4_ABDE, NULL, PLT_fig4_Cabc_SM100,
+  ncol=3, align = 'vh',
+  rel_widths = c(1.47, 0.08, 0.65)
 )
 
-cowplot::save_plot(PLT_fig4_ABCDEFG_SM100, file="fig.4_v4_SM100_ABCDEFG.pdf", base_height = 11, base_width = 21)
-cowplot::save_plot(PLT_fig4_ABCDEFG_SM100, file="fig.4_v4_SM100_ABCDEFG.png", base_height = 11, base_width = 21)
+cowplot::save_plot(PLT_fig4_ABDECabc_SM100, file="fig.4_v4_SM100_ABDECabc.pdf", base_height = 11, base_width = 21)
+cowplot::save_plot(PLT_fig4_ABDECabc_SM100, file="fig.4_v4_SM100_ABDECabc.png", base_height = 11, base_width = 21)
 
 
-# PLT_fig4_EFG_NEB = plot_grid(
-#   figure_4E_NEB, NULL, figure_4F_NEB, NULL, figure_4F_NEB, labels = c("E", "", "F", "", "G"),
-#   ncol = 1, align = "v",
-#   rel_heights = c(0.8, 0.05, 0.8, 0.05, 0.8)
-#   #scale = c(0.9, 0.9, 0.9)
-# )
-# PLT_fig4_ABCDEFG_NEB = plot_grid(
-#   PLT_fig4_ABCD, NULL, PLT_fig4_EFG_NEB,
-#   ncol=3, align = 'h',
-#   rel_widths = c(1.6, 0.05, 0.5)
-# )
-#
-# cowplot::save_plot(PLT_fig4_ABCDEFG_NEB, file="fig.4_v4_NEB_ABCDEFG.pdf", base_height = 11, base_width = 21)
-# cowplot::save_plot(PLT_fig4_ABCDEFG_NEB, file="fig.4_v4_NEB_ABCDEFG.png", base_height = 11, base_width = 21)
+
+PLT_fig4_Cab_SM100 = plot_grid(
+  figure_4Ca_SM100, NULL, figure_4Cb_SM100, labels = c("C", "", ""),
+  ncol = 1, align = "v",
+  rel_heights = c(0.95, 0.05, 0.95)
+  #scale = c(0.9, 0.9, 0.9)
+)
+PLT_fig4_ABDECab_SM100 = plot_grid(
+  PLT_fig4_ABDE, NULL, PLT_fig4_Cab_SM100,
+  ncol=3, align = 'h',
+  rel_widths = c(1.47, 0.08, 0.65)
+)
+
+cowplot::save_plot(PLT_fig4_ABDECab_SM100, file="fig.4_v4_SM100_ABDECab.pdf", base_height = 11, base_width = 21)
+cowplot::save_plot(PLT_fig4_ABDECab_SM100, file="fig.4_v4_SM100_ABDECab.png", base_height = 11, base_width = 21)
 
 
-PLT_fig4_EF_SM100 = plot_grid(
-  figure_4E_SM100, NULL, figure_4F_SM100, labels = c("E", "", "F"),
+PLT_fig4_Cab_NEB = plot_grid(
+  figure_4Ca_NEB, NULL, figure_4Cb_NEB, labels = c("E", "", "F"),
   ncol = 1, align = "v",
   rel_heights = c(0.9, 0.15, 0.9)
   #scale = c(0.9, 0.9, 0.9)
 )
-PLT_fig4_ABCDEF_SM100 = plot_grid(
-  PLT_fig4_ABCD, NULL, PLT_fig4_EF_SM100,
+PLT_fig4_ABDECab_NEB = plot_grid(
+  PLT_fig4_ABDE, NULL, PLT_fig4_Cab_NEB,
   ncol=3, align = 'h',
   rel_widths = c(1.6, 0.05, 0.5)
 )
 
-cowplot::save_plot(PLT_fig4_ABCDEF_SM100, file="fig.4_v4_SM100_ABCDEF.pdf", base_height = 11, base_width = 21)
-cowplot::save_plot(PLT_fig4_ABCDEF_SM100, file="fig.4_v4_SM100_ABCDEF.png", base_height = 11, base_width = 21)
-
-
-PLT_fig4_EF_NEB = plot_grid(
-  figure_4E_NEB, NULL, figure_4F_NEB, labels = c("E", "", "F"),
-  ncol = 1, align = "v",
-  rel_heights = c(0.9, 0.15, 0.9)
-  #scale = c(0.9, 0.9, 0.9)
-)
-PLT_fig4_ABCDEF_NEB = plot_grid(
-  PLT_fig4_ABCD, NULL, PLT_fig4_EF_NEB,
-  ncol=3, align = 'h',
-  rel_widths = c(1.6, 0.05, 0.5)
-)
-
-cowplot::save_plot(PLT_fig4_ABCDEF_NEB, file="fig.4_v4_NEB_ABCDEF.pdf", base_height = 11, base_width = 21)
-cowplot::save_plot(PLT_fig4_ABCDEF_NEB, file="fig.4_v4_NEB_ABCDEF.png", base_height = 11, base_width = 21)
+cowplot::save_plot(PLT_fig4_ABDECab_NEB, file="fig.4_v4_NEB_ABDECab.pdf", base_height = 11, base_width = 21)
+cowplot::save_plot(PLT_fig4_ABDECab_NEB, file="fig.4_v4_NEB_ABDECab.png", base_height = 11, base_width = 21)
 
 
 
