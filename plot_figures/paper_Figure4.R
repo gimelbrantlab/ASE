@@ -1,4 +1,4 @@
-setwd("~/Dropbox (Partners HealthCare)/replicates_ASE/code/ASE/plot_figures")
+setwd("~/Dropbox (Partners HealthCare)/code/ASE/plot_figures")
 
 library(tidyverse)
 library(cowplot)
@@ -14,7 +14,6 @@ source("../plot_figures/takedata30mln.R")
 reps_6_from30 = list(c(3,8,13,19,24,28),
                      c(4,10,12,19,24,28),
                      c(5,10,12,16,23,27))
-# reps_6_from30 = list((1:5)*5+1, (0:5)*5+1, (0:5)*5+1)
 list_of_datas = data_30mln_noX; list_of_datas[[1]] = data_30mln_noX[[1]][, -c(2:11)]
 list_of_consts = list(CC[[1]], CC[[2]], CC[[3]])
 list_of_constsM = list(mean(CC[[1]][6:15]), mean(CC[[2]]), mean(CC[[3]]))
@@ -90,10 +89,9 @@ res61_df_all <- data.frame(rbind(res61_df_NEB, res61_df_SMART10, res61_df_SMART1
 res61_df_all <- res61_df_all[,c(4,3)] %>% gather(key="method", value = "FP_rate", -experiment)
 
 
-
-###
-
-# Data for Figure 4d
+###-------------------------------------------------------------------------------------------------
+###--------------------------------FIG_4D-----------------------------------------------------------
+###-------------------------------------------------------------------------------------------------
 
 data1c = sapply(reps_6_from30[[1]][2:6], function(i){rowSums(data_30mln_noX[[1]][, c(i*2-1,i*2)])})
 data2c = sapply(reps_6_from30[[2]][1:6], function(i){rowSums(data_30mln_noX[[2]][, c(i*2-1,i*2)])})
@@ -135,10 +133,14 @@ dataCexlALLlogG1[, 2:4] = log(dataCexlALLlogG1[, 2:4], base=10)
 dataCexlALLlogG10 = dataCexlALL[dataCexlALL$mc>=10, ]
 dataCexlALLlogG10[, 2:4] = log(dataCexlALLlogG10[, 2:4], base=10)
 
-#Fig.4C
+###-------------------------------------------------------------------------------------------------
+###--------------------------------FIG_4E-----------------------------------------------------------
+###-------------------------------------------------------------------------------------------------
 
 libnreps = c(5,6,6)
 reps_N_from30 = list(reps_6_from30[[1]][2:6], reps_6_from30[[2]], reps_6_from30[[3]])
+#libnreps = c(6,6,6)
+#reps_N_from30 = list(reps_6_from30[[1]], reps_6_from30[[2]], reps_6_from30[[3]])
 
 sdPairs = lapply(1:3, function(l){
   combn(1:libnreps[[l]], 2, function(x){
@@ -164,14 +166,18 @@ slopesG10 = sapply(unique(dataCexlALLlogG10$what), function(what){
   })
 })
 
-
 CC_ov_sdp_df = data.frame(QCC = unlist(CC)[6:45],
                           sd_pair = unlist(sdPairs),
                           overdispersion_sqr = rep(slopesG10[,1], each=15)[6:45],
                           method = rep(unlist(list_of_libprepnames), each=15)[6:45])
+# CC_ov_sdp_df = data.frame(QCC = unlist(CC),
+#                           sd_pair = unlist(sdPairs),
+#                           overdispersion_sqr = rep(slopesG10[,1], each=15),
+#                           method = rep(unlist(list_of_libprepnames), each=15))
 
-
-#Fig.4A
+###-------------------------------------------------------------------------------------------------
+###--------------------------------FIG_4A-----------------------------------------------------------
+###-------------------------------------------------------------------------------------------------
 
 df_2exp = lapply(1:3, function(i){
   data.frame(method = list_of_libprepnames[[i]],
@@ -287,30 +293,335 @@ betweenexp_exp_diff_df = do.call(rbind, lapply(1:3, function(i){
   )
 }))
 
-df_fig1A <- rbind(betweenexp_exp_diff_df, interrep_exp_diff_df)
+df_fig1A <- rbind(interrep_exp_diff_df, betweenexp_exp_diff_df)
 df_fig1A$method <- factor(df_fig1A$method,
-                             levels = c("NEBNext (100ng) vs SMARTseq (10ng)",
-                                        "NEBNext (100ng) vs SMARTseq (0.1ng)",
-                                        "SMARTseq (10ng) vs SMARTseq (0.1ng)",
-                                        "NEBNext (100ng)",
+                             levels = c("NEBNext (100ng)",
                                         "SMARTseq (10ng)",
-                                        "SMARTseq (0.1ng)"))
+                                        "SMARTseq (0.1ng)",
+                                        "NEBNext (100ng) vs SMARTseq (10ng)",
+                                        "NEBNext (100ng) vs SMARTseq (0.1ng)",
+                                        "SMARTseq (10ng) vs SMARTseq (0.1ng)"))
 df_fig1A$test <- factor(df_fig1A$test, labels = c("before correction", "QCC corrected"))
-# Plotting
+
+###-------------------------------------------------------------------------------------------------
+###-------------------------------------FIG_4C(b)---------------------------------------------------
+###-------------------------------------------------------------------------------------------------
+
+CalculatePairConcordance <- function(data, cc, expname, nrep=6){
+
+  pdis_CC =
+    sapply(1:ncol(combn(nrep, 2)), function(j){
+      #sample2reps30mln =(combn(6, 2)[, j]-1)*5 + sample(1:5, 2, replace=T)
+      sample2reps30mln = (combn(nrep, 2)[, j])
+      CC_sample2_30mln = cc
+      data_30mln_sample2 = data[, sort(c(1, sample2reps30mln*2, sample2reps30mln*2+1))]
+
+      if(cc == 1) {
+        p = GetPercDiffForExperiment_BT(df=data_30mln_sample2, CC_df=CC_sample2_30mln, exp_name="any")
+      } else {
+        p = GetPercDiffForExperiment_BT_CC(df=data_30mln_sample2, CC_df=CC_sample2_30mln, exp_name="any")
+      }
+
+      return(p)
+    })
+
+  df = data.frame(Pc=as.vector(pdis_CC[1,]), libprep=expname, what="corrected", t(combn(nrep, 2)))
+
+  return(df)
+}
+
+Calculate62Desagreement <- function(data, cc, expname, nrep=6){
+
+  df <- sapply(1:ncol(combn(nrep, 2)), function(j){
+    #pairs_sample = (combn(nrep, 2)[, j]-1)*5 + sample(1:5, 2, replace=T)
+    pairs_sample = (combn(nrep, 2)[, j])
+    for_6_df <- CountsToAI(data, meth="mergedToProportion")$AI
+    res62 <- PerformBinTestAIAnalysisForConditionNPointVect_knownCC(data, vectReps=pairs_sample,
+                                                                    vectRepsCombsCC = cc,
+                                                                    ptVect = for_6_df,
+                                                                    thr=10)
+    FP_BTCC <- sum(res62$BT_CC, na.rm = T)
+    FP_BT <- sum(res62$BT, na.rm = T)
+    all_BTCC <- length(res62$BT_CC) - sum(is.na(res62$BT_CC))
+    all_BT <- length(res62$BT) - sum(is.na(res62$BT))
+    return(c(FP_BTCC, FP_BT, all_BTCC, all_BT))
+  })
+  df <- data.frame(t(df), t(combn(nrep, 2)))
+  colnames(df) <- c("FP_BTCC", "FP_BT", "all_BTCC", "all_BT", "X1", "X2")
+  df$FP_BTCC_rate <- df$FP_BTCC / df$all_BTCC
+  df$FP_BT_rate <- df$FP_BT / df$all_BT
+  return(df)
+
+  df$experiment <- expname
+  res62_df <- df[,c(9,7:8)] %>% gather(key="method", value = "FP_rate", -experiment)
+
+  return(res62_df)
+}
+
+
+CC_sim = lapply(seq(1,3,0.1), function(x){c(x)})
+
+NEB_data_30mln_noX = data_30mln_noX[[1]][, sort(c(1, reps_6_from30[[1]]*2, reps_6_from30[[1]]*2+1))]
+NEB_data_30mln_noX_no1 = NEB_data_30mln_noX[, -(2:3)]
+SM10ng_data_30mln_noX = data_30mln_noX[[2]][, sort(c(1, reps_6_from30[[2]]*2, reps_6_from30[[2]]*2+1))]
+SM100pg_data_30mln_noX = data_30mln_noX[[3]][, sort(c(1, reps_6_from30[[3]]*2, reps_6_from30[[3]]*2+1))]
+
+data_list = list(NEB_data_30mln_noX, NEB_data_30mln_noX_no1, SM10ng_data_30mln_noX, SM100pg_data_30mln_noX)
+nrep_list = c(6,5,6,6)
+libprepname_list = c("NEBNext (100ng)", "NEBNext (100ng) 2-6 reps", "SMARTseq (10ng)", "SMARTseq (0.1ng)")
+
+res_62_CCsim_NEBno1 = lapply(CC_sim, function(sim_CC_i){
+  j = 2
+  data = data_list[[j]]
+  const = sim_CC_i
+  libprepname = libprepname_list[[j]]
+  res62 = Calculate62Desagreement(data, const, libprepname, nrep=nrep_list[[j]])
+  res62$CC = const
+  print(paste("CC =", sim_CC_i, "DONE"))
+  return(res62)
+})
+
+df62 = do.call(rbind, lapply(res_62_CCsim_NEBno1, function(x){x}))
+
+res_62_CCsim_S100 = lapply(CC_sim, function(sim_CC_i){
+  j = 4
+  data = data_list[[j]]
+  const = sim_CC_i
+  libprepname = libprepname_list[[j]]
+  res62 = Calculate62Desagreement(data, const, libprepname, nrep=nrep_list[[j]])
+  res62$CC = const
+  print(paste("CC =", sim_CC_i, "DONE"))
+  return(res62)
+})
+
+df62_S100 = do.call(rbind, lapply(res_62_CCsim_S100, function(x){x}))
+
+
+###-------------------------------------------------------------------------------------------------
+###-------------------------------------FIG_4C(a)---------------------------------------------------
+###-------------------------------------------------------------------------------------------------
+
+reppairs_NEBno1 = reps_6_from30[[1]][-1]
+df_1exp_CCsim_NEBno1 = lapply(CC_sim, function(sim_CC_i){
+  do.call(rbind, lapply(1:ncol(combn(reppairs_NEBno1,2)),
+          function(j){
+            pair1 = combn(reppairs_NEBno1,2)[,j]
+            rest1 = reppairs_NEBno1[! reppairs_NEBno1 %in% pair1]
+            df = data.frame(X1=rep(pair1[1], each=ncol(combn(rest1, 2))),
+                            X2=rep(pair1[2], each=ncol(combn(rest1, 2))),
+                            X3=(combn(rest1, 2))[1,],
+                            X4=(combn(rest1, 2))[2,],
+                            CC_12 = sim_CC_i,
+                            CC_34 = sim_CC_i)
+            df
+          }))
+})
+
+n_sample = 10
+set.seed(2); df_1exp_CCsim_NEBno1_15 = lapply(df_1exp_CCsim_NEBno1, function(x){x[sample(nrow(x),n_sample), ]})
+
+interrep_exp_CCsim_NEBno1_diff = lapply(df_1exp_CCsim_NEBno1_15, function(df){
+  lapply(1:n_sample, function(i){
+    data1 = df[i, ]
+    print(data1)
+    PerformBinTestAIAnalysisForTwoConditions_knownCC(NEB_data_30mln_noX,
+                                                     vect1CondReps=((c(data1$X1,data1$X2)-1)%/%5+1),
+                                                     vect2CondReps=((c(data1$X3,data1$X4)-1)%/%5+1),
+                                                     vect1CondRepsCombsCC=data1$CC_12, vect2CondRepsCombsCC=data1$CC_34,
+                                                     Q=0.95, thr=10, thrUP=NA, thrType="each", minDifference=NA)
+  })
+})
+
+interrep_exp_CCsim_NEBno1_diff_list = lapply(interrep_exp_CCsim_NEBno1_diff, function(m_list){
+  do.call(rbind, lapply(1:length(m_list), function(x){
+    df = na.omit(m_list[[x]][, c("BT","BT_CC")])
+    data.frame(
+      BTCC_p = sum(df[, 2])/nrow(df),
+      BTCC_count = sum(df[, 2]),
+      count = nrow(df)
+    )
+  }))
+})
+interrep_CCsim_NEBno1_exp_diff_df = do.call(rbind, lapply(1:length(CC_sim), function(i){
+  data.frame(DiffASE_proportion = interrep_exp_CCsim_NEBno1_diff_list[[i]]$BTCC_p,
+             DiffASE_N = interrep_exp_CCsim_NEBno1_diff_list[[i]]$BTCC_count,
+             QCC = CC_sim[[i]])
+}))
+
+
+
+
+reppairs_S100 = reps_6_from30[[3]]
+df_1exp_CCsim_S100 = lapply(CC_sim, function(sim_CC_i){
+  do.call(rbind, lapply(1:ncol(combn(reppairs_S100,2)),
+                        function(j){
+                          pair1 = combn(reppairs_S100,2)[,j]
+                          rest1 = reppairs_S100[! reppairs_S100 %in% pair1]
+                          df = data.frame(X1=rep(pair1[1], each=ncol(combn(rest1, 2))),
+                                          X2=rep(pair1[2], each=ncol(combn(rest1, 2))),
+                                          X3=(combn(rest1, 2))[1,],
+                                          X4=(combn(rest1, 2))[2,],
+                                          CC_12 = sim_CC_i,
+                                          CC_34 = sim_CC_i)
+                          df
+                        }))
+})
+
+n_sample = 10
+set.seed(2); df_1exp_CCsim_S100_15 = lapply(df_1exp_CCsim_S100, function(x){x[sample(nrow(x),n_sample), ]})
+
+interrep_exp_CCsim_S100_diff = lapply(df_1exp_CCsim_S100_15, function(df){
+  lapply(1:n_sample, function(i){
+    data1 = df[i, ]
+    print(data1)
+    PerformBinTestAIAnalysisForTwoConditions_knownCC(SM100pg_data_30mln_noX,
+                                                     vect1CondReps=((c(data1$X1,data1$X2)-1)%/%5+1),
+                                                     vect2CondReps=((c(data1$X3,data1$X4)-1)%/%5+1),
+                                                     vect1CondRepsCombsCC=data1$CC_12, vect2CondRepsCombsCC=data1$CC_34,
+                                                     Q=0.95, thr=10, thrUP=NA, thrType="each", minDifference=NA)
+  })
+})
+
+interrep_exp_CCsim_S100_diff_list = lapply(interrep_exp_CCsim_S100_diff, function(m_list){
+  do.call(rbind, lapply(1:length(m_list), function(x){
+    df = na.omit(m_list[[x]][, c("BT","BT_CC")])
+    data.frame(
+      BTCC_p = sum(df[, 2])/nrow(df),
+      BTCC_count = sum(df[, 2]),
+      count = nrow(df)
+    )
+  }))
+})
+interrep_CCsim_S100_exp_diff_df = do.call(rbind, lapply(1:length(CC_sim), function(i){
+  data.frame(DiffASE_proportion = interrep_exp_CCsim_S100_diff_list[[i]]$BTCC_p,
+             DiffASE_N = interrep_exp_CCsim_S100_diff_list[[i]]$BTCC_count,
+             QCC = CC_sim[[i]])
+}))
+
+
+
+###-------------------------------------------------------------------------------------------------
+###-------------------------------------FIG_4C(c)---------------------------------------------------
+###-------------------------------------------------------------------------------------------------
+
+res_22_CCsim_S100 = lapply(CC_sim, function(sim_CC_i){
+  j = 4
+  data = data_list[[j]]
+  const = sim_CC_i
+  libprepname = libprepname_list[[j]]
+  res22 = CalculatePairConcordance(data, const, libprepname, nrep=nrep_list[[j]])
+  res22$CC = const
+  print(paste("CC =", sim_CC_i, "DONE"))
+  return(res22)
+})
+
+df22_S100 = do.call(rbind, lapply(res_22_CCsim_S100, function(x){x}))
+
+figure_4Cc_SM100 = ggplot(df22_S100[df22_S100$what=="corrected",], aes(x=CC, y=Pc, group=CC)) +
+  geom_rect(xmin = min(CC[[3]]), xmax = max(CC[[3]]), ymin = -Inf, ymax = Inf,
+            fill=alpha("darkolivegreen1", 0.2)) +
+  geom_boxplot() +
+  geom_point() +
+  xlab("TEsted QCC") +
+  ylab("Concordance % \nbetween two replicates") +
+  theme_bw() +
+  theme(legend.position="None", text = element_text(size=18))
+
+####
+#### OFFTOP: simQCC for 17reps
+####
+
+# res_22_CCsim_S100_l1 = lapply(seq(1,7,0.1), function(sim_CC_i){
+#   j = 4
+#   chop = sample(1:6, 2)
+#   data = data_list[[j]][, sort(c(1, chop*2, chop*2+1))]
+#   const = sim_CC_i
+#   libprepname = libprepname_list[[j]]
+#   res22 = CalculatePairConcordance(data, const, libprepname, nrep=2)
+#   res22$CC = const
+#   print(paste("CC =", sim_CC_i, "DONE"))
+#   print(res22)
+#   return(res22)
+# })
+# df22_S100_l1 = do.call(rbind, lapply(res_22_CCsim_S100_l1, function(x){x}))
+#
+# res_22_CCsim_NEB_l1 = lapply(seq(1,7,0.1), function(sim_CC_i){
+#   j = 2
+#   chop = sample(1:5, 2)
+#   data = data_list[[j]][, sort(c(1, chop*2, chop*2+1))]
+#   const = sim_CC_i
+#   libprepname = libprepname_list[[j]]
+#   res22 = CalculatePairConcordance(data, const, libprepname, nrep=2)
+#   res22$CC = const
+#   print(paste("CC =", sim_CC_i, "DONE"))
+#   print(res22)
+#   return(res22)
+# })
+# df22_NEB_l1 = do.call(rbind, lapply(res_22_CCsim_NEB_l1, function(x){x}))
+#
+# res_22_CCsim_S10_l1 = lapply(seq(1,7,0.1), function(sim_CC_i){
+#   j = 3
+#   chop = sample(1:6, 2)
+#   data = data_list[[j]][, sort(c(1, chop*2, chop*2+1))]
+#   const = sim_CC_i
+#   libprepname = libprepname_list[[j]]
+#   res22 = CalculatePairConcordance(data, const, libprepname, nrep=2)
+#   res22$CC = const
+#   print(paste("CC =", sim_CC_i, "DONE"))
+#   print(res22)
+#   return(res22)
+# })
+# df22_S10_l1 = do.call(rbind, lapply(res_22_CCsim_S10_l1, function(x){x}))
+#
+#
+# ggplot(rbind(df22_S100_l1[df22_S100_l1$what=="corrected",],
+#              df22_NEB_l1[df22_NEB_l1$what=="corrected",],
+#              df22_S10_l1[df22_S10_l1$what=="corrected",]),
+#        aes(x=CC, y=Pc, group=libprep, color=libprep)) +
+#   geom_rect(xmin = min(CC[[1]][-c(1:5)]), xmax = max(CC[[1]][-c(1:5)]), ymin = -Inf, ymax = Inf,
+#             fill=alpha("skyblue1", 0.2), col="skyblue1") +
+#   geom_rect(xmin = min(CC[[3]]), xmax = max(CC[[3]]), ymin = -Inf, ymax = Inf,
+#             fill=alpha("darkolivegreen1", 0.2), col="darkolivegreen1") +
+#   geom_rect(xmin = min(CC[[2]]), xmax = max(CC[[2]]), ymin = -Inf, ymax = Inf,
+#             fill=alpha("lightpink", 0.2), col="lightpink") +
+#   geom_point() +
+#   scale_color_manual(values=c("royalblue1","olivedrab3","maroon2"))  +
+#   xlab("TEsted QCC") +
+#   ylab("Concordance % \nbetween two replicates") +
+#   theme_bw() +
+#   theme(legend.position="None", text = element_text(size=18))
+
+
+
+
+###-------------------------------------------------------------------------------------------------
+###===========================================PLOTS=================================================
+###-------------------------------------------------------------------------------------------------
 
 
 figure_4A <- ggplot(df_fig1A, aes(method, DiffASE_N, col= method)) +
   geom_boxplot() +
   theme_bw() +
   facet_grid(~ test) +
-  scale_color_manual(values=c("black","black","black", "royalblue1","maroon2","olivedrab3")) +
+  scale_color_manual(values=c("royalblue1","maroon2","olivedrab3", "black","black","black")) +
   ylab("Number of genes called differential") +
   xlab("") +
-  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(), legend.position = "None", text = element_text(size=18))
+  theme(axis.text.x=element_text(colour="white"), axis.ticks.x=element_blank(),
+        legend.position = "None", text = element_text(size=18))
 
 
 df_fig4B <- rbind(res62_df_all,res61_df_all)
 df_fig4B$method <- factor(df_fig4B$method, labels = c("1 replicate,\nno correction", "2 replicates,\nno correction", "2 replicates,\nQCC correction"))
+df_fig4B$experiment_n = sapply(df_fig4B$experiment, function(x){
+  if(x=="NEBNext (100ng)") {
+    1
+  } else if(x=="SMARTseq (10ng)") {
+    2
+  } else {
+    3
+  }
+})
+df_fig4B$experiment = reorder(df_fig4B$experiment, df_fig4B$experiment_n)
 
 figure_4B <- ggplot(df_fig4B, aes(x=experiment, y=FP_rate, col=experiment)) +
   geom_boxplot() +
@@ -318,13 +629,14 @@ figure_4B <- ggplot(df_fig4B, aes(x=experiment, y=FP_rate, col=experiment)) +
   xlab("") +
   ylab("False positive rate") +
   theme_bw() +
-  scale_color_manual(values=c("royalblue1","olivedrab3","maroon2")) +
-  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(), text = element_text(size=18), legend.position = "None")
+  scale_color_manual(values=c("royalblue1","maroon2","olivedrab3")) +
+  theme(axis.text.x=element_text(colour="white"), axis.ticks.x=element_blank(),
+        text = element_text(size=18), legend.position = "None")
 
-cowplot::save_plot(figure_4A, file="~/Dropbox (Partners HealthCare)/replicates_ASE/manuscript/Figures/fig.4A_legend.pdf", base_height = 10, base_width = 16)
+cowplot::save_plot(figure_4A, file="fig.4A_legend.pdf", base_height = 10, base_width = 16)
 
 
-figure_4C <- grid.arrange(
+figure_4E <- grid.arrange(
   ggplot() +
     geom_boxplot(data=CC_ov_sdp_df, aes(overdispersion_sqr, QCC, col=method)) +
     geom_point(data=CC_ov_sdp_df, aes(overdispersion_sqr, QCC, col=method)) +
@@ -351,16 +663,175 @@ figure_4D <- ggplot() +
   stat_smooth(data=dataCexlALLlogG1, aes(exp(mc), exp(vc), group=who), col="black", method = "lm", formula = (y ~ offset(x)))+
   scale_color_manual(values=c("royalblue1","olivedrab3","maroon2")) +
   ylab("Dispersion of gene coverages") + xlab("Mean gene coverage") +
-  theme(legend.position="None", text = element_text(size=18)) +
-  coord_fixed()
+  theme(legend.position="None", text = element_text(size=18))
 
 
 
-PLT_fig4 = plot_grid(
-  plot_grid(figure_4A, figure_4B, labels = c("A", "B"), rel_widths = c(0.8, 0.8)),
-  plot_grid(figure_4C, figure_4D, labels = c("C", "D"), rel_widths = c(0.8, 0.8)),
-  nrow = 2,
-  scale = c(0.9, 0.9, 0.9, 0.9, 0.9)
+df_fig4Cb_NEB = df62
+figure_4Cb_NEB = ggplot(df_fig4Cb_NEB, aes(x=CC, y=FP_BTCC_rate, group=CC)) +
+  geom_rect(xmin = min(CC[[1]][-c(1:5)]), xmax = max(CC[[1]][-c(1:5)]), ymin = -Inf, ymax = Inf,
+            fill=alpha("skyblue1", 0.2)) +
+  geom_boxplot(color="grey", lwd=1.1) +
+  geom_point() +
+  xlab("TEsted QCC") +
+  ylab("False positive rate") +
+  theme_bw() +
+  theme(legend.position="None", text = element_text(size=18))
+
+df_fig4Cb_SM100 = df62_S100
+figure_4Cb_SM100 = ggplot(df_fig4Cb_SM100, aes(x=CC, y=FP_BTCC_rate, group=CC)) +
+  geom_rect(xmin = min(CC[[3]]), xmax = max(CC[[3]]), ymin = -Inf, ymax = Inf,
+            fill=alpha("darkolivegreen1", 0.2)) +
+  geom_boxplot(color="grey", lwd=1.1) +
+  geom_point() +
+  xlab("Tested QCC") +
+  ylab("False positive rate") +
+  theme_bw() +
+  scale_y_log10() +
+  theme(legend.position="None", text = element_text(size=18))
+
+df_fig4Ca_NEB = interrep_CCsim_NEBno1_exp_diff_df
+figure_4Ca_NEB = ggplot(df_fig4Ca_NEB,
+                   aes(QCC, DiffASE_N, group=QCC)) +
+  geom_rect(xmin = min(CC[[1]][-c(1:5)]), xmax = max(CC[[1]][-c(1:5)]), ymin = -Inf, ymax = Inf,
+            fill=alpha("skyblue1", 0.2)) +
+  geom_boxplot(color="grey", lwd=1.1) +
+  geom_point() +
+  xlab("TEsted QCC") +
+  ylab("Number of genes \ncalled differential") +
+  theme_bw() +
+  theme(legend.position="None", text = element_text(size=18))
+
+df_fig4Ca_SM100 = interrep_CCsim_S100_exp_diff_df
+figure_4Ca_SM100 = ggplot(df_fig4Ca_SM100,
+                   aes(QCC, DiffASE_N, group=QCC)) +
+  geom_rect(xmin = min(CC[[3]]), xmax = max(CC[[3]]), ymin = -Inf, ymax = Inf,
+            fill=alpha("darkolivegreen1", 0.2)) +
+  geom_boxplot(color="grey", lwd=1.1) +
+  geom_point() +
+  xlab("Tested QCC") +
+  ylab("Number of genes \ncalled differential") +
+  theme_bw() +
+  scale_y_log10() +
+  theme(legend.position="None", text = element_text(size=18))
+
+
+figure_legends = ggplot(df_fig1A, aes(method, DiffASE_N, col= method)) +
+  geom_point(size=3) +
+  theme_bw() +
+  scale_color_manual(values=c("black","black","black", "royalblue1","maroon2","olivedrab3")) +
+  theme(axis.text.x=element_text(colour="white"), axis.ticks.x=element_blank(),
+        legend.position = "top", text = element_text(size=18),
+        legend.box.background = element_rect(colour = "grey"), legend.title = element_blank()) +
+  guides(col = guide_legend(nrow = 3))
+
+legend_plt = plot_grid(cowplot::get_legend(figure_legends), NULL, ncol=1, rel_heights = c(1, 0.3))
+
+
+
+PLT_fig4_ABDE = plot_grid(
+  plot_grid(figure_4A, NULL, figure_4B, labels = c("A", "", "B"), rel_widths = c(0.85, 0.1, 0.85), rel_heights = c(0.8, 0.8, 0.8), nrow=1),
+  legend_plt,
+  plot_grid(figure_4D, NULL, figure_4E, labels = c("D", "", "E"), rel_widths = c(0.85, 0.1, 0.85), rel_heights = c(0.8, 0.8, 0.8), nrow=1),
+  nrow = 3, rel_heights = c(0.9, 0.15, 0.9),
+  align = 'vh'
+  #scale = c(0.9, 0.9, 0.9, 0.9)
+)
+# plot_grid(
+#   figure_4A, NULL, figure_4B, figure_4D, NULL, figure_4Ea,figure_4Eb,
+#   rel_widths = c(0.85,0.1,0.85, 0.85,0.1,0.425,0.425),
+#   rel_heights = c(0.9,0.9,0.9, 0.9,0.9,0.9,0.9),
+#   labels = c("A", "", "B", "D", "", "E", ""),
+#   nrow = 2, ncol = 3,
+#   align = 'vh'
+# )
+
+PLT_fig4_Cabc_SM100 = plot_grid(
+  figure_4Ca_SM100, NULL, figure_4Cb_SM100, NULL, figure_4Cc_SM100, labels = c("C", "", "", "", ""),
+  ncol = 1, align = "v",
+  rel_heights = c(0.8, 0.05, 0.8, 0.05, 0.8)
+  #scale = c(0.9, 0.9, 0.9)
+)
+PLT_fig4_ABDECabc_SM100 = plot_grid(
+  PLT_fig4_ABDE, NULL, PLT_fig4_Cabc_SM100,
+  ncol=3, align = 'vh',
+  rel_widths = c(1.47, 0.08, 0.65)
 )
 
-cowplot::save_plot(PLT_fig4, file="~/Dropbox (Partners HealthCare)/replicates_ASE/manuscript/Figures/fig.4_v2.pdf", base_height = 10, base_width = 16)
+cowplot::save_plot(PLT_fig4_ABDECabc_SM100, file="fig.4_v4_SM100_ABDECabc.pdf", base_height = 11, base_width = 21)
+cowplot::save_plot(PLT_fig4_ABDECabc_SM100, file="fig.4_v4_SM100_ABDECabc.png", base_height = 11, base_width = 21)
+
+
+
+PLT_fig4_Cab_SM100 = plot_grid(
+  figure_4Ca_SM100, NULL, figure_4Cb_SM100, labels = c("C", "", ""),
+  ncol = 1, align = "v",
+  rel_heights = c(0.95, 0.05, 0.95)
+  #scale = c(0.9, 0.9, 0.9)
+)
+PLT_fig4_ABDECab_SM100 = plot_grid(
+  PLT_fig4_ABDE, NULL, PLT_fig4_Cab_SM100,
+  ncol=3, align = 'h',
+  rel_widths = c(1.47, 0.08, 0.65)
+)
+
+cowplot::save_plot(PLT_fig4_ABDECab_SM100, file="fig.4_v4_SM100_ABDECab.pdf", base_height = 11, base_width = 21)
+cowplot::save_plot(PLT_fig4_ABDECab_SM100, file="fig.4_v4_SM100_ABDECab.png", base_height = 11, base_width = 21)
+
+
+PLT_fig4_Cab_NEB = plot_grid(
+  figure_4Ca_NEB, NULL, figure_4Cb_NEB, labels = c("E", "", "F"),
+  ncol = 1, align = "v",
+  rel_heights = c(0.9, 0.15, 0.9)
+  #scale = c(0.9, 0.9, 0.9)
+)
+PLT_fig4_ABDECab_NEB = plot_grid(
+  PLT_fig4_ABDE, NULL, PLT_fig4_Cab_NEB,
+  ncol=3, align = 'h',
+  rel_widths = c(1.6, 0.05, 0.5)
+)
+
+cowplot::save_plot(PLT_fig4_ABDECab_NEB, file="fig.4_v4_NEB_ABDECab.pdf", base_height = 11, base_width = 21)
+cowplot::save_plot(PLT_fig4_ABDECab_NEB, file="fig.4_v4_NEB_ABDECab.png", base_height = 11, base_width = 21)
+
+
+
+
+
+
+
+
+
+
+
+
+
+# PLT_fig4_full_NEB = plot_grid(
+#   plot_grid(figure_4A, figure_4B, figure_4E_NEB, labels = c("A", "B", "E"),
+#             rel_widths = c(0.8, 0.8, 0.5), rel_heights = c(0.8, 0.8, 0.8),
+#             ncol = 3, align="h"),
+#   plot_grid(figure_4C, figure_4D, figure_4F_NEB, labels = c("C", "D", "F"),
+#             rel_widths = c(0.9, 0.7, 0.5), rel_heights = c(1,1,1),
+#             ncol = 3, align="h"),
+#   nrow = 2,
+#   scale = c(0.95, 0.94, 0.95, 0.95, 95, 95)
+# )
+# cowplot::save_plot(PLT_fig4_full_NEB, file="fig.4_v3_NEB.pdf", base_height = 11, base_width = 21)
+# cowplot::save_plot(PLT_fig4_full_NEB, file="fig.4_v3_NEB.png", base_height = 11, base_width = 21)
+#
+# PLT_fig4_full_SM100 = plot_grid(
+#   plot_grid(figure_4A, figure_4B, figure_4E_SM100, labels = c("A", "B", "E"),
+#             rel_widths = c(0.8, 0.8, 0.5), rel_heights = c(0.8, 0.8, 0.8),
+#             ncol = 3, align="h"),
+#   plot_grid(figure_4C, figure_4D, figure_4F_SM100, labels = c("C", "D", "F"),
+#             rel_widths = c(0.9, 0.7, 0.5), rel_heights = c(1,1,1),
+#             ncol = 3, align="h"),
+#   nrow = 2,
+#   scale = c(0.95, 0.94, 0.95, 0.95, 95, 95)
+# )
+# cowplot::save_plot(PLT_fig4_full_SM100, file="fig.4_v3_SM100.pdf", base_height = 11, base_width = 21)
+# cowplot::save_plot(PLT_fig4_full_SM100, file="fig.4_v3_SM100.png", base_height = 11, base_width = 21)
+
+
+
+

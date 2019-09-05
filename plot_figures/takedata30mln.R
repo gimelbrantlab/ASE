@@ -20,6 +20,9 @@ chrgenes <- read.delim("../../../data/kidney/submln/MLN30_SG3_N955_NEB_R1_merged
 data_30mln_noX = lapply(data_30mln, function(x){
   x[x$ensembl_gene_id %in% chrgenes[chrgenes$chr!="chrX" & chrgenes$chr!="chrY", "ensembl_gene_id"], ]
 })
+data_30mln_XY = lapply(data_30mln, function(x){
+  x[x$ensembl_gene_id %in% chrgenes[chrgenes$chr=="chrX" | chrgenes$chr=="chrY", "ensembl_gene_id"], ]
+})
 
 # Load pre-calculated CCs
 CC = lapply(c("../../../data/kidney/submln/NEB_CorrConsts_30mln_1.05.RData",
@@ -29,3 +32,6 @@ CC = lapply(c("../../../data/kidney/submln/NEB_CorrConsts_30mln_1.05.RData",
               load(file)
               sapply(out_XXmln_SMART10ng, function(x){x$fittedCC})
             })
+reps_6_from30 = list(c(3,8,13,19,24,28),
+                     c(4,10,12,19,24,28),
+                     c(5,10,12,16,23,27))

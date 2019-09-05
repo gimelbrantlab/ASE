@@ -150,6 +150,14 @@ ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40,
                                sum(!is.na(df_unit_info$binCOV) & df_unit_info$binCOV == x)
                              })
                             )
+  binCOVs = sort(unique(
+    ceiling(EPS**(ceiling(log(min(meancov[!is.na(meancov)]), base=EPS)):ceiling(log(max(meancov[!is.na(meancov)]), base=EPS))))
+  ))
+  df_covbinsnum = data.frame(binCOV = binCOVs,
+                             binNUM = sapply(binCOVs, function(x){
+                               sum(!is.na(df_unit_info$binCOV) & df_unit_info$binCOV == x)
+                             })
+  )
   df_unit_info = na.omit(df_unit_info)
   df_unit_info$binNUM = sapply(df_unit_info$binCOV, function(x){
     df_covbinsnum[df_covbinsnum$binCOV==x, ]$binNUM

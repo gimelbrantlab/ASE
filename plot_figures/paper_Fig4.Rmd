@@ -156,6 +156,23 @@ plt4B <- ggplot(rbind(res62_df_all,res61_df_all), aes(x=method, y=FP_rate, col=e
 
 plt4B
 ```
+```{r, fig.heigh=11, fig.width=15}
+res621 =rbind(res62_df_all,res61_df_all)
+res621$method = as.factor(res621$method)
+levels(res621$method) = c("1 replicate,\nno correction", "2 replicates,\nno correction", "2 replicates,\nQCC correction")
+
+ggplot(res621, aes(x=experiment, y=FP_rate, col=experiment)) +
+  geom_boxplot(lwd = 1.1) +
+  facet_grid(~method) +
+  xlab("") +
+  ylab("False positive rate") +
+  theme_bw() +
+  theme(legend.position="None", text = element_text(size=28)) +
+  scale_color_manual(values=c("royalblue1","olivedrab3","maroon2")) +
+  scale_x_discrete(labels=c("Exp 1", "Exp 2", "Exp 3")) 
+
+```
+
 
 
 #Fig.4D
@@ -173,22 +190,22 @@ dataC = data.frame(id = data_30mln_noX[[1]]$ensembl_gene_id,
 
 dataCext1 = data.frame(id = data_30mln_noX[[1]]$ensembl_gene_id,
                        mc = rowMeans(data1c), sdc = apply(data1c, 1, sd), vc = apply(data1c, 1, var),
-                       who = list_of_libprepnames[[1]], what = "original")
+                       who = list_of_libprepnames[[1]], what = " original")
 dataCext2 = data.frame(id = data_30mln_noX[[1]]$ensembl_gene_id,
                        mc = rowMeans(data2c), sdc = apply(data2c, 1, sd), vc = apply(data2c, 1, var),
-                       who = list_of_libprepnames[[2]], what = "original")
+                       who = list_of_libprepnames[[2]], what = " original")
 dataCext3 = data.frame(id = data_30mln_noX[[1]]$ensembl_gene_id,
                        mc = rowMeans(data3c), sdc = apply(data3c, 1, sd), vc = apply(data3c, 1, var),
-                       who = list_of_libprepnames[[2]], what = "original")
+                       who = list_of_libprepnames[[3]], what = " original")
 dataCext1acc = dataCext1
 dataCext1acc$vc = dataCext1acc$vc/(list_of_constsM[[1]])**2
-dataCext1acc$what = "divided by CC^2"
+dataCext1acc$what = "divided by QCC^2"
 dataCext2acc = dataCext2
 dataCext2acc$vc = dataCext2acc$vc/(list_of_constsM[[2]])**2
-dataCext2acc$what = "divided by CC^2"
+dataCext2acc$what = "divided by QCC^2"
 dataCext3acc = dataCext3
 dataCext3acc$vc = dataCext3acc$vc/(list_of_constsM[[3]])**2
-dataCext3acc$what = "divided by CC^2"
+dataCext3acc$what = "divided by QCC^2"
 
 dataCext = rbind(dataCext1, dataCext2, dataCext3)
 dataCextacc = rbind(dataCext1acc, dataCext2acc, dataCext3acc)
@@ -202,16 +219,18 @@ dataCexlALLlogG10 = dataCexlALL[dataCexlALL$mc>=10, ]
 dataCexlALLlogG10[, 2:4] = log(dataCexlALLlogG10[, 2:4], base=10)
 ```
 
-```{r, fig.height=4.5, fig.width=10}
+```{r, fig.height=8, fig.width=14}
 plt4D <- ggplot() +
-  geom_point(data=dataCexlALLlogG1 , aes(mc, vc, col = who), size=0.7, alpha=0.4) +
+  geom_point(data=dataCexlALLlogG1, aes(mc, vc, col = who), size=0.7, alpha=0.4) +
   geom_line(data=data.frame(a=c(0,7.5), b=c(0,7.5)), aes(a,b), linetype="dashed") +
-  scale_y_continuous(breaks=c(0:7)) +
-  scale_x_continuous(breaks=c(0:7)) +
+  scale_y_continuous(breaks=c(0:7), labels=10**c(0:7)) +
+  scale_x_continuous(breaks=c(0:7), labels=10**c(0:7)) +
   facet_grid(~ what) +
-  theme_light() +
+  theme_bw() +
   stat_smooth(data=dataCexlALLlogG1, aes(mc, vc, group=who), col="black", method = "lm", formula = (y ~ offset(x)))+
-  scale_color_manual(values=c("royalblue1","olivedrab3","maroon2"))
+  scale_color_manual(values=c("royalblue1","olivedrab3","maroon2")) +
+  ylab("Dispersion of gene coverages") + xlab("Mean gene coverage") +
+  theme(legend.position="None", text = element_text(size=28), axis.text.x = element_text(angle = 90))
 
 plt4D
 ```
@@ -231,23 +250,138 @@ slopesG10 = sapply(unique(dataCexlALLlogG10$what), function(what){
 slopesG1
 slopesG10
 ```
+
+```{r, fig.height=8, fig.width=14}
+ggplot() +
+  geom_point(data=dataCexlALL[dataCexlALL$mc>=1, ], aes(mc, vc, col = who), size=0.7, alpha=0.4) +
+  geom_line(data=data.frame(a=10**c(0,7.5), b=10**c(0,7.5)), aes(a,b), linetype="dashed") +
+  scale_y_log10() + scale_x_log10() +
+  facet_grid(~ what) +
+  theme_bw() +
+  stat_smooth(data=dataCexlALL[dataCexlALL$mc>=1, ], aes(mc, vc, group=who), col="black", method = "lm", formula = (y ~ offset(x)))+
+  scale_color_manual(values=c("royalblue1","olivedrab3","maroon2")) +
+  ylab("Dispersion of gene coverages") + xlab("Mean gene coverage") +
+  theme(legend.position="None", text = element_text(size=28), axis.text.x = element_text(angle = 90))
+
+```
+```{r}
+sapply(unique(dataCexlALL[dataCexlALL$mc>=1, ]$what), function(what){
+  sapply(unique(dataCexlALL[dataCexlALL$mc>=1, ]$who), function(who){
+    sqrt(
+      lm(dataCexlALL[dataCexlALL$mc>=1, ][dataCexlALL[dataCexlALL$mc>=1, ]$who==who & dataCexlALL[dataCexlALL$mc>=1, ]$what==what, ], 
+         formula = (vc ~ 0+mc))$coefficients
+    )
+  })
+})
+#Ээээээ
+```
+
 ```{r}
 CC
 ```
 
 #Fig.4C
 
-```{r, fig.heigh=5, fig.width=8}
-CC_ov_df = data.frame(CC = unlist(CC),
-                      overdispersion = rep(slopesG10[,1], each=15),
-                      method = rep(unlist(list_of_libprepnames), each=15))
+```{r, fig.height=5, fig.width=5}
+CC_ov_df = data.frame(QCC = unlist(CC)[6:45],
+                      overdispersion_sqr = rep(slopesG10[,1], each=15)[6:45],
+                      method = rep(unlist(list_of_libprepnames), each=15)[6:45])
 
-ggplot(CC_ov_df, aes(overdispersion, CC, col=method)) + 
-  geom_point() +
-  geom_boxplot() +
+gg4c = ggplot() + 
+  geom_boxplot(data=CC_ov_df, aes(overdispersion_sqr, QCC, col=method)) +
+  geom_point(data=CC_ov_df, aes(overdispersion_sqr, QCC, col=method)) +
   theme_bw() +
-  scale_color_manual(values=c("royalblue1","olivedrab3","maroon2"))
+  scale_color_manual(values=c("royalblue1","olivedrab3","maroon2")) +
+  ylim(1,max(CC_ov_df$QCC)*1.1) + xlim(1,max(CC_ov_df$QCC)*1.1) + xlab("Sqrt of overdispersion") +
+  theme(legend.position= "None", text = element_text(size=28)) 
+gg4c
 ```
+
+```{r}
+libnreps = c(5,6,6)
+reps_N_from30 = list(reps_6_from30[[1]][2:6], reps_6_from30[[2]], reps_6_from30[[3]])
+
+sdPairs = lapply(1:3, function(l){
+  combn(1:libnreps[[l]], 2, function(x){
+    df = data_30mln_noX[[l]][, sort(c(1, reps_N_from30[[l]][x]*2, reps_N_from30[[l]][x]*2+1))]
+    var_cov = sapply(1:nrow(df), function(i){var(c(df[i,2]+df[i,3], df[i,4]+df[i,5]))})
+    cov = MeanCoverage(df)$meanCOV*2
+    df_log = data.frame(cov_log=log(cov, base=10), var_cov_log=log(var_cov, base=10))
+    df_log = df_log[!is.infinite(df_log$cov_log) & !is.infinite(df_log$var_cov_log),]
+    
+    plot(df_log)
+    
+    sqrt_log_intercept = sqrt(10**lm(df_log, formula = (var_cov_log ~ offset(cov_log)))$coefficients)
+    
+    print(sqrt_log_intercept)
+    
+    return(sqrt_log_intercept)
+  })
+})
+
+sdPairs 
+```
+
+```{r, fig.height=5, fig.width=15}
+CC_ov_sdp_df = data.frame(QCC = unlist(CC)[6:45],
+                          sd_pair = unlist(sdPairs),
+                          overdispersion_sqr = rep(slopesG10[,1], each=15)[6:45],
+                          method = rep(unlist(list_of_libprepnames), each=15)[6:45])
+
+plt_ov_qcc = ggplot() + 
+  geom_boxplot(data=CC_ov_sdp_df, aes(overdispersion_sqr, QCC, col=method)) +
+  geom_point(data=CC_ov_sdp_df, aes(overdispersion_sqr, QCC, col=method)) +
+  theme_bw() +
+  scale_color_manual(values=c("royalblue1","olivedrab3","maroon2")) +
+  ylim(0,3) + xlim(0,3) + xlab("Sqrt of overdispersion") +
+  theme(legend.position= "None", text = element_text(size=28)) 
+plt_sdp_qcc = ggplot() + 
+  geom_boxplot(data=CC_ov_sdp_df, aes(sd_pair, QCC, col=method)) +
+  geom_point(data=CC_ov_sdp_df, aes(sd_pair, QCC, col=method)) +
+  theme_bw() +
+  scale_color_manual(values=c("royalblue1","olivedrab3","maroon2")) + 
+  ylim(0,3) + xlim(0,3) + xlab("Counts sd") +
+  theme(legend.position= "None", text = element_text(size=28)) 
+plt_sdp_ov = ggplot() + 
+  geom_boxplot(data=CC_ov_sdp_df, aes(sd_pair, overdispersion_sqr, col=method)) +
+  geom_point(data=CC_ov_sdp_df, aes(sd_pair, overdispersion_sqr, col=method)) +
+  theme_bw() +
+  scale_color_manual(values=c("royalblue1","olivedrab3","maroon2")) + 
+  ylim(0,3) + xlim(0,3) + xlab("Counts sd") + ylab("Sqrt of overdispersion")+
+  theme(legend.position= "None", text = element_text(size=28)) 
+
+cowplot::plot_grid(plt_ov_qcc, plt_sdp_qcc, plt_sdp_ov, ncol=3)
+
+
+```
+
+```{r, fig.height=5, fig.width=15}
+grid.arrange(
+ggplot() + 
+  geom_boxplot(data=CC_ov_sdp_df, aes(overdispersion_sqr, QCC, col=method)) +
+  geom_point(data=CC_ov_sdp_df, aes(overdispersion_sqr, QCC, col=method)) +
+  theme_bw() +
+  scale_color_manual(values=c("royalblue1","olivedrab3","maroon2")) +
+  xlab("Sqrt of overdispersion") +
+  theme(legend.position= "None", text = element_text(size=28)) ,
+ggplot() + 
+  geom_point(data=CC_ov_sdp_df, aes(sd_pair, QCC, col=method)) +
+  theme_bw() +
+  scale_color_manual(values=c("royalblue1","olivedrab3","maroon2")) + 
+  xlab("Counts sd") +
+  theme(legend.position= "None", text = element_text(size=28)) ,
+ggplot() + 
+  geom_boxplot(data=CC_ov_sdp_df, aes(overdispersion_sqr, sd_pair, col=method)) +
+  geom_point(data=CC_ov_sdp_df, aes(overdispersion_sqr, sd_pair, col=method)) +
+  theme_bw() +
+  scale_color_manual(values=c("royalblue1","olivedrab3","maroon2")) + 
+  ylab("Counts sd") + xlab("Sqrt of overdispersion")+
+  theme(legend.position= "None", text = element_text(size=28)) ,
+ncol=3
+)
+```
+
+
 
 #Fig.4A
 
@@ -446,6 +580,23 @@ ggplot(diff_df,
 
 Looks not ideal, previous -- better.
 
+```{r, fig.width=13, fig.height=8.5}
+diff_df$test = as.factor(diff_df$test)
+levels(diff_df$test) = c("binomial", "corrected")
+
+ggplot(diff_df, 
+       aes(method, DiffASE_N, col=method)) + 
+  geom_boxplot(lwd=1.1) +
+  theme_bw() +
+  facet_grid(~ test) +
+  scale_color_manual(values=c("orange","red","green", "royalblue1","maroon2","olivedrab3")) +
+  labs(col = "Library preparation method:") +
+  ylab("Number of genes called differential") + xlab("") +
+  theme(legend.position= "None", text = element_text(size=28), axis.text.x=element_blank()) 
+  #theme(legend.position= c(0.78, 0.82), text = element_text(size=28), axis.text.x=element_blank()) 
+#dev.off()
+```
+
 
 ```{r}
 betweenexp_diff_list
@@ -457,6 +608,86 @@ lapply(df_1exp_15, function(x){table(x[, 1:2])})
 lapply(df_1exp_15, function(x){table(x[, 3:4])})
 ```
 
+# QCC:
 
+```{r, fig.width=9, fig.height=9}
+dfCC = data.frame(
+  QCC = unlist(CC),
+  experiment = rep(c("Exp 1: NEBNext (100ng)", "Exp 2: SMARTseq (10ng)", "Exp 3: SMARTseq (0.1ng)"), each=15)
+)
+
+ggplot(dfCC, aes(experiment, QCC, col=experiment)) +
+  geom_jitter(size=4) + 
+  ylim(1, 3) +
+  xlab("") +
+  ylab("Quality Correction Constant") +
+  theme_bw() +
+  theme(legend.position="None", text = element_text(size=28)) +
+  labs(col = "Library preparation method:") +
+  scale_x_discrete(labels=c("Exp 1", "Exp 2", "Exp 3")) +
+  scale_color_manual(values=c("royalblue1","maroon2","olivedrab3"))
+```
+#From paper fig.3
+
+```{r}
+figure_3E_c <- ggplot(df, aes(x=libprep, y=Pc, col=libprep)) +
+  geom_boxplot() + geom_point() +
+  facet_grid(~what) +
+  xlab("") +
+  ylab("Concordance % \nbetween two replicates") +
+  theme_bw() +
+  theme(legend.position="bottom", text = element_text(size=28)) +
+  guides(col=guide_legend(title="", nrow = 1)) +
+  scale_color_manual(labels=methods,
+                     values=c("royalblue1","maroon2","olivedrab3")) +
+  #scale_color_manual(values=c("#999999", "#66FFB2"), labels=c("no correction", "QCC correction")) +
+  scale_x_discrete(labels=c("", "", ""), limits = rev(levels(df$libprep))) #+
+  #coord_flip()
+
+figure_3E_d <- ggplot(df, aes(x=libprep, y=Pd, col=libprep)) +
+  geom_boxplot() + geom_point() +
+  facet_grid(~what) +
+  xlab("") +
+  ylab("DDR % \nbetween two replicates") +
+  theme_bw() +
+  theme(legend.position="bottom", text = element_text(size=28)) +
+  guides(col=guide_legend(title="", nrow = 1)) +
+  scale_color_manual(labels=methods,
+                     values=c("royalblue1","maroon2","olivedrab3")) +
+  #scale_color_manual(values=c("#999999", "#66FFB2"), labels=c("no correction", "QCC correction")) +
+  scale_x_discrete(labels=c("", "", ""), limits = rev(levels(df$libprep))) #+
+  #coord_flip()
+
+cowplot::plot_grid(figure_3E_d, figure_3E_c)
+```
+
+
+
+```{r, fig.height=3.5, fig.width=10}
+dfCC = rbind(
+  data.frame(t(combn(6,2)), 
+             QCC = CC[[1]],
+             exp = "NEBNext (100ng)"),
+  data.frame(t(combn(6,2))[, 2:1], 
+             QCC = CC[[1]],
+             exp = "NEBNext (100ng)"),
+  data.frame(t(combn(6,2)), 
+             QCC = CC[[2]],
+             exp = "SMARTseq (10ng)"),
+  data.frame(t(combn(6,2))[, 2:1], 
+             QCC = CC[[2]],
+             exp = "SMARTseq (10ng)"),
+  data.frame(t(combn(6,2)), 
+             QCC = CC[[3]],
+             exp = "SMARTseq (0.1ng)"),
+  data.frame(t(combn(6,2))[, 2:1], 
+             QCC = CC[[3]],
+             exp = "SMARTseq (0.1ng)")
+  
+)
+ggplot(dfCC, aes(X1, X2)) + 
+  facet_grid(~ exp) +
+  geom_tile(aes(fill = QCC)) 
+```
 
 

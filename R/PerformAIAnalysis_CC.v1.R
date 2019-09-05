@@ -144,9 +144,13 @@ ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40,
                             AI_2 = CountsToAI(inDF, reps=reps[2], thr=thr, thrUP=thrUP, thrType=thrType)$AI,
                             mCOV = meancov,
                             COV = meancov*2,
-                            binCOV = ceiling(EPS**ceiling(log(meancov, base=EPS))))
-  df_covbinsnum = data.frame(binCOV = sort(unique(df_unit_info$binCOV)),
-                             binNUM = sapply(sort(unique(df_unit_info$binCOV)), function(x){
+                            binCOV = ceiling(EPS**(ceiling(log(meancov, base=EPS)) - 1/2)))
+                            #binCOV = ceiling(EPS**ceiling(log(meancov, base=EPS))))
+  binCOVs = sort(unique(
+    ceiling(EPS**(ceiling(log(min(meancov[!is.na(meancov)]), base=EPS)):ceiling(log(max(meancov[!is.na(meancov)]), base=EPS)) - 1/2))
+  ))
+  df_covbinsnum = data.frame(binCOV = binCOVs,
+                             binNUM = sapply(binCOVs, function(x){
                                sum(!is.na(df_unit_info$binCOV) & df_unit_info$binCOV == x)
                              })
                             )

@@ -109,8 +109,10 @@ pdis_CC = lapply(1:3, function(m){
 })
 
 df = rbind(
-  do.call(rbind, lapply(1:3, function(i){data.frame(P=as.vector(pdis[[i]]), libprep=methods[i], what="before correction")})),
-  do.call(rbind, lapply(1:3, function(i){data.frame(P=as.vector(pdis_CC[[i]]), libprep=methods[i], what="corrected")}))
+  do.call(rbind, lapply(1:3, function(i){data.frame(Pc=as.vector(pdis[[i]][1,]), Pd=as.vector(pdis[[i]][2:3,]),
+                                                    libprep=methods[i], what="binomial")})),
+  do.call(rbind, lapply(1:3, function(i){data.frame(Pc=as.vector(pdis_CC[[i]][1,]), Pd=as.vector(pdis_CC[[i]][2:3,]),
+                                                    libprep=methods[i], what="corrected")}))
 )
 
 df$libprep <- as.factor(df$libprep)
@@ -354,11 +356,11 @@ figure_3D <- ggplot(CC_DF, aes(y=variable, x=value, col=variable)) +
   ylab("Library preparation method") +
   xlab("QCC")
 
-figure_3E <- ggplot(df, aes(x=libprep, y=P, col=libprep)) +
+figure_3E <- ggplot(df, aes(x=libprep, y=Pc, col=libprep)) +
   geom_boxplot() +
   facet_grid(what ~ .) +
   xlab("Library preparation method") +
-  ylab("Concordance % between two replicates") +
+  ylab("Concordance % \nbetween two replicates") +
   theme_bw() +
   theme(legend.position="right", text = element_text(size=18)) +
   guides(col=guide_legend(title="")) +
@@ -367,6 +369,37 @@ figure_3E <- ggplot(df, aes(x=libprep, y=P, col=libprep)) +
   scale_x_discrete(labels=c("", "", ""), limits = rev(levels(df$libprep))) +
   coord_flip()
 
+# concordance-discordance:
+
+figure_3E_c <- ggplot(df, aes(x=libprep, y=Pc, col=libprep)) +
+  geom_boxplot() + geom_point() +
+  facet_grid(~what) +
+  xlab("") +
+  ylab("Concordance % \nbetween two replicates") +
+  theme_bw() +
+  theme(legend.position="right", text = element_text(size=18)) +
+  guides(col=guide_legend(title="")) +
+  scale_color_manual(labels=methods,
+                     values=c("royalblue1","maroon2","olivedrab3")) +                                                           
+  #scale_color_manual(values=c("#999999", "#66FFB2"), labels=c("no correction", "QCC correction")) +
+  scale_x_discrete(labels=c("", "", ""), limits = (levels(df$libprep))) #+
+  #coord_flip()
+
+figure_3E_d <- ggplot(df, aes(x=libprep, y=Pd, col=libprep)) +
+  geom_boxplot() + geom_point() +
+  facet_grid(~what) +
+  xlab("") +
+  ylab("Discovery Desagreement Rate \nbetween two replicates") +
+  theme_bw() +
+  theme(legend.position="bottom", text = element_text(size=18)) +
+  guides(col=guide_legend(title="", nrow = 1)) +
+  scale_color_manual(labels=methods,
+                     values=c("royalblue1","maroon2","olivedrab3")) +
+  #scale_color_manual(values=c("#999999", "#66FFB2"), labels=c("no correction", "QCC correction")) +
+  scale_x_discrete(labels=c("", "", ""), limits = (levels(df$libprep))) #+
+  #coord_flip()
+
+cowplot::plot_grid(figure_3E_d, figure_3E_c)
 
 # figure_3D <- ggplot(res62_df_all, aes(x=method, y=FP_rate, col=experiment)) +
 #   geom_boxplot() +
