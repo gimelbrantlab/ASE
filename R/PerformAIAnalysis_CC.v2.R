@@ -339,7 +339,7 @@ PerformBinTestAIAnalysisForConditionNPoint_knownCC <- function(inDF, vectReps, v
   # Bin test:
   tmpDFbt <- t(sapply(1:nrow(DF), function(i){
     if(is.na(matCOV[i]) | is.na(sumCOV[i]) | sumCOV[i]==0) { return(c(NA,NA,NA)) }
-    BT <- prop.test(matCOV[i], sumCOV[i], alternative="two.sided", conf.level = Qbf, p=pt)
+    BT <- prop.test(matCOV[i], sumCOV[i], alternative="two.sided", conf.level = Qbf, p=pt, correct=F)
     c(BT$p.value, BT$conf.int[1], BT$conf.int[2])
   }))
 
@@ -455,7 +455,7 @@ PerformBinTestAIAnalysisForConditionNPointVect_knownCC <- function(inDF, vectRep
   tmpDFbt <- t(sapply(1:nrow(DF), function(i){
     if(is.na(matCOV[i]) | is.na(sumCOV[i]) | is.na(ptVect[i]) | sumCOV[i]==0) { return(c(NA,NA,NA)) }
     #print(paste(matCOV[i], sumCOV[i], ptVect[i]))
-    BT <- prop.test(matCOV[i], sumCOV[i], alternative="two.sided", conf.level = Qbf, p=ptVect[i])
+    BT <- prop.test(matCOV[i], sumCOV[i], alternative="two.sided", conf.level = Qbf, p=ptVect[i], correct=F)
     c(BT$p.value, BT$conf.int[1], BT$conf.int[2])
   }))
 
@@ -572,7 +572,7 @@ ComputeAICIs <- function(inDF, vectReps, vectRepsCombsCC,
   # Bin test:
   tmpDFbt <- t(sapply(1:nrow(DF), function(i){
     if(is.na(matCOV[i]) | is.na(sumCOV[i]) | sumCOV[i]==0) { return(c(NA,NA)) }
-    BT <- prop.test(matCOV[i], sumCOV[i], alternative="two.sided", conf.level = Qbf)
+    BT <- prop.test(matCOV[i], sumCOV[i], alternative="two.sided", conf.level = Qbf, correct=F)
     c(BT$conf.int[1], BT$conf.int[2])
   }))
 
@@ -659,7 +659,7 @@ PerformBinTestAIAnalysisForTwoConditions_knownCC <- function(inDF, vect1CondReps
   DF$BT_pval <- sapply(1:nrow(DF), function(i){
     if (!is.na(DF$matCOV_1[i]) & !is.na(DF$matCOV_2[i]) & DF$matCOV_1[i] > 0 & DF$matCOV_2[i] > 0){
       prop.test(x = c(DF$matCOV_1[i], DF$matCOV_2[i]), n = c(DF$sumCOV_1[i], DF$sumCOV_2[i]),
-                alternative="two.sided", conf.level = (1-(1-Q)/diff_analysis_genes_num))$p.value
+                alternative="two.sided", conf.level = (1-(1-Q)/diff_analysis_genes_num), correct=F)$p.value
     } else {
       NA
     }
@@ -672,7 +672,7 @@ PerformBinTestAIAnalysisForTwoConditions_knownCC <- function(inDF, vect1CondReps
       k <- 1/meanRepsCombsCC**2
       prop.test(x = c(DF$matCOV_1[i], DF$matCOV_2[i]) * k,
                 n = c(DF$sumCOV_1[i], DF$sumCOV_2[i]) * k,
-                alternative="two.sided", conf.level = (1-(1-Q)/diff_analysis_genes_num))$p.value
+                alternative="two.sided", conf.level = (1-(1-Q)/diff_analysis_genes_num), correct=F)$p.value
     } else {
       NA
     }
