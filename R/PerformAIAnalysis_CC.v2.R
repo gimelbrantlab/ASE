@@ -144,22 +144,16 @@ ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40,
                             AI_2 = CountsToAI(inDF, reps=reps[2], thr=thr, thrUP=thrUP, thrType=thrType)$AI,
                             mCOV = meancov,
                             COV = meancov*2,
-                            binCOV = ceiling(EPS**(ceiling(log(meancov, base=EPS)))) - floor(
-                                       (ceiling(EPS**(ceiling(log(meancov, base=EPS)))) - ceiling(EPS**(ceiling(log(meancov, base=EPS))-1)))/2
-                                     )
-                            #binCOV = ceiling(EPS**ceiling(log(meancov, base=EPS))))
+                            binCOV = ceiling(EPS**(ceiling(log(meancov, base=EPS)) - 1/2)))
+  #binCOV = ceiling(EPS**ceiling(log(meancov, base=EPS))))
   binCOVs = sort(unique(
-    sapply(meancov[!is.na(meancov)]:max(meancov[!is.na(meancov)]), function(x){
-      ceiling(EPS**(ceiling(log(meancov, base=EPS)))) - floor(
-        (ceiling(EPS**(ceiling(log(meancov, base=EPS)))) - ceiling(EPS**(ceiling(log(meancov, base=EPS))-1)))/2
-      )
-    })
+    ceiling(EPS**(ceiling(log(min(meancov[!is.na(meancov)]), base=EPS)):ceiling(log(max(meancov[!is.na(meancov)]), base=EPS)) - 1/2))
   ))
   df_covbinsnum = data.frame(binCOV = binCOVs,
                              binNUM = sapply(binCOVs, function(x){
                                sum(!is.na(df_unit_info$binCOV) & df_unit_info$binCOV == x)
                              })
-                            )
+  )
   df_unit_info = na.omit(df_unit_info)
   df_unit_info$binNUM = sapply(df_unit_info$binCOV, function(x){
     df_covbinsnum[df_covbinsnum$binCOV==x, ]$binNUM
@@ -174,7 +168,7 @@ ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40,
   }
 
   covbinsGthr = df_covbinsnum$binCOV[df_covbinsnum$binNUM > binNObs &
-                                     df_covbinsnum$binCOV >= max(50, thr)]
+                                       df_covbinsnum$binCOV >= max(50, thr)]
 
   print(paste(length(covbinsGthr), "COVERAGE BINS"))
 
@@ -345,7 +339,7 @@ PerformBinTestAIAnalysisForConditionNPoint_knownCC <- function(inDF, vectReps, v
   # Bin test:
   tmpDFbt <- t(sapply(1:nrow(DF), function(i){
     if(is.na(matCOV[i]) | is.na(sumCOV[i]) | sumCOV[i]==0) { return(c(NA,NA,NA)) }
-    BT <- binom.test(matCOV[i], sumCOV[i], alternative="two.sided", conf.level = Qbf, p=pt)
+    BT <- prop.test(matCOV[i], sumCOV[i], alternative="two.sided", conf.level = Qbf, p=pt, correct=F)
     c(BT$p.value, BT$conf.int[1], BT$conf.int[2])
   }))
 
@@ -461,7 +455,7 @@ PerformBinTestAIAnalysisForConditionNPointVect_knownCC <- function(inDF, vectRep
   tmpDFbt <- t(sapply(1:nrow(DF), function(i){
     if(is.na(matCOV[i]) | is.na(sumCOV[i]) | is.na(ptVect[i]) | sumCOV[i]==0) { return(c(NA,NA,NA)) }
     #print(paste(matCOV[i], sumCOV[i], ptVect[i]))
-    BT <- binom.test(matCOV[i], sumCOV[i], alternative="two.sided", conf.level = Qbf, p=ptVect[i])
+    BT <- prop.test(matCOV[i], sumCOV[i], alternative="two.sided", conf.level = Qbf, p=ptVect[i], correct=F)
     c(BT$p.value, BT$conf.int[1], BT$conf.int[2])
   }))
 
@@ -498,7 +492,7 @@ PerformBinTestAIAnalysisForConditionNPointVect_knownCC <- function(inDF, vectRep
 
 
 PerformBinTestAIAnalysisForConditionNPointVect <- function(inDF, vectReps, ptVect, binNObs=40, Q=0.95, EPS=1.3,
-                                                       thr=NA, thrUP=NA, thrType="each", minDifference=NA){
+                                                           thr=NA, thrUP=NA, thrType="each", minDifference=NA){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for condition + point estimate to compare
   #'
   #' @param inDF A table with ref & alt counts per gene/SNP for each replicate plus the first column with gene/SNP names
@@ -578,7 +572,7 @@ ComputeAICIs <- function(inDF, vectReps, vectRepsCombsCC,
   # Bin test:
   tmpDFbt <- t(sapply(1:nrow(DF), function(i){
     if(is.na(matCOV[i]) | is.na(sumCOV[i]) | sumCOV[i]==0) { return(c(NA,NA)) }
-    BT <- binom.test(matCOV[i], sumCOV[i], alternative="two.sided", conf.level = Qbf)
+    BT <- prop.test(matCOV[i], sumCOV[i], alternative="two.sided", conf.level = Qbf, correct=F)
     c(BT$conf.int[1], BT$conf.int[2])
   }))
 
@@ -624,6 +618,7 @@ PerformBinTestAIAnalysisForTwoConditions_knownCC <- function(inDF, vect1CondReps
   vectReps <- list(vect1CondReps, vect2CondReps)
   vectRepsCombsCC <- list(vect1CondRepsCombsCC,
                           vect2CondRepsCombsCC)
+  meanRepsCombsCC <- c(mean(vect1CondRepsCombsCC), mean(vect2CondRepsCombsCC))
 
   DF_CI_divided <- lapply(1:2, function(i){
     ComputeAICIs(inDF, vectReps=vectReps[[i]], vectRepsCombsCC=vectRepsCombsCC[[i]],
@@ -640,25 +635,50 @@ PerformBinTestAIAnalysisForTwoConditions_knownCC <- function(inDF, vect1CondReps
   # DF$Z <- (DF$AI_1 - DF$AI_2) / sqrt(p_bar * (1 - p_bar) * (1/DF$sumCOV_1 + 1/DF$sumCOV_2))
 
 
-  # Find intersecting intervals > call them FALSE (non-rejected H_0)
-  Qbft <- 1 - (1-Q)/nrow(na.omit(DF[, c("sumCOV_1", "matCOV_1", "sumCOV_2", "matCOV_2")]))
-  DF_CI_divided_BFor2 <- lapply(1:2, function(i){
-    ComputeAICIs(inDF, vectReps=vectReps[[i]], vectRepsCombsCC=vectRepsCombsCC[[i]],
-                 Q=Qbft, BF=F,
-                 thr=thr, thrUP=thrUP, thrType=thrType)
-  })
-  DF_BFor2 <- merge(DF_CI_divided_BFor2[[1]][, c("ID", "BT_CIleft", "BT_CIright")], DF_CI_divided_BFor2[[2]][, c("ID", "BT_CIleft", "BT_CIright")], by = "ID")
-  names(DF_BFor2)[-1] <- c("BT_dCIleft_1", "BT_dCIright_1", "BT_dCIleft_2", "BT_dCIright_2")
-  DF_BFor2_CC <- merge(DF_CI_divided_BFor2[[1]][, c("ID", "BT_CIleft_CC", "BT_CIright_CC")], DF_CI_divided_BFor2[[2]][, c("ID", "BT_CIleft_CC", "BT_CIright_CC")], by = "ID")
-  names(DF_BFor2_CC)[-1] <- c("BT_dCIleft_CC_1", "BT_dCIright_CC_1", "BT_dCIleft_CC_2", "BT_dCIright_CC_2")
+  # # Find intersecting intervals > call them FALSE (non-rejected H_0)
+  # Qbft <- 1 - (1-Q)/nrow(na.omit(DF[, c("sumCOV_1", "matCOV_1", "sumCOV_2", "matCOV_2")]))
+  # DF_CI_divided_BFor2 <- lapply(1:2, function(i){
+  #   ComputeAICIs(inDF, vectReps=vectReps[[i]], vectRepsCombsCC=vectRepsCombsCC[[i]],
+  #                Q=Qbft, BF=F,
+  #                thr=thr, thrUP=thrUP, thrType=thrType)
+  # })
+  # DF_BFor2 <- merge(DF_CI_divided_BFor2[[1]][, c("ID", "BT_CIleft", "BT_CIright")], DF_CI_divided_BFor2[[2]][, c("ID", "BT_CIleft", "BT_CIright")], by = "ID")
+  # names(DF_BFor2)[-1] <- c("BT_dCIleft_1", "BT_dCIright_1", "BT_dCIleft_2", "BT_dCIright_2")
+  # DF_BFor2_CC <- merge(DF_CI_divided_BFor2[[1]][, c("ID", "BT_CIleft_CC", "BT_CIright_CC")], DF_CI_divided_BFor2[[2]][, c("ID", "BT_CIleft_CC", "BT_CIright_CC")], by = "ID")
+  # names(DF_BFor2_CC)[-1] <- c("BT_dCIleft_CC_1", "BT_dCIright_CC_1", "BT_dCIleft_CC_2", "BT_dCIright_CC_2")
 
   #print(DF)
 
-  DF <- merge(DF, DF_BFor2, by = "ID")
-  DF$BT <- (DF$BT_dCIright_2 < DF$BT_dCIleft_1 | DF$BT_dCIright_1 < DF$BT_dCIleft_2)
+  # DF <- merge(DF, DF_BFor2, by = "ID")
+  # DF$BT <- (DF$BT_dCIright_2 < DF$BT_dCIleft_1 | DF$BT_dCIright_1 < DF$BT_dCIleft_2)
+  # DF <- merge(DF, DF_BFor2_CC, by = "ID")
+  # DF$BT_CC <- (DF$BT_dCIright_CC_2 < DF$BT_dCIleft_CC_1 | DF$BT_dCIright_CC_1 < DF$BT_dCIleft_CC_2)
 
-  DF <- merge(DF, DF_BFor2_CC, by = "ID")
-  DF$BT_CC <- (DF$BT_dCIright_CC_2 < DF$BT_dCIleft_CC_1 | DF$BT_dCIright_CC_1 < DF$BT_dCIleft_CC_2)
+  diff_analysis_genes_num <- nrow(na.omit(DF))
+
+  DF$BT_pval <- sapply(1:nrow(DF), function(i){
+    if (!is.na(DF$matCOV_1[i]) & !is.na(DF$matCOV_2[i]) & DF$matCOV_1[i] > 0 & DF$matCOV_2[i] > 0){
+      prop.test(x = c(DF$matCOV_1[i], DF$matCOV_2[i]), n = c(DF$sumCOV_1[i], DF$sumCOV_2[i]),
+                alternative="two.sided", conf.level = (1-(1-Q)/diff_analysis_genes_num), correct=F)$p.value
+    } else {
+      NA
+    }
+  })
+
+  DF$BT    <- (DF$BT_pval <= (1-Q)/diff_analysis_genes_num)
+
+  DF$BT_CC_pval <- sapply(1:nrow(DF), function(i){
+    if (!is.na(DF$matCOV_1[i]) & !is.na(DF$matCOV_2[i]) & DF$matCOV_1[i] > 0 & DF$matCOV_2[i] > 0){
+      k <- 1/meanRepsCombsCC**2
+      prop.test(x = c(DF$matCOV_1[i], DF$matCOV_2[i]) * k,
+                n = c(DF$sumCOV_1[i], DF$sumCOV_2[i]) * k,
+                alternative="two.sided", conf.level = (1-(1-Q)/diff_analysis_genes_num), correct=F)$p.value
+    } else {
+      NA
+    }
+  })
+
+  DF$BT_CC <- (DF$BT_CC_pval <= (1-Q)/diff_analysis_genes_num)
 
   #print(DF)
 
@@ -690,7 +710,7 @@ PerformBinTestAIAnalysisForTwoConditions <- function(inDF, vect1CondReps, vect2C
   #'
 
   fitDATA1Cond <- ComputeCorrConstantsForAllPairsReps(inDF, vectReps=vect1CondReps, binNObs=binNObs,
-                                                 EPS=EPS, thr=thr, thrUP=thrUP, thrType=thrType)
+                                                      EPS=EPS, thr=thr, thrUP=thrUP, thrType=thrType)
   fitDATA2Cond <- ComputeCorrConstantsForAllPairsReps(inDF, vectReps=vect2CondReps, binNObs=binNObs,
                                                       EPS=EPS, thr=thr, thrUP=thrUP, thrType=thrType)
 
