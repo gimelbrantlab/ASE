@@ -679,7 +679,7 @@ def main():
         gzip_tabix_VCF(vcf_het)
 
         # HET VCF restrictions on the regions:
-        if (args.bed is not None or (args.gtf is not None):
+        if (args.bed is not None or args.gtf is not None):
             if (args.bed is not None):
                 vcf_het_region = vcf_het.replace(".vcf", ".selected_regions.vcf")
                 
