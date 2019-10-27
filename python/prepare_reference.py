@@ -294,7 +294,7 @@ def PairToF1_VCF(vcf_pair, vcf_f1, name_mat, name_pat):
 
     colnames[pat_col] = "F1"
     colnames.pop(mat_col)
-    out2_stream.write('#' + '\t'.join(colnames) + '\n')
+    out_stream.write('#' + '\t'.join(colnames) + '\n')
 
     # body:
     for row in vcf_stream:
@@ -354,7 +354,7 @@ def SingletonToF1_VCF(vcf_single, vcf_f1, name_alt):
     alt_col = colnames.index("ALT")
 
     colnames[name_col] = "F1"
-    out2_stream.write('#' + '\t'.join(colnames) + '\n')
+    out_stream.write('#' + '\t'.join(colnames) + '\n')
 
     # body:
     for row in vcf_stream:
@@ -679,7 +679,7 @@ def main():
         gzip_tabix_VCF(vcf_het)
 
         # HET VCF restrictions on the regions:
-        if (args.bed is not None or (args.gtf is not None):
+        if (args.bed is not None or args.gtf is not None):
             if (args.bed is not None):
                 vcf_het_region = vcf_het.replace(".vcf", ".selected_regions.vcf")
                 
