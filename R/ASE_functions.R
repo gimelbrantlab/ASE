@@ -6,83 +6,55 @@ options(stringsAsFactors = FALSE)
 # ---------------------------------------------------------------------------------------
 #                 FUNCTIONS: READ FILES AND CREATE UNIFORM TABLES
 # ---------------------------------------------------------------------------------------
-#                 TODO: 1. Kallisto functions
-# ---------------------------------------------------------------------------------------
 
-GetGatkPipelineTabs <- function(inFiles, nReps, multiple = TRUE, chrom = F){
+GetGatkPipelineTabs <- function(inFiles, nReps, contigs = vector()){
   #' (GATK pipeline) Concatenate vertically (uniting merge) tables from inFiles.
   #'
   #' @param inFiles A vector of full pathes to files with gene names and allelic counts
   #' @param nReps A vector of numbers, each entry is a number of replicates in the corresponding file
-  #' @param multiple Parameter defining if multiple input files are used, default set to TRUE
-  #' @param chrom Parameter defining if the resulting table includes chromosome column, default set to FALSE
+  #' @param contigs Parameter defining if the resulting table should be filtered by contig column preserving only row corresponding to a given vector, default set to empty vector() and no filtering applied
   #' @return A concatenated table with means/counts, each row corresponds to a gene
   #' @examples
   #'
-  # TODO : change naming here
-  if (multiple) {
-    df <- Reduce(function(x,y){merge(x,y,by="ensembl_gene_id")},
-                 lapply(1:length(inFiles), function(x){
-                   df0 <- read_delim(inFiles[x], delim="\t", escape_double = FALSE, trim_ws = TRUE)
-                   return(df0[,c(1:(2*nReps[x]+1))])
-                 }
-                 )
-    )
-    # TODO add chrom option for multiple files
-  }
-  else {
-    df <- read_delim(inFiles, delim="\t", escape_double = FALSE, trim_ws = TRUE)
-    df_chrom <- df[,c("ensembl_gene_id","chr")]
-    df <- df[,c(1:(2*sum(nReps)+1))]
-    df <- as.data.frame(df)
-    if (chrom) {
-      df <- merge(df, df_chrom, by.x = "ensembl_gene_id", by.y = "ensembl_gene_id")
+  #'
+  nameColumns <- function(nReps)  {
+    if(length(inFiles) != 1){
+      lapply(1:length(nReps), function(i){
+        paste0("rep", i, ".", rep(1:nReps[i], each = 2), c("_ref", "_alt"))
+      })
+    } else {
+      list(paste0("rep", rep(1:sum(nReps), each = 2), c("_ref", "_alt")))
     }
   }
-  nameColumns <- function(rep_n)  {
-    paste0("rep", rep(1:rep_n, each = 2), rep(c("_ref", "_alt"), rep_n))
+  if(length(contigs) != 0){
+    cs <- lapply(1:length(nReps), function(i){c(1, 2:(2*nReps[i]+1), 2*nReps[i]+3)})
+    cs_names <- lapply(nameColumns(nReps), function(x){c("ID", x, "contig")})
+    cs_merge <- c("ID", "contig")
+  } else {
+    cs <- lapply(1:length(nReps), function(i){c(1, 2:(2*nReps[i]+1))})
+    cs_names <- lapply(nameColumns(nReps), function(x){c("ID", x)})
+    cs_merge <- c("ID")
   }
-  if (multiple) {
-    names(df) <- c("ensembl_gene_id",
-                   paste0("rep", rep(1:sum(nReps), each=2), c("_ref", "_alt")))
-    if (chrom) {
-      names(df)[ncol(df)] <- "chr"
-    }
-  }
-  else {
-    names(df) <- c("ensembl_gene_id", unlist(sapply(nReps, nameColumns)))
-    if (chrom) {
-      names(df)[ncol(df)] <- "chr"
-    }
-  }
-  return(df)
-}
 
-GetGatkPipelineSNPTabs <- function(inFiles, nReps){
-  #' (GATK pipeline) Concatenate vertically (uniting merge) tables from inFiles
-  #'
-  #' @param inFiles A vector of pathes to files
-  #' @param nReps A vector of numbers, each -- number of replicates in corresponding file
-  #' @return A technical replicates-concatenated table with SNPs, rows corresponds to SNPs
-  #' @examples
-  #'
-  df <- Reduce(function(x,y){merge(x,y,by="ensembl_gene_id")},
-               lapply(1:length(inFiles), function(x){
-                   df <- read_delim(inFiles[x], delim="\t", escape_double = FALSE, trim_ws = TRUE)
-                   cs <- which(sapply(names(df), function(x){
-                                  (grepl("rep", x, fixed=TRUE) & grepl("aggr", x, fixed=TRUE))
-                                }
-                              )
-                         )
-                   snpdf <- apply(df[, cs], 2, function(c){as.numeric(unlist(strsplit(c, ', ')))})
-                   snpdf <- data.frame(ensembl_gene_id = paste0("SNP", 1:nrow(snptab_list[[1]])),
-                                       snpdf)
-                   return(snpdf)
-                 }
-               )
-               )
-  names(df) <- c("ensembl_gene_id",
-                 paste0("rep", rep(1:sum(nReps), each=2), c("_ref", "_alt")))
+  df <- Reduce(function(x,y){merge(x, y, by=cs_merge)},
+               lapply(1:length(inFiles), function(i){
+                 # if(length(contigs) != 0){
+                 #   df0 <- read_delim(inFiles[i], delim="\t", escape_double = FALSE, trim_ws = TRUE,
+                 #                     col_types = cols(contig = col_character()))
+                 # } else {
+                 #   df0 <- read_delim(inFiles[i], delim="\t", escape_double = FALSE, trim_ws = TRUE)
+                 # }
+                 df0 <- read.delim(inFiles[i], sep="\t")
+                 df0 <- df0[, cs[[i]]]
+                 names(df0) <- cs_names[[i]]
+                 return(df0)
+               })
+  )
+  if(length(contigs) != 0){
+    df <- df[df$contig %in% contigs, ]
+    df <- df[, -which(names(df)=="contig")]
+  }
+
   return(df)
 }
 
