@@ -115,13 +115,14 @@ MixBetaBinomialFit <- function(initials, coverage, observations){
 #                 FUNCTIONS: COMPUTE CORR CONSTANT
 # ---------------------------------------------------------------------------------------
 
-ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40,
+ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40, fitCovThr=50,
                                         EPS=1.3, thr=NA, thrUP=NA, thrType="each"){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for each condition
   #'
   #' @param inDF A table with ref & alt counts per gene/SNP for each replicate plus the first column with gene/SNP names
   #' @param reps A vector of 2 of replicate numbers that should be considered
   #' @param binNObs Threshold on number of observations per bin
+  #' @param fitCovThr Threshold on coverage for genes that will be included in Beta-Bin fitting
   #' @param EPS An optional parameter to set a log window for coverage binning
   #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
   #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
@@ -168,7 +169,7 @@ ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40,
   }
 
   covbinsGthr = df_covbinsnum$binCOV[df_covbinsnum$binNUM > binNObs &
-                                       df_covbinsnum$binCOV >= max(50, thr)]
+                                       df_covbinsnum$binCOV >= max(fitCovThr, thr)]
 
   print(paste(length(covbinsGthr), "COVERAGE BINS"))
 
@@ -272,13 +273,14 @@ ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40,
 }
 
 
-ComputeCorrConstantsForAllPairsReps <- function(inDF, vectReps, binNObs=40,
+ComputeCorrConstantsForAllPairsReps <- function(inDF, vectReps, binNObs=40, fitCovThr=50,
                                                 EPS=1.3, thr=NA, thrUP=NA, thrType="each"){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for each condition
   #'
   #' @param inDF A table with ref & alt counts per gene/SNP for each replicate plus the first column with gene/SNP names
   #' @param vectReps A vector (>=2) of replicate numbers that should be considered as tech reps
   #' @param binNObs Threshold on number of observations per bin
+  #' @param fitCovThr Threshold on coverage for genes that will be included in Beta-Bin fitting
   #' @param EPS An optional parameter to set a log window for coverage binning
   #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
   #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
@@ -291,7 +293,7 @@ ComputeCorrConstantsForAllPairsReps <- function(inDF, vectReps, binNObs=40,
 
   fitDATA <- lapply(1:ncol(repCombs), function(j){
     x = repCombs[, j]
-    ComputeCorrConstantFor2Reps(inDF=inDF, reps=x, binNObs=binNObs,
+    ComputeCorrConstantFor2Reps(inDF=inDF, reps=x, binNObs=binNObs, fitCovThr=fitCovThr,
                                 EPS=EPS, thr=thr, thrUP=thrUP, thrType=thrType)
   })
   return(fitDATA)
@@ -382,7 +384,7 @@ PerformBinTestAIAnalysisForConditionNPoint_knownCC <- function(inDF, vectReps, v
 }
 
 
-PerformBinTestAIAnalysisForConditionNPoint <- function(inDF, vectReps, pt = 0.5, binNObs=40, Q=0.95, EPS=1.3,
+PerformBinTestAIAnalysisForConditionNPoint <- function(inDF, vectReps, pt = 0.5, binNObs=40, fitCovThr=50, Q=0.95, EPS=1.3,
                                                        thr=NA, thrUP=NA, thrType="each", minDifference=NA){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for condition + point estimate to compare
   #'
@@ -390,6 +392,7 @@ PerformBinTestAIAnalysisForConditionNPoint <- function(inDF, vectReps, pt = 0.5,
   #' @param vectReps A vector (>=2) of replicate numbers that should be considered as tech reps
   #' @param pt A point to compare with
   #' @param binNObs Threshold on number of observations per bin
+  #' @param fitCovThr Threshold on coverage for genes that will be included in Beta-Bin fitting
   #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
   #' @param EPS An optional parameter to set a log window for coverage binning
   #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
@@ -400,7 +403,7 @@ PerformBinTestAIAnalysisForConditionNPoint <- function(inDF, vectReps, pt = 0.5,
   #' @examples
   #'
 
-  fitDATA <- ComputeCorrConstantsForAllPairsReps(inDF, vectReps=vectReps, binNObs=binNObs,
+  fitDATA <- ComputeCorrConstantsForAllPairsReps(inDF, vectReps=vectReps, binNObs=binNObs, fitCovThr=fitCovThr,
                                                  EPS=EPS, thr=thr, thrUP=thrUP, thrType=thrType)
 
   vectRepsCombsCC <- sapply(fitDATA, function(fd){
@@ -505,7 +508,7 @@ PerformBinTestAIAnalysisForConditionNPointVect_knownCC <- function(inDF, vectRep
 }
 
 
-PerformBinTestAIAnalysisForConditionNPointVect <- function(inDF, vectReps, ptVect, binNObs=40, Q=0.95, EPS=1.3,
+PerformBinTestAIAnalysisForConditionNPointVect <- function(inDF, vectReps, ptVect, binNObs=40, fitCovThr=50, Q=0.95, EPS=1.3,
                                                            thr=NA, thrUP=NA, thrType="each", minDifference=NA){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for condition + point estimate to compare
   #'
@@ -513,6 +516,7 @@ PerformBinTestAIAnalysisForConditionNPointVect <- function(inDF, vectReps, ptVec
   #' @param vectReps A vector (>=2) of replicate numbers that should be considered as tech reps
   #' @param pt A point to compare with
   #' @param binNObs Threshold on number of observations per bin
+  #' @param fitCovThr Threshold on coverage for genes that will be included in Beta-Bin fitting
   #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
   #' @param EPS An optional parameter to set a log window for coverage binning
   #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
@@ -523,7 +527,7 @@ PerformBinTestAIAnalysisForConditionNPointVect <- function(inDF, vectReps, ptVec
   #' @examples
   #'
 
-  fitDATA <- ComputeCorrConstantsForAllPairsReps(inDF, vectReps=vectReps, binNObs=binNObs,
+  fitDATA <- ComputeCorrConstantsForAllPairsReps(inDF, vectReps=vectReps, binNObs=binNObs, fitCovThr=fitCovThr,
                                                  EPS=EPS, thr=thr, thrUP=thrUP, thrType=thrType)
 
   vectRepsCombsCC <- sapply(fitDATA, function(fd){
@@ -705,7 +709,7 @@ PerformBinTestAIAnalysisForTwoConditions_knownCC <- function(inDF, vect1CondReps
 }
 
 
-PerformBinTestAIAnalysisForTwoConditions <- function(inDF, vect1CondReps, vect2CondReps, binNObs=40, Q=0.95, EPS=1.3,
+PerformBinTestAIAnalysisForTwoConditions <- function(inDF, vect1CondReps, vect2CondReps, binNObs=40, fitCovThr=50, Q=0.95, EPS=1.3,
                                                      thr=NA, thrUP=NA, thrType="each", minDifference=NA){
   #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use for condition + point estimate to compare
   #'
@@ -713,6 +717,7 @@ PerformBinTestAIAnalysisForTwoConditions <- function(inDF, vect1CondReps, vect2C
   #' @param vect1CondReps A vector (>=2) of replicate numbers that should be considered as first condition's tech reps
   #' @param vect2CondReps A vector (>=2) of replicate numbers that should be considered as second condition's tech reps
   #' @param binNObs Threshold on number of observations per bin
+  #' @param fitCovThr Threshold on coverage for genes that will be included in Beta-Bin fitting
   #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
   #' @param EPS An optional parameter to set a log window for coverage binning
   #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
@@ -723,9 +728,9 @@ PerformBinTestAIAnalysisForTwoConditions <- function(inDF, vect1CondReps, vect2C
   #' @examples
   #'
 
-  fitDATA1Cond <- ComputeCorrConstantsForAllPairsReps(inDF, vectReps=vect1CondReps, binNObs=binNObs,
+  fitDATA1Cond <- ComputeCorrConstantsForAllPairsReps(inDF, vectReps=vect1CondReps, binNObs=binNObs, fitCovThr=fitCovThr,
                                                       EPS=EPS, thr=thr, thrUP=thrUP, thrType=thrType)
-  fitDATA2Cond <- ComputeCorrConstantsForAllPairsReps(inDF, vectReps=vect2CondReps, binNObs=binNObs,
+  fitDATA2Cond <- ComputeCorrConstantsForAllPairsReps(inDF, vectReps=vect2CondReps, binNObs=binNObs, fitCovThr=fitCovThr,
                                                       EPS=EPS, thr=thr, thrUP=thrUP, thrType=thrType)
 
   vect1CondRepsCombsCC <- sapply(fitDATA1Cond, function(fd){
