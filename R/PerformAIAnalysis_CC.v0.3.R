@@ -62,7 +62,6 @@ MixBetaBinomialFitStep <- function(initials_old, coverage, observations){
           sum(sapply(0:(coverage-1), function(j){LogFraction(2*a_k, 2*a_notk, j)}))
       }
       result <- 1 / (1 + w_notk/w_k * exp(logFractionsProd))
-      ########################### 1 + eps != 1 (!), ну и чёрт с ним.
       return(result)
     })
     return(gamma_k)
@@ -72,9 +71,6 @@ MixBetaBinomialFitStep <- function(initials_old, coverage, observations){
   sum_gamma_k <- colSums(gamma_n_k)
 
   w_new <- sum_gamma_k / length(observations)
-  #mean_new <- sapply(1:2, function(k){
-  #  sum(gamma_n_k[, k] * observations) / sum_gamma_k[k]
-  #})
   mean_new <- c(0.5*coverage, 0.5*coverage)
   var_new <- sapply(1:2, function(k){
     sum(gamma_n_k[, k] * (observations - mean_new[k])**2) / sum_gamma_k[k]
@@ -85,6 +81,7 @@ MixBetaBinomialFitStep <- function(initials_old, coverage, observations){
 
   initials_new <- c(w_new[1], alpha_new)
   print(initials_new)
+
   return(as.numeric(initials_new))
 }
 
@@ -101,13 +98,18 @@ MixBetaBinomialFit <- function(initials, coverage, observations){
   initials_old <- initials
   initials_new <- MixBetaBinomialFitStep(initials_old, coverage, observations)
   n_steps <- 1
-  while(all(abs(initials_new - initials_old) > 0.001) &
-        initials_new[3] < 2){
+  fit_tab <- data.frame(cov = coverage/2, w1 = c(initials_new[1]), a1 = c(initials_new[2]), a2 = c(initials_new[3]))
+  while(all(abs(initials_new - initials_old) > 0.001)){
     initials_old <- initials_new
     initials_new <- MixBetaBinomialFitStep(initials_old, coverage, observations)
+    if (initials_new[3] > 1){
+      initials_new <- initials_old
+      break
+    }
+    fit_tab <- rbind(fit_tab, data.frame(cov = coverage/2, w1 = c(initials_new[1]), a1 = c(initials_new[2]), a2 = c(initials_new[3])))
     n_steps = n_steps + 1
   }
-  return(c(initials_new, n_steps))
+  return(list(c(initials_new, n_steps), fit_tab))
 }
 
 
@@ -173,12 +175,13 @@ ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40, fitCovThr=50,
 
   print(paste(length(covbinsGthr), "COVERAGE BINS"))
 
-  df_betabin_params = do.call(rbind, lapply(1:length(covbinsGthr), function(i){
+  df_betabin_res = lapply(1:length(covbinsGthr), function(i){
     coverage = covbinsGthr[i]
     df = df_unit_info[df_unit_info$binCOV == coverage, ]
     observations = round(df$AI_merged * coverage*2)
 
-    fitres = MixBetaBinomialFit(initials, coverage*2, observations)
+    fitdat = MixBetaBinomialFit(initials, coverage*2, observations)
+    fitres = fitdat[[1]]
     dfres = data.frame(No = i,
                        coverage = coverage,
                        x_weight_predicted = fitres[1],
@@ -186,8 +189,14 @@ ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40, fitCovThr=50,
                        y_alpha_predicted = fitres[3],
                        algm_steps = fitres[4])
     print(paste(i, "|", "meanCOV:", covbinsGthr[i], ",", "#STEPS:", dfres$algm_steps, sep="    "))
-    return(dfres)
+    return(list(dfres, fitdat[[2]]))
+  })
+  df_betabin_params = do.call(rbind, lapply(1:length(covbinsGthr), function(i){
+    df_betabin_res[[i]][[1]]
   }))
+  fittabinfo = lapply(1:length(covbinsGthr), function(i){
+    df_betabin_res[[i]][[2]]
+  })
 
   ##-------------------------------------------------------------------------------------------------------------------------------------
   ## 2. Simulate AI distribution based on beta patameters for each bin:
@@ -264,6 +273,7 @@ ComputeCorrConstantFor2Reps <- function(inDF, reps, binNObs=40, fitCovThr=50,
   return(list(
     infoTable = df_unit_info,
     betaBinTable = df_betabin_params,
+    betaBinFitInfo = fittabinfo,
     dAIBetaBinFit = lst_dai_betabinfit,
     dAIObserved = lst_dai_observed,
     QObsExpPropsTable = df_observed_expected_quantile_proportions,
@@ -351,15 +361,6 @@ PerformBinTestAIAnalysisForConditionNPoint_knownCC <- function(inDF, vectReps, v
     BT <- prop.test(matCOV[i], sumCOV[i], alternative="two.sided", conf.level = Qbf, p=ptt, correct=F)
     c(BT$p.value, BT$conf.int[1], BT$conf.int[2])
   }))
-
-  # DF$BT_pval = tmpDFbt[, 1]
-  # DF$BT_CIleft = DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(length(vectReps))
-  # DF$BT_CIright = DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(length(vectReps))
-  #
-  # DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(length(vectReps)) * CC,
-  #                           function(lb){ max(0, lb) })
-  # DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(length(vectReps)) * CC,
-  #                            function(ub){ min(1, ub) })
 
   DF$BT_pval = tmpDFbt[, 1]
   DF$BT_CIleft = tmpDFbt[, 2]
@@ -476,14 +477,6 @@ PerformBinTestAIAnalysisForConditionNPointVect_knownCC <- function(inDF, vectRep
     c(BT$p.value, BT$conf.int[1], BT$conf.int[2])
   }))
 
-  # DF$BT_pval = tmpDFbt[, 1]
-  # DF$BT_CIleft = DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(length(vectReps))
-  # DF$BT_CIright = DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(length(vectReps))
-  #
-  # DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 2]) / sqrt(length(vectReps)) * CC,
-  #                           function(lb){ max(0, lb) })
-  # DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 3] - DF$AI) / sqrt(length(vectReps)) * CC,
-  #                            function(ub){ min(1, ub) })
 
   DF$BT_pval = tmpDFbt[, 1]
   DF$BT_CIleft = tmpDFbt[, 2]
@@ -594,13 +587,6 @@ ComputeAICIs <- function(inDF, vectReps, vectRepsCombsCC,
     c(BT$conf.int[1], BT$conf.int[2])
   }))
 
-  # DF$BT_CIleft = DF$AI - (DF$AI - tmpDFbt[, 1]) / sqrt(length(vectReps))
-  # DF$BT_CIright = DF$AI + (tmpDFbt[, 2] - DF$AI) / sqrt(length(vectReps))
-  #
-  # DF$BT_CIleft_CC <- sapply(DF$AI - (DF$AI - tmpDFbt[, 1]) / sqrt(length(vectReps)) * CC,
-  #                           function(lb){ max(0, lb) })
-  # DF$BT_CIright_CC <- sapply(DF$AI + (tmpDFbt[, 2] - DF$AI) / sqrt(length(vectReps)) * CC,
-  #                            function(ub){ min(1, ub) })
 
   DF$BT_CIleft = tmpDFbt[, 1]
   DF$BT_CIright = tmpDFbt[, 2]
