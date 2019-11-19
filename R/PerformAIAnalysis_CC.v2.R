@@ -105,6 +105,11 @@ MixBetaBinomialFit <- function(initials, coverage, observations){
         initials_new[3] < 2){
     initials_old <- initials_new
     initials_new <- MixBetaBinomialFitStep(initials_old, coverage, observations)
+    # check if any <0 or NaN:
+    if (sum(initials_new < 0) > 0 | sum(is.nan(initials_new)) > 0){
+        initials_new = initials_old
+        break
+    }
     n_steps = n_steps + 1
   }
   return(c(initials_new, n_steps))
