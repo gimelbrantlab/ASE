@@ -102,7 +102,7 @@ MixBetaBinomialFit <- function(initials, coverage, observations){
   while(all(abs(initials_new - initials_old) > 0.001)){
     initials_old <- initials_new
     initials_new <- MixBetaBinomialFitStep(initials_old, coverage, observations)
-    if (initials_new[3] > 1){
+    if (sum(initials_new < 0) > 0 | sum(is.nan(initials_new)) > 0 | initials_new[3] > 1){
       initials_new <- initials_old
       break
     }
