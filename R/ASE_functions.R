@@ -18,7 +18,7 @@ GetGatkPipelineTabs <- function(inFiles, nReps, contigs = vector()){
   #'
   #'
   nameColumns <- function(nReps)  {
-    if(length(inFiles) != 1){
+    if(length(nReps) != 1){
       lapply(1:length(nReps), function(i){
         paste0("rep", i, ".", rep(1:nReps[i], each = 2), c("_ref", "_alt"))
       })
@@ -27,23 +27,29 @@ GetGatkPipelineTabs <- function(inFiles, nReps, contigs = vector()){
     }
   }
   if(length(contigs) != 0){
-    cs <- lapply(1:length(nReps), function(i){c(1, 2:(2*nReps[i]+1), 2*nReps[i]+3)})
-    cs_names <- lapply(nameColumns(nReps), function(x){c("ID", x, "contig")})
+    # i.e. filtering by contig is needed
     cs_merge <- c("ID", "contig")
+    if(length(inFiles) == 1){
+      cs <- list(c(1, 2:(2*sum(nReps)+1), 2*sum(nReps)+3))
+      cs_names <- list(c("ID", unlist(nameColumns(nReps)), "contig"))
+    } else {
+      cs <- lapply(1:length(nReps), function(i){c(1, 2:(2*nReps[i]+1), 2*nReps[i]+3)})
+      cs_names <- lapply(nameColumns(nReps), function(x){c("ID", x, "contig")})
+    }
   } else {
-    cs <- lapply(1:length(nReps), function(i){c(1, 2:(2*nReps[i]+1))})
-    cs_names <- lapply(nameColumns(nReps), function(x){c("ID", x)})
+    # i.e. NO filtering by contig
     cs_merge <- c("ID")
+    if(length(inFiles) == 1){
+      cs <- list(c(1, 2:(2*sum(nReps)+1)))
+      cs_names <- list(c("ID", unlist(nameColumns(nReps))))
+    } else {
+      cs <- lapply(1:length(nReps), function(i){c(1, 2:(2*nReps[i]+1))})
+      cs_names <- lapply(nameColumns(nReps), function(x){c("ID", x)})
+    }
   }
 
   df <- Reduce(function(x,y){merge(x, y, by=cs_merge)},
                lapply(1:length(inFiles), function(i){
-                 # if(length(contigs) != 0){
-                 #   df0 <- read_delim(inFiles[i], delim="\t", escape_double = FALSE, trim_ws = TRUE,
-                 #                     col_types = cols(contig = col_character()))
-                 # } else {
-                 #   df0 <- read_delim(inFiles[i], delim="\t", escape_double = FALSE, trim_ws = TRUE)
-                 # }
                  df0 <- read.delim(inFiles[i], sep="\t")
                  df0 <- df0[, cs[[i]]]
                  names(df0) <- cs_names[[i]]
