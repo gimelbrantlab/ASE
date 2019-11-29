@@ -45,6 +45,10 @@ CC = lapply(c("../../../data/kidney/submln/NEB_CorrConsts_30mln_1.05.RData",
               sapply(out_XXmln_SMART10ng, function(x){x$fittedCC})
             })
 
+###
+data_30mln_noX = data_XXmln_noX
+
+
 Ntrials = 1
 set.seed(1)
 sampleMreps = sapply(1:(max(Ntrials, 10)), function(i){(sample(1:6, 2)-1)*5 + sample(5, 2, replace=T)})
@@ -81,7 +85,7 @@ pdis = lapply(1:3, function(m){
 
     CC_sample2_30mln = CC[[m]][CCn_sample2reps30mln]
 
-    data_30mln_sample2 = data_30mln[[m]][, sort(c(1, sample2reps30mln*2, sample2reps30mln*2+1))]
+    data_30mln_sample2 = data_30mln_noX[[m]][, sort(c(1, sample2reps30mln*2, sample2reps30mln*2+1))]
 
     p = GetPercDiffForExperiment_BT(df=data_30mln_sample2, CC_df=CC_sample2_30mln, exp_name = "any")
 
@@ -100,7 +104,7 @@ pdis_CC = lapply(1:3, function(m){
 
     CC_sample2_30mln = CC[[m]][CCn_sample2reps30mln]
 
-    data_30mln_sample2 = data_30mln[[m]][, sort(c(1, sample2reps30mln*2, sample2reps30mln*2+1))]
+    data_30mln_sample2 = data_30mln_noX[[m]][, sort(c(1, sample2reps30mln*2, sample2reps30mln*2+1))]
 
     p = GetPercDiffForExperiment_BT_CC(df=data_30mln_sample2, CC_df=CC_sample2_30mln, exp_name="any")
 
@@ -117,6 +121,8 @@ df = rbind(
 
 df$libprep <- as.factor(df$libprep)
 df$libprep <- factor(df$libprep, levels=c("NEBNext (100ng)","SMARTseq (10ng)","SMARTseq (0.1ng)"))
+
+df_concordance <- df
 
 
 # Figure 3C
@@ -380,7 +386,7 @@ figure_3E_c <- ggplot(df, aes(x=libprep, y=Pc, col=libprep)) +
   theme(legend.position="right", text = element_text(size=18)) +
   guides(col=guide_legend(title="")) +
   scale_color_manual(labels=methods,
-                     values=c("royalblue1","maroon2","olivedrab3")) +                                                           
+                     values=c("royalblue1","maroon2","olivedrab3")) +
   #scale_color_manual(values=c("#999999", "#66FFB2"), labels=c("no correction", "QCC correction")) +
   scale_x_discrete(labels=c("", "", ""), limits = (levels(df$libprep))) #+
   #coord_flip()
