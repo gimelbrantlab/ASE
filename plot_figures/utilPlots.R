@@ -22,11 +22,11 @@ CreateForplotDF <- function(df_data, reppair, pairconst, libprepname) {
   df_bt = merge(df_1out[[1]][, c("ID", "BT", "BT_CC")], df_1out[[2]][, c("ID", "BT", "BT_CC")], by="ID")
   df_aicov = merge(merge(CountsToAI(df_data, reps=reppair[1],thr=10),
                          CountsToAI(df_data, reps=reppair[2], thr=10),
-                         by="ensembl_gene_id"),
+                         by="ID"),
                    merge(MeanCoverage(df_data, reps=reppair[1], thr=10),
                          MeanCoverage(df_data, reps=reppair[2], thr=10),
-                         by="ensembl_gene_id"),
-                   by = "ensembl_gene_id")
+                         by="ID"),
+                   by = "ID")
   names(df_aicov)[1] = "ID"
 
   df_forbtplot = merge(df_bt, df_aicov, by = "ID")
