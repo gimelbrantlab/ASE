@@ -14,8 +14,7 @@
 #     - F1-cross vcf files
 #     - Gene-Transcript-Exon Annotations
 # 
-# NOTE: the order of chromosomes in each file should be the same (add test)!
-# FOR MICE ONLY
+# NOTE: the order of chromosomes in each file should be the same!
 #
 # DEPEND:
 # bash(v4.2.46)
@@ -26,10 +25,11 @@
 # bcftools(v1.3.1)
 # htslib(v1.3.2)
 # cufflinks(v2.2.1)
+# vcftools(v0.1.17)
 #
 # Please, use --help|-h for help. 
 # For more information, please, visit:
-#       https://github.com/gimelbrantlab/ASE
+#       https://github.com/gimelbrantlab/GATKstar
 #
 
 import argparse
@@ -565,8 +565,8 @@ def main():
                 snp_mat_vcf = tempfile.NamedTemporaryFile(delete=False, suffix=".vcf")
                 snp_pat_vcf = tempfile.NamedTemporaryFile(delete=False, suffix=".vcf")
                 
-                GATK_SelectVariants(r=args.ref, v=args.vcf_pat, o=snp_pat_vcf.name, n=name_pat, b=False)
-                GATK_SelectVariants(r=args.ref, v=args.vcf_mat, o=snp_mat_vcf.name, n=name_mat, b=False)
+                GATK_SelectVariants(r=args.ref, v=args.vcf_joint, o=snp_pat_vcf.name, n=name_pat, b=False)
+                GATK_SelectVariants(r=args.ref, v=args.vcf_joint, o=snp_mat_vcf.name, n=name_mat, b=False)
                 SelectBiallelicSNP_VCF(snp_mat_vcf.name, sep_vcf_mat, name_mat)
                 SelectBiallelicSNP_VCF(snp_pat_vcf.name, sep_vcf_pat, name_pat)
 
