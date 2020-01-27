@@ -29,11 +29,13 @@ GetGatkPipelineTabs <- function(inFiles, nReps, contigs = vector()){
   if(length(contigs) != 0){
     # i.e. filtering by contig is needed
     cs_merge <- c("ID", "contig")
+    # contig column identification:
+    c_contig <- which(names(read.delim(inFiles[1], sep="\t")) == "contig")
     if(length(inFiles) == 1){
-      cs <- list(c(1, 2:(2*sum(nReps)+1), 2*sum(nReps)+3))
+      cs <- list(c(1, 2:(2*sum(nReps)+1), c_contig))
       cs_names <- list(c("ID", unlist(nameColumns(nReps)), "contig"))
     } else {
-      cs <- lapply(1:length(nReps), function(i){c(1, 2:(2*nReps[i]+1), 2*nReps[i]+3)})
+      cs <- lapply(1:length(nReps), function(i){c(1, 2:(2*nReps[i]+1), c_contig)})
       cs_names <- lapply(nameColumns(nReps), function(x){c("ID", x, "contig")})
     }
   } else {
@@ -64,6 +66,7 @@ GetGatkPipelineTabs <- function(inFiles, nReps, contigs = vector()){
 
   return(df)
 }
+
 
 # ---------------------------------------------------------------------------------------
 #                 FUNCTIONS: ALLELIC IMBALANSE AND MEAN COVERAGE
@@ -216,6 +219,7 @@ MergeSumCounts <- function(df, reps=NA, thr=NA, thrUP=NA, thrType="each"){
   return(res_df)
 }
 
+
 # ---------------------------------------------------------------------------------------
 #                 FUNCTIONS: DESIGN MATRIX
 # ---------------------------------------------------------------------------------------
@@ -247,6 +251,17 @@ BuildDesign <- function(experimentNames, techReps, corrConst=NA){
   return(designMatrix)
 }
 
+NameColumns <- function(exp_n, rep_n)  {
+  #' Helper function to quickly rename columns in geneCountTab dataframe
+  #'
+  #' @param exp_n Experiment number
+  #' @param rep_n Number of replicates for the experiment
+  #' @return Vector with names
+  #' @examples colnames(geneCountTab)[2:13] <- c(nameColumns(1,2), nameColumns(2,2), nameColumns(3,2))
+  #'
+
+  paste0("exp", rep(exp_n, 2*rep_n), "_rep", rep(1:rep_n, each = 2), "_", rep(c("ref", "alt"), rep_n))
+}
 
 
-# THE END
+# _______________________________________________________________________________________
