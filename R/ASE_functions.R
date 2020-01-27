@@ -1,6 +1,5 @@
-# _______________________________________________________________________________________
-
-options(stringsAsFactors = FALSE)
+#
+# BASIC FUNCTIONS
 # _______________________________________________________________________________________
 
 # ---------------------------------------------------------------------------------------
@@ -17,6 +16,7 @@ GetGatkPipelineTabs <- function(inFiles, nReps, contigs = vector()){
   #' @examples
   #'
   #'
+  options(stringsAsFactors = FALSE)
   nameColumns <- function(nReps)  {
     if(length(nReps) != 1){
       lapply(1:length(nReps), function(i){
@@ -59,6 +59,7 @@ GetGatkPipelineTabs <- function(inFiles, nReps, contigs = vector()){
   if(length(contigs) != 0){
     df <- df[df$contig %in% contigs, ]
     df <- df[, -which(names(df)=="contig")]
+    df
   }
 
   return(df)
@@ -66,6 +67,7 @@ GetGatkPipelineTabs <- function(inFiles, nReps, contigs = vector()){
 
 # ---------------------------------------------------------------------------------------
 #                 FUNCTIONS: ALLELIC IMBALANSE AND MEAN COVERAGE
+#                            (COMPUTING, FILTERING, REORGANIZING)
 # ---------------------------------------------------------------------------------------
 
 ThresholdingCounts <- function(df, reps=NA, thr=NA, thrUP=NA, thrType="each"){
@@ -79,7 +81,7 @@ ThresholdingCounts <- function(df, reps=NA, thr=NA, thrUP=NA, thrType="each"){
   #' @return Table with masked with NA undercovered genes
   #' @examples
   #'
-
+  options(stringsAsFactors = FALSE)
   # Taking replicates:
   if(anyNA(reps)){
     reps <- 1:(ncol(df)%/%2)
@@ -140,6 +142,7 @@ CountsToAI <- function(df, reps=NA, meth="meanOfProportions", thr=NA, thrUP=NA, 
   #' @return Df with names and mean(mean(m_1,...,m_6))_SNP / mean(mean(m_1+p_1,...,m_6+p6))_SNP
   #' @examples
   #'
+  options(stringsAsFactors = FALSE)
 
   ddf <- ThresholdingCounts(df, reps, thr, thrUP, thrType)
 
@@ -176,6 +179,7 @@ MeanCoverage <- function(df, reps=NA, thr=NA, thrUP=NA, thrType="each"){
   #' @return Df with names and Mean coverage mat+pat among given replicates.
   #' @examples
   #'
+  options(stringsAsFactors = FALSE)
 
   ddf <- ThresholdingCounts(df, reps, thr, thrUP, thrType)
 
@@ -196,6 +200,7 @@ MergeSumCounts <- function(df, reps=NA, thr=NA, thrUP=NA, thrType="each"){
   #' @return Table with names and sums of mat and pat coverages among given replicates.
   #' @examples
   #'
+  options(stringsAsFactors = FALSE)
 
   ddf <- ThresholdingCounts(df, reps, thr, thrUP, thrType)
 
@@ -212,23 +217,8 @@ MergeSumCounts <- function(df, reps=NA, thr=NA, thrUP=NA, thrType="each"){
 }
 
 # ---------------------------------------------------------------------------------------
-#                 FUNCTIONS: NAMES REWRITING
+#                 FUNCTIONS: DESIGN MATRIX
 # ---------------------------------------------------------------------------------------
-
-NumToDoulbledigitChar <- function(x){
-  #' Creates double-digit character from a number or a vector of numbers (up t0 99)
-  #'
-  #' @param x A number from 0 to 99
-  #' @return Double-digit character (or vector) from a number ('x' or '0x')
-  #' @examples
-  #'
-  if(length(x)==1){ x = c(x) }
-  doubledigitsChars <- sapply(1:length(x), function(i){
-    if(x[i]<=9) { return(paste0('0',x[i])) }
-    else { return(as.character(x[i])) }
-  })
-  return(doubledigitsChars)
-}
 
 BuildDesign <- function(experimentNames, techReps, corrConst=NA){
   #' Creates a design matrix for the experiment
@@ -239,9 +229,15 @@ BuildDesign <- function(experimentNames, techReps, corrConst=NA){
   #' @return Dataframe with experiments numbered and numbers of columns
   #' @examples
   #'
-  rowsSp <- data.frame(matrix(lapply(1:length(techReps), function(x){(2*sum(techReps[1:x-1])+1):(2*sum(techReps[1:x]))}), nrow=length(techReps), byrow=T),stringsAsFactors=FALSE)
+  rowsSp <- data.frame(matrix(lapply(1:length(techReps), function(x){
+                                                           (2*sum(techReps[1:x-1])+1):(2*sum(techReps[1:x]))
+                                                         }),
+                              nrow=length(techReps), byrow=T), stringsAsFactors=FALSE)
   colnames(rowsSp) <- "replicateCols"
-  colExp <- data.frame(matrix(lapply(1:length(techReps), function(x){(sum(techReps[1:x])-techReps[x]+1):(sum(techReps[1:x]))}), nrow=length(techReps), byrow=T),stringsAsFactors=FALSE)
+  colExp <- data.frame(matrix(lapply(1:length(techReps), function(x){
+                                                           (sum(techReps[1:x])-techReps[x]+1):(sum(techReps[1:x]))
+                                                         }),
+                              nrow=length(techReps), byrow=T), stringsAsFactors=FALSE)
   colnames(colExp) <- "replicateNums"
   designMatrix <- cbind(experimentNames, techReps, rowsSp, colExp)
   colnames(designMatrix) <- c("experimentNames", "techReps", "replicateCols", "replicateNums")
@@ -251,248 +247,6 @@ BuildDesign <- function(experimentNames, techReps, corrConst=NA){
   return(designMatrix)
 }
 
-# ---------------------------------------------------------------------------------------
-#                 FUNCTIONS: PAIRED COMPARISONS
-# ---------------------------------------------------------------------------------------
-
-CreateDeltaAIForAPairRepsDF <- function(df, reps, thr=NA, thrUP=NA, thrType="each"){
-  #' Creates a tab with gene mean coverage and AI deltas for a pair of technical replicates
-  #'
-  #' @param tab A dataframe of genes/transcripts and parental counts for technical replicates in columns
-  #' @param reps A parameter for setting 2 replicates for consideration
-  #' @param thr An optional parameter for a threshold on gene coverage (default = NA)
-  #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
-  #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
-  #' @return A tab with names, gene mean coverage and AI deltas for a pair of technical replicates
-  #' @examples
-  #'
-  ai1 <- CountsToAI(df, reps[1], thr=thr, thrUP=thrUP, thrType=thrType)$AI
-  ai2 <- CountsToAI(df, reps[2], thr=thr, thrUP=thrUP, thrType=thrType)$AI
-  ddf <- data.frame(df[, 1],
-                    deltaAI = ai1 - ai2,
-                    AI1 = ai1, AI2 = ai2,
-                    MeanCov = MeanCoverage(df, reps, thr=thr, thrUP=thrUP, thrType=thrType)$meanCOV)
-  names(ddf)[1] <- names(df)[1]
-
-  return(na.omit(ddf))
-}
-
-CreateMergedDeltaAIPairwiseDF <- function(df, reps=NA, what="noname",
-                                          thr=NA, thrUP=NA, thrType="each"){
-  #' Creates a table of parwise comparisons for technical replicates in given table
-  #'
-  #' @param df A dataframe of genes/transcripts and parental counts for technical replicates in columns
-  #' @param reps An optional parameter for a range op replicates for consideration (default = all replicates in df)
-  #' @param what A name (default = "noname")
-  #' @param thr An optional parameter for a threshold on gene coverage (default = NA)
-  #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
-  #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
-  #' @return A table of parwise comparisons for technical replicates in given table
-  #' @examples
-  #'
-
-  # Take all combinations from given replicates:
-  if(anyNA(reps)) {
-    reps <- 1:(ncol(df)%/%2)
-  }
-  combs <- combn(reps, 2, function(x){x})
-
-  # Perform paiwise ai comparison for all replicate combinations:
-  ddfPairs <- do.call(rbind, lapply(1:ncol(combs), function(y){
-    ddf          <- CreateDeltaAIForAPairRepsDF(df, combs[,y], thr, thrUP, thrType)
-    ddf$deltaAI  <- abs(ddf$deltaAI)
-    ddf$what     <- what
-    ddf$i   <- combs[1,y]
-    ddf$j   <- combs[2,y]
-    ddf$ij  <- paste(NumToDoulbledigitChar(combs[1,y]),
-                     'vs',
-                     NumToDoulbledigitChar(combs[2,y]))
-    return(ddf)
-  }))
-
-  return(ddfPairs)
-}
-
-# ---------------------------------------------------------------------------------------
-#                 FUNCTIONS: BINNING AND QUARTILLING
-# ---------------------------------------------------------------------------------------
-
-CreateObservedQuantilesDF <- function(df, P, ep, logbase=T, coverageLimit, group=''){
-  #' Creates a table with quantiles and numbers of bins for technical replicates for a given table, binned into log intervals
-  #'
-  #' @param df A dataframe - output of CreateMergedDeltaAIPairwiseDF()
-  #' @param P A vector of %-quartiles
-  #' @param logbase The binary parameter if we deal with log base (default = T)
-  #' @param ep The log base for binning (0^b, 1^b, ...)
-  #' @param coverageLimit Gene coverage limit for consideration
-  #' @param group An optional name (default = '')
-  #' @return A table with quantiles and numbers of bins for technical replicates for a given table
-  #' @examples
-  #'
-  if(logbase){
-    covIntervalsStarts <- unique(floor(ep**(0:log(coverageLimit, base=ep))))
-  } else {
-    covIntervalsStarts <- seq(0, coverageLimit-ep, ep)
-  }
-  lenCIS       <- length(covIntervalsStarts)
-  covIntervals <- c(covIntervalsStarts, coverageLimit)
-
-
-  ddf <- do.call(rbind, lapply(P, function(p){ # [for all quartile (%)]:
-    # [for all coverage bins]:
-    ddfP <- data.frame(coverageBin = covIntervalsStarts,
-                       deltaAI = sapply(1:lenCIS, function(i){
-                         dai <- df[df$MeanCov >= covIntervals[i] &
-                                   df$MeanCov <  covIntervals[i+1], ]$deltaAI
-                         quantile(dai, p, na.rm = T)
-                       }),
-                       binNObservations = sapply(1:lenCIS, function(i){
-                         nrow(df[df$MeanCov >= covIntervals[i] &
-                                 df$MeanCov <  covIntervals[i+1], ])
-                       }),
-                       Q = p)
-    return(ddfP)
-  })
-  )
-  ddf$group <- as.factor(paste(group, ddf$Q))
-  ddf$Q     <- as.factor(ddf$Q)
-  return(ddf)
-}
-
-# ---------------------------------------------------------------------------------------
-#                 FUNCTIONS: FITTING LM
-# ---------------------------------------------------------------------------------------
-
-# Was: fit_lm_intercept_how_we_want_morethan(inDF, N_obs_bin, morethan=10)
-#
-# TODO: ADD LESSTEN?
-#
-FitLmIntercept <- function(inDF, binNObs, morethan = 10, logoutput = TRUE){
-  #' Fits linear model to logarithmic data and outputs intercept for the model with slope=1/2 restriction
-  #
-  #' @param inDF A dataframe - output of CreateObservedQuantilesDF()
-  #' @param N_obs_bin Threshold on number of observations per bin
-  #' @param morethan Theshold on gene coverage for lm (default = 10)
-  #' @param logoutput Return log intercept? (default = true)
-  #' @return lm intercept or log2(lm intercept)
-  #' @examples
-  #'
-  df <- inDF[, c('coverageBin','deltaAI','binNObservations')]
-  df <- df[df$coverageBin > morethan &
-           df$binNObservations > binNObs, ]
-  df[, c('coverageBin','deltaAI')] <- log2(df[, c('coverageBin','deltaAI')])
-  loglm <- lm(data = df, deltaAI ~ offset(-0.5*coverageBin), na.action=na.exclude)$coefficients
-  if(logoutput){
-    return(loglm[1])
-  } else {
-    return(2**loglm[1])
-  }
-}
-
-
-# ---------------------------------------------------------------------------------------
-#                 FUNCTIONS: AI CI ESTIMATES
-# ---------------------------------------------------------------------------------------
-CreatePMforAI <- function(dfInt, dfAI, dfCov){
-  #' Input: two data frames, one including replicate-gene coverages, one with constants for each technical replicates pair
-  #'
-  #' @param dfInt A table with column "linInt" of correction constants for each replicates combination (rows), the order of rows should be consistent with columns in dfCov, s.t. pairs are alphabetically ordered
-  #' @param dfAI A table with columns for each technical replicate, the rows correspond to genes, the values are AI
-  #' @param dfCov A table with columns for each technical replicate, the rows correspond to genes, the values are coverage
-  #' @return Plus-minus intervals to determine AI Confidence Intervals for each gene
-  #' @examples
-  #'
-  covSumsCombs <- combn(1:ncol(dfCov), 2, function(x){rowSums(dfCov[, x])})
-  covSumsCombs[rowMeans(is.na(dfAI))>0, ] <- NA
-  invertCovSumsCombs <- 1 / covSumsCombs
-  if(ncol(dfCov) == 2){
-    qres = apply(invertCovSumsCombs, 1, function(c){c * dfInt$linInt**2})
-  } else if(ncol(dfCov) > 2){
-    qres = rowSums(t(apply(invertCovSumsCombs, 1, function(c){c * dfInt$linInt**2})))
-  }
-  return(0.5/(ncol(dfCov)*(ncol(dfCov)-1))*sqrt(qres))
-}
-
-CreateCIforAI <- function(dfInt, dfCounts, condName="Condition", thr=NA, thrUP=NA, thrType="each"){
-  #' Input: two data frames, one including replicate-gene mat|pat coverages, one with constants for each technical replicates pair
-  #'
-  #' @param dfInt A table with column "linInt" of correction constants for each replicates combination (rows), the order of rows should be consistent with columns in dfCounts, s.t. pairs are alphabetically ordered
-  #' @param dfCounts A table with pairs of columns for each technical replicate, the rows correspond to genes, the values are mat|pat coverages
-  #' @param condName An optional parameter; one-word name for condition
-  #' @param thr An optional parameter for a threshold on gene coverage (default = NA)
-  #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
-  #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
-  #' @return 5-column df: ID, AI, Plus-minus intervals, AI Confidence Intervals left and right ends
-  #' @examples
-  #'
-  dfAI  <- sapply(1:(ncol(dfCounts)%/%2), function(i){
-    CountsToAI(dfCounts, reps=i, thr=thr, thrUP=thrUP, thrType=thrType)$AI
-  })
-  dfCov <- sapply(1:(ncol(dfCounts)%/%2), function(i){
-    dfCounts[, (2*i)] + dfCounts[, (2*i+1)]
-  })
-
-  df <- data.frame(
-    ID        = dfCounts[,1],
-    condition = condName,
-    meanCov   = rowMeans(dfCov),
-    meanAI    = CountsToAI(dfCounts, meth="meanOfProportions", thr=thr, thrUP=thrUP, thrType=thrType)$AI,
-    pm        = CreatePMforAI(dfInt, dfAI, dfCov)
-  )
-  df$meanAILow  <- sapply(df$meanAI-df$pm, function(x){max(0, x)})
-  df$meanAIHigh <- sapply(df$meanAI+df$pm, function(x){min(1, x)})
-  return(df)
-}
-
-# ---------------------------------------------------------------------------------------
-#                 FUNCTIONS: PERFORM QUANTILE ANALYSIS
-# ---------------------------------------------------------------------------------------
-PerformDAIQuantilesAnalysis <- function(inDF, vectReps, condName="Condition",
-                                        Q=0.95, EPS=1.3, thr=NA, thrUP=NA, thrType="each"){
-  #' Input: data frame with gene names and counts (reference and alternative) + numbers of replicates to use
-  #'
-  #' @param inDF A table with ref & alt counts per gene/SNP for each replicate plus the first column with gene/SNP names
-  #' @param vectReps A vector (>=2) of replicate numbers that should be considered as tech reps
-  #' @param condName An optional parameter; one-word name for condition
-  #' @param Q An optional parameter; %-quantile (for example 0.95, 0.8, etc)
-  #' @param EPS An optional parameter to set a log window for coverage binning
-  #' @param thr An optional parameter; threshold on the overall number of counts (in all replicates combined) for a gene to be considered
-  #' @param thrUP An optional parameter for a threshold for max gene coverage (default = NA)
-  #' @param thrType An optional parameter for threshold type (default = "each", also can be "average" coverage on replicates)
-  #' @param fullOUT Set true if you want full output with all computationally-internal dfs
-  #' @return A table of quantiles in coverage bins
-  #' @examples
-  #'
-
-  # Take subtable:
-  dfCondition <- inDF[, sort(c(1, vectReps*2, vectReps*2+1))]
-
-  # Create pairvise AI differences for all techreps pairs:
-  deltaAIPairwiseDF <- CreateMergedDeltaAIPairwiseDF(df=dfCondition, what=condName, thr=thr, thrUP=thrUP, thrType=thrType)
-  deltaAIPairwiseDF$group <- paste(condName, deltaAIPairwiseDF$ij)
-
-  # Count quantiles for Mean Coverage bins:
-  observedQuantilesDF <- do.call(rbind,
-                                 lapply(unique(deltaAIPairwiseDF$group),
-                                        function(gr){
-                                          df  <- deltaAIPairwiseDF[deltaAIPairwiseDF$group == gr, ]
-                                          res <- CreateObservedQuantilesDF(df=df,
-                                                                           P=Q, ep=EPS, logbase=T,
-                                                                           coverageLimit=quantile(deltaAIPairwiseDF$MeanCov, 0.995),
-                                                                           group=gr)
-                                        }
-                                 )
-  )
-  observedQuantilesDF$condition <- condName
-  observedQuantilesDF$ij <- sapply(as.character(observedQuantilesDF$group),
-                                   function(x){paste(unlist(strsplit(x, ' '))[2:4], collapse=' ')})
-
-  return(observedQuantilesDF)
-}
-
-# .......................................................................................
-# Aftercomments:
-# _______________________________________________________________________________________
 
 
 # THE END
