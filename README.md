@@ -1,10 +1,16 @@
-# Allelic Imbalance Pipeline
+# Allelic Imbalance Pipeline - obsolete
+This is an OLD sandbox version of the pipeline for allele-specific analysis
+It has been split into two GitHub repositories:
+1. [ASEReadCounter*](https://github.com/gimelbrantlab/ASEReadCounter_star) - going from FASTQ to a table of allelic counts  
+and
+2. [QCumber](https://github.com/gimelbrantlab/QCumber) - starting with the allelic count table, estimate allelic imbalance and overdispersion
+
 
 This pipeline is created to analyze allelic imbalance for F1 crosses of inbred mouse lines. It constructs individual paternal and maternal genomes, then maps the reads from RNA-seq experiments to these genomes and counts the number of reads which map to either the reference or alternate allele at each heterozygous SNP. Next it estimates allelic imbalance for individual genes summarizing information from SNPs and constructs confidence intervals if technical replicates are available.
 
-![scheme](https://github.com/gimelbrantlab/ASE/blob/master/markdown/pipeline_scheme.png)
+![scheme](https://github.com/gimelbrantlab/ASE/blob/master/ASEReadsCounterstar_QCumber_flowchart.svg)
 
-## Files preparation 
+## File preparation 
 You will need to run _prepare_reference.py_ once for every F1 genome and also download a bunch of reference files (for instructions, please see [GenomePreparation.md](https://github.com/gimelbrantlab/ASE/blob/master/markdown/GenomePreparation.md)). 
 
 ## Allelic counts
