@@ -1,9 +1,9 @@
 # Allelic Imbalance Pipeline - obsolete
 This is an OLD sandbox version of the pipeline for allele-specific analysis. 
 It has been split into two GitHub repositories:
-1. [ASEReadCounter*](https://github.com/gimelbrantlab/ASEReadCounter_star) - going from FASTQ to a table of allelic counts  
+1. [ASEReadCounter*](https://github.com/gimelbrantlab/ASEReadCounter_star) - going from FASTQ to a table of allelic counts. *Probably best done on a compute cluster.*   
 and
-2. [QCumber](https://github.com/gimelbrantlab/QCumber) - starting with the allelic count table, estimate allelic imbalance and overdispersion
+2. [QCumber](https://github.com/gimelbrantlab/QCumber) - starting with the allelic count table, estimate allelic imbalance and overdispersion. *Can be run in an RStudio session.*
 
 The overall flow of analysis, starting with two technical replicate libraries per sample, is as follows:
 ![scheme](https://github.com/gimelbrantlab/ASE/blob/master/ASEReadsCounterstar_QCumber_flowchart.svg)
