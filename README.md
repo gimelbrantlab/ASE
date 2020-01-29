@@ -5,7 +5,7 @@ It has been split into two GitHub repositories:
 and
 2. [QCumber](https://github.com/gimelbrantlab/QCumber) - starting with the allelic count table, estimate allelic imbalance and overdispersion
 
-The overall flow of analysis is as follows:
+The overall flow of analysis, starting with two technical replicate libraries per sample, is as follows:
 ![scheme](https://github.com/gimelbrantlab/ASE/blob/master/ASEReadsCounterstar_QCumber_flowchart.svg)
 
 This pipeline is created to analyze allelic imbalance for F1 crosses of inbred mouse lines. It constructs individual paternal and maternal genomes, then maps the reads from RNA-seq experiments to these genomes and counts the number of reads which map to either the reference or alternate allele at each heterozygous SNP. Next it estimates allelic imbalance for individual genes summarizing information from SNPs and constructs confidence intervals if technical replicates are available.
